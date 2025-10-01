@@ -22,10 +22,7 @@ class CoreSignalService:
             dict: Profile data or error information
         """
         try:
-            # Normalize the LinkedIn URL
-            normalized_url = self._normalize_linkedin_url(linkedin_url)
-            print(f"Original URL: {linkedin_url}")
-            print(f"Normalized URL: {normalized_url}")
+            print(f"Searching for profile: {linkedin_url}")
             
             # Step 1: Search for employee ID using LinkedIn URL
             print("Step 1: Searching for employee ID...")
@@ -36,7 +33,7 @@ class CoreSignalService:
                         "must": [
                             {
                                 "term": {
-                                    "websites_linkedin.exact": normalized_url
+                                    "websites_linkedin.exact": linkedin_url
                                 }
                             }
                         ]
@@ -66,8 +63,7 @@ class CoreSignalService:
                     'error': 'No employee found with this LinkedIn URL. The profile may not be in the CoreSignal database.',
                     'success': False,
                     'debug_info': {
-                        'original_url': linkedin_url,
-                        'normalized_url': normalized_url
+                        'original_url': linkedin_url
                     }
                 }
             
@@ -110,21 +106,3 @@ class CoreSignalService:
                 'success': False
             }
     
-    def _normalize_linkedin_url(self, url):
-        """
-        Normalize LinkedIn URL to handle different formats
-        """
-        # Remove trailing slash
-        url = url.rstrip('/')
-        
-        # Ensure it starts with https://
-        if not url.startswith('http'):
-            url = 'https://' + url
-        
-        # Handle different LinkedIn URL formats
-        if 'linkedin.com/in/' in url:
-            # Extract the username part
-            username = url.split('/in/')[-1].split('?')[0].split('#')[0]
-            return f"https://www.linkedin.com/in/{username}"
-        
-        return url
