@@ -16,6 +16,7 @@ function App() {
   const [batchResults, setBatchResults] = useState([]);
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
+  const [singleProfileResults, setSingleProfileResults] = useState([]);
 
   // Dummy profile data for testing
   const dummyProfileData = {
@@ -372,8 +373,11 @@ function App() {
     setProfileSummary(null);
 
     try {
+      // Clean the LinkedIn URL - remove trailing slash if present
+      const cleanedUrl = linkedinUrl.trim().replace(/\/$/, '');
+      
       // Step 1: Fetch profile data from CoreSignal API
-      console.log('Fetching profile data for:', linkedinUrl);
+      console.log('Fetching profile data for:', cleanedUrl);
       
       const fetchResponse = await fetch('http://localhost:5001/fetch-profile', {
         method: 'POST',
@@ -381,7 +385,7 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          linkedin_url: linkedinUrl
+          linkedin_url: cleanedUrl
         }),
       });
 
@@ -419,6 +423,22 @@ function App() {
       const assessData = await assessResponse.json();
 
       if (assessData.success) {
+        // Add the single profile result to the array instead of replacing
+        const singleProfileResult = {
+          type: 'single',
+          name: assessData.profile_summary?.full_name || 'Single Profile Assessment',
+          headline: assessData.profile_summary?.headline || 'N/A',
+          score: assessData.assessment?.weighted_analysis?.weighted_score !== undefined 
+            ? (typeof assessData.assessment.weighted_analysis.weighted_score === 'number' ? assessData.assessment.weighted_analysis.weighted_score : 0)
+            : (typeof assessData.assessment?.overall_score === 'number' ? assessData.assessment.overall_score : 0),
+          assessment: assessData.assessment,
+          profileSummary: assessData.profile_summary,
+          success: true,
+          url: cleanedUrl,
+          timestamp: new Date().toISOString()
+        };
+        
+        setSingleProfileResults(prev => [...prev, singleProfileResult]);
         setAssessment(assessData.assessment);
         setProfileSummary(assessData.profile_summary);
       } else {
@@ -514,6 +534,22 @@ function App() {
       const assessData = await assessResponse.json();
 
       if (assessData.success) {
+        // Add the test profile result to the array instead of replacing
+        const testProfileResult = {
+          type: 'single',
+          name: assessData.profile_summary?.full_name || 'Test Profile Assessment',
+          headline: assessData.profile_summary?.headline || 'N/A',
+          score: assessData.assessment?.weighted_analysis?.weighted_score !== undefined 
+            ? (typeof assessData.assessment.weighted_analysis.weighted_score === 'number' ? assessData.assessment.weighted_analysis.weighted_score : 0)
+            : (typeof assessData.assessment?.overall_score === 'number' ? assessData.assessment.overall_score : 0),
+          assessment: assessData.assessment,
+          profileSummary: assessData.profile_summary,
+          success: true,
+          url: 'Test Profile',
+          timestamp: new Date().toISOString()
+        };
+        
+        setSingleProfileResults(prev => [...prev, testProfileResult]);
         setAssessment(assessData.assessment);
         setProfileSummary(assessData.profile_summary);
       } else {
@@ -608,8 +644,10 @@ function App() {
         
         // Only add if it looks like a LinkedIn URL
         if (url.includes('linkedin.com') || url.startsWith('http')) {
+          // Clean the URL - remove trailing slash if present
+          const cleanedUrl = url.trim().replace(/\/$/, '');
           candidates.push({
-            url: url,
+            url: cleanedUrl,
             firstName: firstName,
             lastName: lastName,
             fullName: `${firstName} ${lastName}`.trim()
@@ -673,6 +711,13 @@ function App() {
     setCsvFile(null);
     setBatchResults([]);
     setBatchLoading(false);
+  };
+
+  const clearAllResults = () => {
+    setSingleProfileResults([]);
+    setBatchResults([]);
+    setAssessment(null);
+    setProfileSummary(null);
   };
 
   const getScoreColor = (score) => {
@@ -742,6 +787,14 @@ function App() {
           >
             Batch Processing
           </button>
+          {(singleProfileResults.length > 0 || batchResults.length > 0) && (
+            <button 
+              className="mode-btn clear-btn"
+              onClick={clearAllResults}
+            >
+              Clear All Results
+            </button>
+          )}
         </div>
 
         {!batchMode ? (
@@ -1020,28 +1073,18 @@ function App() {
         )} */}
 
         {/* Combined Results Panel */}
-        {(assessment || batchResults.length > 0) && (() => {
+        {(singleProfileResults.length > 0 || batchResults.length > 0) && (() => {
           // Create unified list of all candidates and sort by weighted score
           const allCandidates = [];
           
-          // Add single profile assessment if it exists
-          if (assessment) {
-            const singleProfileScore = assessment.weighted_analysis?.weighted_score !== undefined 
-              ? (typeof assessment.weighted_analysis.weighted_score === 'number' ? assessment.weighted_analysis.weighted_score : 0)
-              : (typeof assessment.overall_score === 'number' ? assessment.overall_score : 0);
-            
+          // Add all single profile results
+          singleProfileResults.forEach((result, index) => {
             allCandidates.push({
-              type: 'single',
+              ...result,
               rank: 0, // Will be updated after sorting
-              name: profileSummary?.full_name || 'Single Profile Assessment',
-              headline: profileSummary?.current_roles?.[0]?.title || 'N/A',
-              score: singleProfileScore,
-              assessment: assessment,
-              profileSummary: profileSummary,
-              success: true,
-              url: linkedinUrl
+              originalIndex: index
             });
-          }
+          });
           
           // Add batch results
           batchResults.forEach((result, index) => {
@@ -1139,7 +1182,7 @@ function App() {
                           
                           <div className="details-content">
                             {/* Profile Summary - only for single profile */}
-                            {candidate.type === 'single' && candidate.profileSummary && (
+                            {/* {candidate.type === 'single' && candidate.profileSummary && (
                               <div className="profile-summary-section">
                                 <h4>Profile Summary</h4>
                                 <div className="summary-grid">
@@ -1160,7 +1203,7 @@ function App() {
                                   </div>
                                 )}
                               </div>
-                            )}
+                            )} */}
 
                             {/* Assessment Scores */}
                             <div className="assessment-scores">

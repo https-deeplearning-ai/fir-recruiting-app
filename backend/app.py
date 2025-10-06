@@ -30,6 +30,7 @@ def extract_profile_summary(profile_data):
     try:
         # Basic info
         full_name = profile_data.get('full_name', 'N/A')
+        headline = profile_data.get('headline', 'N/A')
         location = profile_data.get('location', 'N/A')
         industry = profile_data.get('industry', 'N/A')
         
@@ -102,6 +103,7 @@ def extract_profile_summary(profile_data):
         
         return {
             'full_name': full_name,
+            'headline': headline,
             'location': location,
             'industry': industry,
             'current_roles': current_roles,

@@ -698,6 +698,17 @@ textarea:focus, input[type="text"]:focus {
   border-color: #667eea;
 }
 
+.mode-btn.clear-btn {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.mode-btn.clear-btn:hover {
+  background: #c82333;
+  border-color: #c82333;
+}
+
 /* Batch Form */
 .batch-form {
   background: white;
