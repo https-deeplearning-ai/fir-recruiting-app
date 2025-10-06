@@ -342,7 +342,7 @@ async def fetch_single_profile_async(session, url):
         coresignal_service = CoreSignalService()
         profile_data = coresignal_service.fetch_linkedin_profile(url)
         
-        if profile_data:
+        if profile_data and profile_data.get('success', False):
             return {
                 'url': url,
                 'success': True,
@@ -350,11 +350,12 @@ async def fetch_single_profile_async(session, url):
                 'error': None
             }
         else:
+            error_msg = profile_data.get('error', 'Profile not found in CoreSignal database') if profile_data else 'No response from CoreSignal'
             return {
                 'url': url,
                 'success': False,
-                'error': 'Profile not found in CoreSignal database',
-                'profile_data': None
+                'error': error_msg,
+                'profile_data': profile_data  # Keep the error response for debugging
             }
     except Exception as e:
         return {
@@ -446,14 +447,27 @@ def batch_fetch_profiles():
     except Exception as e:
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
-async def assess_single_profile_async(session, profile_data, user_prompt, weighted_requirements):
-    """Assess a single profile asynchronously"""
+def assess_single_profile_sync(profile_data, user_prompt, weighted_requirements):
+    """Assess a single profile synchronously (to be run in thread pool)"""
     try:
+        print(f"Starting assessment for profile: {profile_data.get('full_name', 'Unknown')}")
+        
         # Generate profile summary
         profile_summary = extract_profile_summary(profile_data)
         
+        if 'error' in profile_summary:
+            print(f"Error extracting profile summary: {profile_summary['error']}")
+            return {
+                'success': False,
+                'assessment': None,
+                'profile_summary': None,
+                'error': f"Profile summary error: {profile_summary['error']}"
+            }
+        
         # Generate assessment prompt
         prompt = generate_assessment_prompt(profile_summary, user_prompt, weighted_requirements)
+        
+        print(f"Calling Anthropic API for {profile_data.get('full_name', 'Unknown')}...")
         
         # Call Anthropic API
         response = anthropic_client.messages.create(
@@ -488,6 +502,7 @@ async def assess_single_profile_async(session, profile_data, user_prompt, weight
                 "detailed_analysis": cleaned_response
             }
         
+        print(f"✅ Assessment completed successfully for {profile_data.get('full_name', 'Unknown')}")
         return {
             'success': True,
             'assessment': assessment_data,
@@ -495,6 +510,7 @@ async def assess_single_profile_async(session, profile_data, user_prompt, weight
             'error': None
         }
     except Exception as e:
+        print(f"❌ Assessment failed for {profile_data.get('full_name', 'Unknown')}: {str(e)}")
         return {
             'success': False,
             'assessment': None,
@@ -502,42 +518,125 @@ async def assess_single_profile_async(session, profile_data, user_prompt, weight
             'error': f'Error assessing profile: {str(e)}'
         }
 
+async def assess_single_profile_async(session, profile_data, user_prompt, weighted_requirements):
+    """Assess a single profile asynchronously using thread pool"""
+    loop = asyncio.get_event_loop()
+    with ThreadPoolExecutor() as executor:
+        result = await loop.run_in_executor(
+            executor, 
+            assess_single_profile_sync, 
+            profile_data, 
+            user_prompt, 
+            weighted_requirements
+        )
+    return result
+
 async def assess_profiles_batch_async(profiles_data, user_prompt, weighted_requirements):
     """Assess multiple profiles in parallel"""
     async with aiohttp.ClientSession() as session:
-        tasks = []
-        for profile_result in profiles_data:
+        # Create tasks for all profiles that were successfully fetched
+        assessment_tasks = []
+        profile_mapping = {}  # Map task index to profile_result
+        
+        for i, profile_result in enumerate(profiles_data):
             if profile_result.get('success') and profile_result.get('profile_data'):
                 # Extract the actual profile data from the nested structure
-                actual_profile_data = profile_result['profile_data'].get('profile_data', profile_result['profile_data'])
+                profile_data = profile_result['profile_data']
+                
+                if isinstance(profile_data, dict) and 'profile_data' in profile_data:
+                    # CoreSignal returns nested structure
+                    actual_profile_data = profile_data['profile_data']
+                else:
+                    # Direct profile data
+                    actual_profile_data = profile_data
+                
+                print(f"Profile {i}: {actual_profile_data.get('full_name', 'Unknown')} - {profile_result.get('url', 'No URL')}")
+                
                 task = assess_single_profile_async(session, actual_profile_data, user_prompt, weighted_requirements)
-                tasks.append((profile_result, task))
+                assessment_tasks.append(task)
+                profile_mapping[len(assessment_tasks) - 1] = profile_result
             else:
-                # For failed profiles, create a failed assessment result
-                tasks.append((profile_result, None))
+                # For failed profiles, add None to maintain index mapping
+                print(f"Profile {i}: Skipping failed profile - {profile_result.get('url', 'No URL')}")
+                assessment_tasks.append(None)
+                profile_mapping[len(assessment_tasks) - 1] = profile_result
         
-        # Execute all tasks
-        results = []
-        for profile_result, task in tasks:
-            if task:
-                assessment_result = await task
-                # Combine profile data with assessment
-                combined_result = {
-                    'url': profile_result['url'],
-                    'success': profile_result['success'],
-                    'profile_data': profile_result['profile_data'],
-                    'assessment': assessment_result.get('assessment'),
-                    'profile_summary': assessment_result.get('profile_summary'),
-                    'assessment_error': assessment_result.get('error')
-                }
-                results.append(combined_result)
+        print(f"Created {len([t for t in assessment_tasks if t is not None])} parallel assessment tasks")
+        
+        # Execute all tasks in parallel
+        if assessment_tasks:
+            # Filter out None tasks and execute the real ones in parallel
+            real_tasks = [task for task in assessment_tasks if task is not None]
+            if real_tasks:
+                print("🚀 Starting parallel AI assessments...")
+                assessment_results = await asyncio.gather(*real_tasks, return_exceptions=True)
+                print("✅ All parallel assessments completed!")
             else:
-                # Failed profile - no assessment
+                assessment_results = []
+        else:
+            assessment_results = []
+        
+        # Map results back to original profile order
+        results = []
+        task_index = 0
+        for i, profile_result in enumerate(profiles_data):
+            if assessment_tasks[i] is not None:
+                # This profile had an assessment task
+                if task_index < len(assessment_results):
+                    assessment_result = assessment_results[task_index]
+                    
+                    # Handle exceptions
+                    if isinstance(assessment_result, Exception):
+                        print(f"❌ Assessment task failed with exception: {assessment_result}")
+                        assessment_result = {
+                            'success': False,
+                            'assessment': None,
+                            'profile_summary': None,
+                            'error': f'Assessment task failed: {str(assessment_result)}'
+                        }
+                    
+                    # Combine profile data with assessment
+                    combined_result = {
+                        'url': profile_result['url'],
+                        'success': profile_result['success'],
+                        'profile_data': profile_result['profile_data'],
+                        'assessment': assessment_result.get('assessment'),
+                        'profile_summary': assessment_result.get('profile_summary'),
+                        'assessment_error': assessment_result.get('error')
+                    }
+                    results.append(combined_result)
+                    task_index += 1
+                else:
+                    # This shouldn't happen, but handle gracefully
+                    results.append({
+                        'url': profile_result['url'],
+                        'success': False,
+                        'profile_data': profile_result['profile_data'],
+                        'assessment': None,
+                        'profile_summary': None,
+                        'assessment_error': 'Assessment result not found'
+                    })
+            else:
+                # Failed profile - no assessment, but create a structured response with N/A scores
                 results.append({
                     'url': profile_result['url'],
                     'success': False,
                     'profile_data': None,
-                    'assessment': None,
+                    'assessment': {
+                        'overall_score': 'N/A',
+                        'recommend': False,
+                        'strengths': [],
+                        'weaknesses': [],
+                        'career_trajectory': 'Profile not found in CoreSignal database',
+                        'detailed_analysis': 'Unable to assess - LinkedIn profile not found in our database',
+                        'weighted_analysis': {
+                            'requirements': [],
+                            'weighted_score': 'N/A',
+                            'general_fit_score': 'N/A',
+                            'general_fit_weight': 0,
+                            'general_fit_analysis': 'Profile not found'
+                        }
+                    },
                     'profile_summary': None,
                     'assessment_error': 'Profile not found'
                 })
@@ -584,12 +683,15 @@ def batch_assess_profiles():
         
         # Step 2: Match profiles with candidate names and assess with AI
         print("Step 2: Matching profiles with candidates and assessing with AI...")
+        print(f"Profiles data before assessment: {[(r.get('url'), r.get('success'), 'has_data' if r.get('profile_data') else 'no_data') for r in profiles_data]}")
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             assessment_results = loop.run_until_complete(assess_profiles_batch_async(profiles_data, user_prompt, weighted_requirements))
         finally:
             loop.close()
+        
+        print(f"Assessment results: {[(r.get('url'), r.get('success'), 'has_assessment' if r.get('assessment') else 'no_assessment', r.get('assessment_error')) for r in assessment_results]}")
         
         # Step 3: Add CSV names to results and sort by weighted score (descending)
         print("Step 3: Adding CSV names and ranking profiles by weighted score...")
@@ -601,13 +703,19 @@ def batch_assess_profiles():
         
         def get_weighted_score(result):
             if result.get('assessment') and result['assessment'].get('weighted_analysis'):
-                return result['assessment']['weighted_analysis'].get('weighted_score', 0)
+                score = result['assessment']['weighted_analysis'].get('weighted_score', 0)
+                # Handle string scores like 'N/A' by converting to 0
+                if isinstance(score, str):
+                    return 0
+                return score
             return 0
         
         assessment_results.sort(key=get_weighted_score, reverse=True)
         
         # Count successful and failed results
-        successful = sum(1 for r in assessment_results if r.get('success', False) and r.get('assessment'))
+        # Successful = profile found AND assessment completed successfully
+        successful = sum(1 for r in assessment_results if r.get('success', False) and r.get('assessment') and not r.get('assessment_error'))
+        # Failed = profile not found OR assessment failed
         failed = len(assessment_results) - successful
         
         print(f"Batch assessment complete: {successful} successful, {failed} failed")
