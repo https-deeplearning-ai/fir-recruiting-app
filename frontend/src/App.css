@@ -730,6 +730,22 @@ textarea:focus, input[type="text"]:focus {
   font-style: italic;
 }
 
+/* Results Panel */
+.results-panel {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.results-panel h2 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 24px;
+  text-align: center;
+}
+
 /* Batch Results */
 .batch-results {
   margin-top: 30px;
@@ -1388,6 +1404,28 @@ textarea:focus, input[type="text"]:focus {
   margin-bottom: 0;
   font-size: 12px;
   color: #6c757d;
+}
+
+/* Profile Summary Section in Details */
+.profile-summary-section {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+}
+
+.profile-summary-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.profile-summary-section h5 {
+  margin: 15px 0 10px 0;
+  color: #555;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 /* Responsive Design for Batch Results */

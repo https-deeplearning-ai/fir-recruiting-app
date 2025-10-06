@@ -1019,298 +1019,252 @@ function App() {
           </div>
         )} */}
 
-        {profileSummary && (
-          <div className="profile-summary">
-            <h2>User Profile</h2>
-            <div className="summary-grid">
-              <div><strong>Name:</strong> {profileSummary.full_name}</div>
-              <div><strong>Location:</strong> {profileSummary.location}</div>
-              <div><strong>Industry:</strong> {profileSummary.industry}</div>
-              <div><strong>Experience:</strong> {profileSummary.total_experience_years} years</div>
-            </div>
+        {/* Combined Results Panel */}
+        {(assessment || batchResults.length > 0) && (() => {
+          // Create unified list of all candidates and sort by weighted score
+          const allCandidates = [];
+          
+          // Add single profile assessment if it exists
+          if (assessment) {
+            const singleProfileScore = assessment.weighted_analysis?.weighted_score !== undefined 
+              ? (typeof assessment.weighted_analysis.weighted_score === 'number' ? assessment.weighted_analysis.weighted_score : 0)
+              : (typeof assessment.overall_score === 'number' ? assessment.overall_score : 0);
             
-            {profileSummary.current_roles && profileSummary.current_roles.length > 0 && (
-              <div className="current-roles">
-                <h3>Current Roles:</h3>
-                {profileSummary.current_roles.map((role, index) => (
-                  <div key={index} className="role">
-                    {role.title} at {role.company_name}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {assessment && (
-          <div className="assessment-results">
-            <h2>AI Assessment Results</h2>
+            allCandidates.push({
+              type: 'single',
+              rank: 0, // Will be updated after sorting
+              name: profileSummary?.full_name || 'Single Profile Assessment',
+              headline: profileSummary?.current_roles?.[0]?.title || 'N/A',
+              score: singleProfileScore,
+              assessment: assessment,
+              profileSummary: profileSummary,
+              success: true,
+              url: linkedinUrl
+            });
+          }
+          
+          // Add batch results
+          batchResults.forEach((result, index) => {
+            const batchScore = result.assessment?.weighted_analysis?.weighted_score !== undefined 
+              ? (typeof result.assessment.weighted_analysis.weighted_score === 'number' ? result.assessment.weighted_analysis.weighted_score : 0)
+              : (typeof result.assessment?.overall_score === 'number' ? result.assessment.overall_score : 0);
             
-            {assessment.overall_score && (
-              <div className="score-section">
-                {assessment.weighted_analysis && assessment.weighted_analysis.weighted_score !== undefined ? (
-                  <div className="weighted-summary">
-                    <h4>Weighted Final Score</h4>
-                    {renderScoreBar(assessment.weighted_analysis.weighted_score)}
-                  </div>
-                ) : (
-                  <div className="overall-summary">
-                    <h4>Overall Profile Score</h4>
-                    {renderScoreBar(assessment.overall_score)}
-                  </div>
-                )}
-                {/* {assessment.weighted_analysis && assessment.weighted_analysis.weighted_score !== undefined && (
-                  <div className={`recommendation ${assessment.weighted_analysis.weighted_score >= 6 ? 'recommend' : 'not-recommend'}`}>
-                    <strong>Recommendation: </strong>
-                    {assessment.weighted_analysis.weighted_score >= 6 ? '✅ RECOMMEND' : '❌ NOT RECOMMENDED'}
-                  </div>
-                )} */}
-              </div>
-            )}
-
-{assessment.weighted_analysis && assessment.weighted_analysis.requirements && (
-              <div className="section">
-                <h3>Weighted Analysis</h3>
-                <div className="weighted-analysis">
-                  {assessment.weighted_analysis.requirements.map((req, index) => (
-                    <div key={index} className="requirement-analysis">
-                      <div className="requirement-header">
-                        <h4>
-                          <strong>{req.requirement}</strong> ({req.weight}%)
-                        </h4>
-                        <div className="requirement-score">
-                          Score: {renderWeightedScore(req.score)}
+            allCandidates.push({
+              type: 'batch',
+              rank: 0, // Will be updated after sorting
+              name: result.csv_name || result.profile_data?.profile_data?.full_name || 'Unknown Name',
+              headline: result.profile_data?.profile_data?.headline || 'N/A',
+              score: batchScore,
+              assessment: result.assessment,
+              profileSummary: null,
+              success: result.success,
+              url: result.url,
+              originalIndex: index
+            });
+          });
+          
+          // Sort by score in descending order
+          allCandidates.sort((a, b) => b.score - a.score);
+          
+          // Update ranks
+          allCandidates.forEach((candidate, index) => {
+            candidate.rank = index + 1;
+          });
+          
+          return (
+            <div className="results-panel">
+              <h2>
+                Assessment Results ({allCandidates.length} candidate{allCandidates.length !== 1 ? 's' : ''})
+              </h2>
+              <div className="candidates-list">
+                {allCandidates.map((candidate, index) => (
+                  <div key={`${candidate.type}-${candidate.originalIndex || 0}`} className="candidate-card">
+                    <div className="candidate-header">
+                      <div className="candidate-rank">
+                        <span className="rank-number">#{candidate.rank}</span>
+                      </div>
+                      <div className="candidate-info">
+                        <h3>{candidate.name}</h3>
+                        <div className="candidate-meta">
+                          <span className="candidate-headline">{candidate.headline}</span>
                         </div>
                       </div>
-                      <p className="requirement-text">{req.analysis}</p>
-                    </div>
-                  ))}
-                  
-                  {assessment.weighted_analysis.general_fit_weight > 0 && (
-                    <div className="requirement-analysis general-fit-analysis">
-                      <div className="requirement-header">
-                        <h4>
-                          <strong>General Fit</strong> ({assessment.weighted_analysis.general_fit_weight}%)
-                        </h4>
-                        <div className="requirement-score">
-                          Score: {renderWeightedScore(assessment.weighted_analysis.general_fit_score)}
-                        </div>
-                      </div>
-                      <p className="requirement-text">{assessment.weighted_analysis.general_fit_analysis}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {assessment.career_trajectory && (
-              <div className="section">
-                <h3>Career Trajectory Analysis</h3>
-                <p>{assessment.career_trajectory}</p>
-              </div>
-            )}
-
-            {assessment.strengths && assessment.strengths.length > 0 && (
-              <div className="section">
-                <h3>Key Strengths</h3>
-                <ul>
-                  {assessment.strengths.map((strength, index) => (
-                    <li key={index}>{strength}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {assessment.weaknesses && assessment.weaknesses.length > 0 && (
-              <div className="section">
-                <h3>Key Weaknesses</h3>
-                <ul>
-                  {assessment.weaknesses.map((weakness, index) => (
-                    <li key={index}>{weakness}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-
-            {assessment.detailed_analysis && !assessment.weighted_analysis && (
-              <div className="section">
-                <h3>Detailed Analysis</h3>
-                <div className="detailed-analysis">
-                  {assessment.detailed_analysis}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {batchResults.length > 0 && (
-          <div className="batch-results">
-            <h2>Batch Assessment Results ({batchResults.length} candidates)</h2>
-            <div className="candidates-list">
-              {batchResults.map((result, index) => (
-                <div key={index} className="candidate-card">
-                  <div className="candidate-header">
-                    <div className="candidate-rank">
-                      <span className="rank-number">#{index + 1}</span>
-                    </div>
-                    <div className="candidate-info">
-                      <h3>{result.csv_name || result.profile_data?.profile_data?.full_name || 'Unknown Name'}</h3>
-                      <div className="candidate-meta">
-                        {/* <span className="candidate-location">{result.profile_data?.profile_data?.location || 'N/A'}</span> */}
-                        <span className="candidate-headline">{result.profile_data?.profile_data?.headline || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div className="candidate-score">
-                      {result.assessment && (
-                        <div className="final-score">
-                          {result.assessment.weighted_analysis && result.assessment.weighted_analysis.weighted_score !== undefined ? (
-                            <div className="score-display">
-                              <span className="score-label">Weighted Score</span>
-                              <span className="score-value">
-                                {result.assessment.weighted_analysis.weighted_score === 'N/A' ? 'N/A' : `${result.assessment.weighted_analysis.weighted_score}/10`}
-                              </span>
-                            </div>
-                          ) : result.assessment.overall_score ? (
-                            <div className="score-display">
-                              <span className="score-label">Overall Score</span>
-                              <span className="score-value">
-                                {result.assessment.overall_score === 'N/A' ? 'N/A' : `${result.assessment.overall_score}/10`}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="score-display">
-                              <span className="score-label">Score</span>
-                              <span className="score-value">N/A</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="candidate-status">
-                      {result.success && result.assessment ? (
-                        <div className="status-badge success">
-                          ✅ Assessed
-                        </div>
-                      ) : result.success ? (
-                        <div className="status-badge warning">
-                          ⚠️ Profile Found, Assessment Failed
-                        </div>
-                      ) : (
-                        <div className="status-badge error">
-                          ❌ Not Found
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {result.assessment && (
-                    <div className="candidate-details">
-                      <details className="assessment-details">
-                        <summary className="details-summary">View Detailed Assessment</summary>
-                        
-                        <div className="details-content">
-                          {/* Assessment Scores */}
-                          <div className="assessment-scores">
-                            {result.assessment.weighted_analysis && result.assessment.weighted_analysis.weighted_score !== undefined ? (
-                              <div className="score-section">
-                                <h4>Weighted Final Score</h4>
-                                {renderScoreBar(result.assessment.weighted_analysis.weighted_score)}
+                      <div className="candidate-score">
+                        {candidate.assessment && (
+                          <div className="final-score">
+                            {candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.weighted_score !== undefined ? (
+                              <div className="score-display">
+                                <span className="score-label">Weighted Score</span>
+                                <span className="score-value">
+                                  {candidate.assessment.weighted_analysis.weighted_score === 'N/A' ? 'N/A' : `${candidate.assessment.weighted_analysis.weighted_score}/10`}
+                                </span>
                               </div>
-                            ) : result.assessment.overall_score ? (
-                              <div className="score-section">
-                                <h4>Overall Score</h4>
-                                {renderScoreBar(result.assessment.overall_score)}
+                            ) : candidate.assessment.overall_score ? (
+                              <div className="score-display">
+                                <span className="score-label">Overall Score</span>
+                                <span className="score-value">
+                                  {candidate.assessment.overall_score === 'N/A' ? 'N/A' : `${candidate.assessment.overall_score}/10`}
+                                </span>
                               </div>
-                            ) : null}
+                            ) : (
+                              <div className="score-display">
+                                <span className="score-label">Score</span>
+                                <span className="score-value">N/A</span>
+                              </div>
+                            )}
                           </div>
-
-                          {/* Weighted Analysis */}
-                          {result.assessment.weighted_analysis && result.assessment.weighted_analysis.requirements && result.assessment.weighted_analysis.requirements.length > 0 && (
-                            <div className="weighted-analysis-section">
-                              <h4>Weighted Analysis</h4>
-                              <div className="weighted-requirements">
-                                {result.assessment.weighted_analysis.requirements.map((req, reqIdx) => (
-                                  <div key={reqIdx} className="requirement-item">
-                                    <div className="requirement-header">
-                                      <span className="requirement-text">{req.requirement} ({req.weight}%)</span>
-                                      <span className="requirement-score">{renderWeightedScore(req.score)}</span>
-                                    </div>
-                                    <p className="requirement-analysis">{req.analysis}</p>
-                                  </div>
-                                ))}
+                        )}
+                      </div>
+                      <div className="candidate-status">
+                        {candidate.success && candidate.assessment ? (
+                          <div className="status-badge success">
+                            ✅ Assessed
+                          </div>
+                        ) : candidate.success ? (
+                          <div className="status-badge warning">
+                            ⚠️ Profile Found, Assessment Failed
+                          </div>
+                        ) : (
+                          <div className="status-badge error">
+                            ❌ Not Found
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {candidate.assessment && (
+                      <div className="candidate-details">
+                        <details className="assessment-details">
+                          <summary className="details-summary">View Detailed Assessment</summary>
+                          
+                          <div className="details-content">
+                            {/* Profile Summary - only for single profile */}
+                            {candidate.type === 'single' && candidate.profileSummary && (
+                              <div className="profile-summary-section">
+                                <h4>Profile Summary</h4>
+                                <div className="summary-grid">
+                                  <div><strong>Name:</strong> {candidate.profileSummary.full_name}</div>
+                                  <div><strong>Location:</strong> {candidate.profileSummary.location}</div>
+                                  <div><strong>Industry:</strong> {candidate.profileSummary.industry}</div>
+                                  <div><strong>Experience:</strong> {candidate.profileSummary.total_experience_years} years</div>
+                                </div>
                                 
-                                {result.assessment.weighted_analysis.general_fit_weight > 0 && (
-                                  <div className="requirement-item general-fit">
-                                    <div className="requirement-header">
-                                      <span className="requirement-text">General Fit ({result.assessment.weighted_analysis.general_fit_weight}%)</span>
-                                      <span className="requirement-score">{renderWeightedScore(result.assessment.weighted_analysis.general_fit_score)}</span>
-                                    </div>
-                                    <p className="requirement-analysis">{result.assessment.weighted_analysis.general_fit_analysis}</p>
+                                {candidate.profileSummary.current_roles && candidate.profileSummary.current_roles.length > 0 && (
+                                  <div className="current-roles">
+                                    <h5>Current Roles:</h5>
+                                    {candidate.profileSummary.current_roles.map((role, roleIndex) => (
+                                      <div key={roleIndex} className="role">
+                                        {role.title} at {role.company_name}
+                                      </div>
+                                    ))}
                                   </div>
                                 )}
                               </div>
-                            </div>
-                          )}
+                            )}
 
-                          {/* Key Strengths and Weaknesses */}
-                          <div className="assessment-summary">
-                            {result.assessment.strengths && result.assessment.strengths.length > 0 && (
-                              <div className="strengths-section">
-                                <h4>Key Strengths</h4>
-                                <ul>
-                                  {result.assessment.strengths.map((strength, idx) => (
-                                    <li key={idx}>{strength}</li>
+                            {/* Assessment Scores */}
+                            <div className="assessment-scores">
+                              {candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.weighted_score !== undefined ? (
+                                <div className="score-section">
+                                  <h4>Weighted Final Score</h4>
+                                  {renderScoreBar(candidate.assessment.weighted_analysis.weighted_score)}
+                                </div>
+                              ) : candidate.assessment.overall_score ? (
+                                <div className="score-section">
+                                  <h4>Overall Score</h4>
+                                  {renderScoreBar(candidate.assessment.overall_score)}
+                                </div>
+                              ) : null}
+                            </div>
+
+                            {/* Weighted Analysis */}
+                            {candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.requirements && candidate.assessment.weighted_analysis.requirements.length > 0 && (
+                              <div className="weighted-analysis-section">
+                                <h4>Weighted Analysis</h4>
+                                <div className="weighted-requirements">
+                                  {candidate.assessment.weighted_analysis.requirements.map((req, reqIdx) => (
+                                    <div key={reqIdx} className="requirement-item">
+                                      <div className="requirement-header">
+                                        <span className="requirement-text">{req.requirement} ({req.weight}%)</span>
+                                        <span className="requirement-score">{renderWeightedScore(req.score)}</span>
+                                      </div>
+                                      <p className="requirement-analysis">{req.analysis}</p>
+                                    </div>
                                   ))}
-                                </ul>
+                                  
+                                  {candidate.assessment.weighted_analysis.general_fit_weight > 0 && (
+                                    <div className="requirement-item general-fit">
+                                      <div className="requirement-header">
+                                        <span className="requirement-text">General Fit ({candidate.assessment.weighted_analysis.general_fit_weight}%)</span>
+                                        <span className="requirement-score">{renderWeightedScore(candidate.assessment.weighted_analysis.general_fit_score)}</span>
+                                      </div>
+                                      <p className="requirement-analysis">{candidate.assessment.weighted_analysis.general_fit_analysis}</p>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             )}
-                            
-                            {result.assessment.weaknesses && result.assessment.weaknesses.length > 0 && (
-                              <div className="weaknesses-section">
-                                <h4>Key Weaknesses</h4>
-                                <ul>
-                                  {result.assessment.weaknesses.map((weakness, idx) => (
-                                    <li key={idx}>{weakness}</li>
-                                  ))}
-                                </ul>
+
+                            {/* Key Strengths and Weaknesses */}
+                            <div className="assessment-summary">
+                              {candidate.assessment.strengths && candidate.assessment.strengths.length > 0 && (
+                                <div className="strengths-section">
+                                  <h4>Key Strengths</h4>
+                                  <ul>
+                                    {candidate.assessment.strengths.map((strength, idx) => (
+                                      <li key={idx}>{strength}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              {candidate.assessment.weaknesses && candidate.assessment.weaknesses.length > 0 && (
+                                <div className="weaknesses-section">
+                                  <h4>Key Weaknesses</h4>
+                                  <ul>
+                                    {candidate.assessment.weaknesses.map((weakness, idx) => (
+                                      <li key={idx}>{weakness}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Career Trajectory */}
+                            {candidate.assessment.career_trajectory && candidate.assessment.career_trajectory !== 'Profile not found in CoreSignal database' && (
+                              <div className="career-trajectory-section">
+                                <h4>Career Trajectory</h4>
+                                <p>{candidate.assessment.career_trajectory}</p>
+                              </div>
+                            )}
+
+                            {/* Detailed Analysis
+                            {candidate.assessment.detailed_analysis && candidate.assessment.detailed_analysis !== 'Unable to assess - LinkedIn profile not found in our database' && (
+                              <div className="detailed-analysis-section">
+                                <h4>Detailed Analysis</h4>
+                                <p>{candidate.assessment.detailed_analysis}</p>
+                              </div>
+                            )} */}
+
+                            {/* Profile Not Found Message - only for batch results */}
+                            {candidate.type === 'batch' && !candidate.success && (
+                              <div className="profile-not-found-section">
+                                <h4>Profile Not Found</h4>
+                                <p>This LinkedIn profile was not found in our database. Assessment could not be completed.</p>
+                                <p><strong>URL:</strong> {candidate.url}</p>
                               </div>
                             )}
                           </div>
-
-                          {/* Career Trajectory */}
-                          {result.assessment.career_trajectory && result.assessment.career_trajectory !== 'Profile not found in CoreSignal database' && (
-                            <div className="career-trajectory-section">
-                              <h4>Career Trajectory</h4>
-                              <p>{result.assessment.career_trajectory}</p>
-                            </div>
-                          )}
-
-                          {/* Detailed Analysis */}
-                          {result.assessment.detailed_analysis && result.assessment.detailed_analysis !== 'Unable to assess - LinkedIn profile not found in our database' && (
-                            <div className="detailed-analysis-section">
-                              <h4>Detailed Analysis</h4>
-                              <p>{result.assessment.detailed_analysis}</p>
-                            </div>
-                          )}
-
-                          {/* Profile Not Found Message */}
-                          {!result.success && (
-                            <div className="profile-not-found-section">
-                              <h4>Profile Not Found</h4>
-                              <p>This LinkedIn profile was not found in our database. Assessment could not be completed.</p>
-                              <p><strong>URL:</strong> {result.url}</p>
-                            </div>
-                          )}
-                        </div>
-                      </details>
-                    </div>
-                  )}
-                </div>
-              ))}
+                        </details>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
+
       </div>
     </div>
   );
