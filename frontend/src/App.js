@@ -4,7 +4,7 @@ import './App.css';
 
 function App() {
   const [linkedinUrl, setLinkedinUrl] = useState('');
-  const [userPrompt, setUserPrompt] = useState('');
+  const [userPrompt, setUserPrompt] = useState('We are seeking a visionary and entrepreneurial leader to serve as the future CEO of a real-time voice AI startup. The ideal candidate brings repeat startup leadership experience (0→1 track record in B2B SaaS or infrastructure), strong AI/ML literacy, and a proven ability to drive go-to-market success, fundraising, and stakeholder engagement. This individual should be equally comfortable shaping product and technology strategy, recruiting top-tier teams, and inspiring investors, partners, and customers with a compelling narrative. Experience with real-time voice, developer-first products, or the AI voice ecosystem is a plus. Above all, we value leaders with grit, accountability, scrappiness, and a deep sense of ownership—someone who can refine the vision, execute under pressure, and build a category-defining company.');
   const [assessment, setAssessment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetchingProfile, setFetchingProfile] = useState(false);
@@ -17,6 +17,18 @@ function App() {
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
   const [singleProfileResults, setSingleProfileResults] = useState([]);
+  const [savedAssessments, setSavedAssessments] = useState([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
+  const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+
+  // Notification function
+  const showNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification({ show: false, message: '', type: '' });
+    }, 3000);
+  };
 
   // Dummy profile data for testing
   const dummyProfileData = {
@@ -368,6 +380,7 @@ function App() {
     e.preventDefault();
     setLoading(true);
     setFetchingProfile(true);
+    setShowLoadingOverlay(true);
     setError('');
     setAssessment(null);
     setProfileSummary(null);
@@ -450,6 +463,7 @@ function App() {
     } finally {
       setLoading(false);
       setFetchingProfile(false);
+      setShowLoadingOverlay(false);
     }
   };
 
@@ -507,6 +521,7 @@ function App() {
 
   const handleTest = async () => {
     setLoading(true);
+    setShowLoadingOverlay(true);
     setError('');
     setAssessment(null);
     setProfileSummary(null);
@@ -560,6 +575,7 @@ function App() {
       console.error('Error:', err);
     } finally {
       setLoading(false);
+      setShowLoadingOverlay(false);
     }
   };
 
@@ -669,6 +685,7 @@ function App() {
     }
 
     setBatchLoading(true);
+    setShowLoadingOverlay(true);
     setError('');
     setBatchResults([]);
 
@@ -703,6 +720,7 @@ function App() {
       console.error('Error:', err);
     } finally {
       setBatchLoading(false);
+      setShowLoadingOverlay(false);
     }
   };
 
@@ -718,6 +736,94 @@ function App() {
     setBatchResults([]);
     setAssessment(null);
     setProfileSummary(null);
+    setSavedAssessments([]);
+  };
+
+  const loadSavedAssessments = async () => {
+    setLoadingSaved(true);
+    try {
+      const response = await fetch('http://localhost:5001/load-assessments?limit=100');
+      const data = await response.json();
+      
+      if (data.success) {
+        // Clear current session data and replace with database data
+        setSingleProfileResults([]);
+        setBatchResults([]);
+        setSavedAssessments(data.assessments);
+        console.log(`✅ Loaded ${data.count} saved assessments from database`);
+      } else {
+        setError(data.error || 'Failed to load saved assessments');
+      }
+    } catch (err) {
+      setError('Network error loading saved assessments');
+      console.error('Error:', err);
+    } finally {
+      setLoadingSaved(false);
+    }
+  };
+
+  const saveCurrentAssessments = async () => {
+    const allCurrentAssessments = [];
+    
+    // Add single profile results
+    singleProfileResults.forEach(result => {
+      allCurrentAssessments.push({
+        linkedin_url: result.url,
+        full_name: result.name,
+        headline: result.headline,
+        profile_data: result.profileSummary,
+        assessment_data: result.assessment,
+        assessment_type: 'single'
+      });
+    });
+    
+    // Add batch results
+    batchResults.forEach(result => {
+      if (result.assessment) {
+        allCurrentAssessments.push({
+          linkedin_url: result.url,
+          full_name: result.csv_name || result.profile_data?.profile_data?.full_name || 'Unknown',
+          headline: result.profile_data?.profile_data?.headline || 'N/A',
+          profile_data: result.profile_data?.profile_data,
+          assessment_data: result.assessment,
+          assessment_type: 'batch'
+        });
+      }
+    });
+    
+    if (allCurrentAssessments.length === 0) {
+      setError('No assessments to save');
+      return;
+    }
+    
+    try {
+      // Save each assessment
+      const savePromises = allCurrentAssessments.map(assessment => 
+        fetch('http://localhost:5001/save-assessment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(assessment)
+        })
+      );
+      
+      const results = await Promise.all(savePromises);
+      const allSuccessful = results.every(result => result.ok);
+      
+      if (allSuccessful) {
+        console.log(`✅ Saved ${allCurrentAssessments.length} assessments to database`);
+        showNotification(`Saved ${allCurrentAssessments.length} assessment${allCurrentAssessments.length !== 1 ? 's' : ''} successfully!`, 'success');
+        // Reload saved assessments to show the newly saved ones
+        // loadSavedAssessments();
+      } else {
+        setError('Some assessments failed to save');
+        showNotification('Failed to save some assessments', 'error');
+      }
+    } catch (err) {
+      setError('Network error saving assessments');
+      console.error('Error:', err);
+    }
   };
 
   const getScoreColor = (score) => {
@@ -787,14 +893,6 @@ function App() {
           >
             Batch Processing
           </button>
-          {(singleProfileResults.length > 0 || batchResults.length > 0) && (
-            <button 
-              className="mode-btn clear-btn"
-              onClick={clearAllResults}
-            >
-              Clear All Results
-            </button>
-          )}
         </div>
 
         {!batchMode ? (
@@ -809,13 +907,13 @@ function App() {
                 placeholder="https://www.linkedin.com/in/username"
                 required
               />
-              <button 
+              {/* <button 
                 type="button" 
                 onClick={handleLoadSample}
                 className="sample-btn"
               >
                 Load Sample URL
-              </button>
+              </button> */}
             </div>
 
           <div className="form-group">
@@ -938,7 +1036,6 @@ function App() {
               />
               <p className="file-help">
                 CSV file must contain a "Profile URL" column with LinkedIn URLs. 
-                Optional: "First Name" and "Last Name" columns for better display.
               </p>
             </div>
 
@@ -1072,8 +1169,8 @@ function App() {
           </div>
         )} */}
 
-        {/* Combined Results Panel */}
-        {(singleProfileResults.length > 0 || batchResults.length > 0) && (() => {
+        {/* Combined Results Panel - Always Visible */}
+        {(() => {
           // Create unified list of all candidates and sort by weighted score
           const allCandidates = [];
           
@@ -1105,6 +1202,28 @@ function App() {
               originalIndex: index
             });
           });
+
+          // Add saved assessments
+          savedAssessments.forEach((result, index) => {
+            const savedScore = result.weighted_score !== null 
+              ? result.weighted_score 
+              : (result.overall_score !== null ? result.overall_score : 0);
+            
+            allCandidates.push({
+              type: 'saved',
+              rank: 0, // Will be updated after sorting
+              name: result.full_name || 'Unknown Name',
+              headline: result.headline || 'N/A',
+              score: savedScore,
+              assessment: result.assessment_data,
+              profileSummary: result.profile_data,
+              success: true,
+              url: result.linkedin_url,
+              created_at: result.created_at,
+              assessment_type: result.assessment_type,
+              originalIndex: index
+            });
+          });
           
           // Sort by score in descending order
           allCandidates.sort((a, b) => b.score - a.score);
@@ -1116,11 +1235,41 @@ function App() {
           
           return (
             <div className="results-panel">
+              <div className="button-group">
+                {(singleProfileResults.length > 0 || batchResults.length > 0) && (
+                  <button 
+                    className="mode-btn save-btn"
+                    onClick={saveCurrentAssessments}
+                  >
+                    Save Current Assessments
+                  </button>
+                )}
+                <button 
+                  className="mode-btn load-btn"
+                  onClick={loadSavedAssessments}
+                  disabled={loadingSaved}
+                >
+                  {loadingSaved ? 'Loading...' : 'Load from Database'}
+                </button>
+                {(singleProfileResults.length > 0 || batchResults.length > 0 || savedAssessments.length > 0) && (
+                  <button 
+                    className="mode-btn clear-btn"
+                    onClick={clearAllResults}
+                  >
+                    Clear All Results
+                  </button>
+                )}
+              </div>
               <h2>
                 Assessment Results ({allCandidates.length} candidate{allCandidates.length !== 1 ? 's' : ''})
               </h2>
-              <div className="candidates-list">
-                {allCandidates.map((candidate, index) => (
+              {allCandidates.length === 0 ? (
+                <div className="empty-state">
+                  <p>No assessments found. Process some profiles or load from database to see results.</p>
+                </div>
+              ) : (
+                <div className="candidates-list">
+                  {allCandidates.map((candidate, index) => (
                   <div key={`${candidate.type}-${candidate.originalIndex || 0}`} className="candidate-card">
                     <div className="candidate-header">
                       <div className="candidate-rank">
@@ -1158,7 +1307,7 @@ function App() {
                           </div>
                         )}
                       </div>
-                      <div className="candidate-status">
+                      {/* <div className="candidate-status">
                         {candidate.success && candidate.assessment ? (
                           <div className="status-badge success">
                             ✅ Assessed
@@ -1172,7 +1321,7 @@ function App() {
                             ❌ Not Found
                           </div>
                         )}
-                      </div>
+                      </div> */}
                     </div>
                     
                     {candidate.assessment && (
@@ -1302,13 +1451,31 @@ function App() {
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })()}
 
       </div>
+
+      {/* Loading Overlay */}
+      {showLoadingOverlay && (
+        <div className="loading-overlay">
+          <div className="loading-spinner">
+            <div className="spinner"></div>
+            <p>Processing...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Notification */}
+      {notification.show && (
+        <div className={`notification ${notification.type}`}>
+          {notification.type === 'success' ? '✅' : '❌'} {notification.message}
+        </div>
+      )}
     </div>
   );
 }

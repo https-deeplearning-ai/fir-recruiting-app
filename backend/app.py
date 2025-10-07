@@ -10,6 +10,7 @@ from datetime import datetime
 import calendar
 from coresignal_service import CoreSignalService
 from dotenv import load_dotenv
+import requests
 
 # Load environment variables from .env file
 load_dotenv()
@@ -24,6 +25,105 @@ anthropic_client = Anthropic(
 
 # Initialize CoreSignal service
 coresignal_service = CoreSignalService()
+
+# Database configuration - using Supabase REST API
+SUPABASE_URL = "https://csikerdodixcqzfweiao.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzaWtlcmRvZGl4Y3F6ZndlaWFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3ODEzMzMsImV4cCI6MjA3NTM1NzMzM30.5oDke2YAeabah-3o_lwxss-or6EzkkcaTA7sPvfsid4"
+
+def save_candidate_assessment(linkedin_url, full_name, headline, profile_data, assessment_data, assessment_type='single', session_name=None):
+    """Save candidate assessment to database using Supabase REST API"""
+    return save_to_supabase_api(linkedin_url, full_name, headline, profile_data, assessment_data, assessment_type, session_name)
+
+
+def save_to_supabase_api(linkedin_url, full_name, headline, profile_data, assessment_data, assessment_type, session_name):
+    """Save using Supabase REST API"""
+    try:
+        # Extract scores
+        weighted_score = None
+        overall_score = None
+        
+        if assessment_data:
+            if assessment_data.get('weighted_analysis') and assessment_data['weighted_analysis'].get('weighted_score') is not None:
+                try:
+                    weighted_score = float(assessment_data['weighted_analysis']['weighted_score'])
+                except (ValueError, TypeError):
+                    weighted_score = None
+            elif assessment_data.get('overall_score') is not None:
+                try:
+                    overall_score = float(assessment_data['overall_score'])
+                except (ValueError, TypeError):
+                    overall_score = None
+        
+        # Prepare data for Supabase API
+        data = {
+            'linkedin_url': linkedin_url,
+            'full_name': full_name,
+            'headline': headline,
+            'profile_data': profile_data,
+            'assessment_data': assessment_data,
+            'weighted_score': weighted_score,
+            'overall_score': overall_score,
+            'assessment_type': assessment_type,
+            'session_name': session_name
+        }
+        
+        # Make API request to Supabase
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+        }
+        
+        url = f"{SUPABASE_URL}/rest/v1/candidate_assessments"
+        response = requests.post(url, json=data, headers=headers)
+        
+        if response.status_code in [200, 201]:
+            print(f"✅ Saved assessment for {full_name} to database via Supabase API")
+            return True
+        else:
+            print(f"❌ Supabase API error: {response.status_code} - {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error saving assessment to Supabase API: {str(e)}")
+        return False
+
+def load_candidate_assessments(limit=50):
+    """Load candidate assessments from database using Supabase REST API"""
+    return load_from_supabase_api(limit)
+
+
+def load_from_supabase_api(limit):
+    """Load using Supabase REST API"""
+    try:
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Build query parameters
+        params = {
+            'select': '*',
+            'order': 'weighted_score.desc,overall_score.desc,created_at.desc',
+            'limit': str(limit)
+        }
+        
+        url = f"{SUPABASE_URL}/rest/v1/candidate_assessments"
+        response = requests.get(url, headers=headers, params=params)
+        
+        if response.status_code == 200:
+            assessments = response.json()
+            print(f"✅ Loaded {len(assessments)} assessments from database via Supabase API")
+            return assessments
+        else:
+            print(f"❌ Supabase API error: {response.status_code} - {response.text}")
+            return []
+            
+    except Exception as e:
+        print(f"❌ Error loading assessments from Supabase API: {str(e)}")
+        return []
 
 def extract_profile_summary(profile_data):
     """Extract key information from LinkedIn profile for analysis"""
@@ -730,6 +830,60 @@ def batch_assess_profiles():
                 'successful': successful,
                 'failed': failed
             }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/save-assessment', methods=['POST'])
+def save_assessment():
+    """Save a candidate assessment to the database"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        linkedin_url = data.get('linkedin_url')
+        full_name = data.get('full_name')
+        headline = data.get('headline')
+        profile_data = data.get('profile_data')
+        assessment_data = data.get('assessment_data')
+        assessment_type = data.get('assessment_type', 'single')
+        session_name = data.get('session_name')
+        
+        if not linkedin_url or not full_name or not assessment_data:
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        success = save_candidate_assessment(
+            linkedin_url=linkedin_url,
+            full_name=full_name,
+            headline=headline,
+            profile_data=profile_data,
+            assessment_data=assessment_data,
+            assessment_type=assessment_type,
+            session_name=session_name
+        )
+        
+        if success:
+            return jsonify({'success': True, 'message': 'Assessment saved successfully'})
+        else:
+            return jsonify({'error': 'Failed to save assessment'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/load-assessments', methods=['GET'])
+def load_assessments():
+    """Load candidate assessments from the database"""
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        assessments = load_candidate_assessments(limit=limit)
+        
+        return jsonify({
+            'success': True,
+            'assessments': assessments,
+            'count': len(assessments)
         })
         
     except Exception as e:
