@@ -16,10 +16,14 @@ function App() {
   const [batchResults, setBatchResults] = useState([]);
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
+  const [searchMode, setSearchMode] = useState(false);
+  const [searchPrompt, setSearchPrompt] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
   const [singleProfileResults, setSingleProfileResults] = useState([]);
   const [savedAssessments, setSavedAssessments] = useState([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Processing...');
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
 
   // Notification function
@@ -381,6 +385,7 @@ function App() {
     setLoading(true);
     setFetchingProfile(true);
     setShowLoadingOverlay(true);
+    setLoadingMessage('Processing profile...');
     setError('');
     setAssessment(null);
     setProfileSummary(null);
@@ -522,6 +527,7 @@ function App() {
   const handleTest = async () => {
     setLoading(true);
     setShowLoadingOverlay(true);
+    setLoadingMessage('Testing with sample profile...');
     setError('');
     setAssessment(null);
     setProfileSummary(null);
@@ -693,6 +699,14 @@ function App() {
       const csvText = await csvFile.text();
       const candidates = parseCsv(csvText);
       
+      // Calculate estimated time (12 sec delay between batches + ~5 sec per profile)
+      const numCandidates = candidates.length;
+      const numBatches = Math.ceil(numCandidates / 5);
+      const estimatedSeconds = (numBatches - 1) * 12 + numCandidates * 5;
+      const estimatedMinutes = Math.ceil(estimatedSeconds / 60);
+      
+      setLoadingMessage(`Processing ${numCandidates} candidates in batches of 5...\nEstimated time: ~${estimatedMinutes} min\n(Includes automatic retry for rate limits)`);
+      
       console.log(`Processing ${candidates.length} candidates with AI assessment...`);
       
       const response = await fetch('http://localhost:5001/batch-assess-profiles', {
@@ -726,9 +740,66 @@ function App() {
 
   const resetToSingleMode = () => {
     setBatchMode(false);
+    setSearchMode(false);
     setCsvFile(null);
     setBatchResults([]);
     setBatchLoading(false);
+  };
+
+  const handleProfileSearch = async () => {
+    if (!searchPrompt.trim()) {
+      setError('Please enter a search description');
+      return;
+    }
+
+    setSearchLoading(true);
+    setShowLoadingOverlay(true);
+    setLoadingMessage('Searching for profiles...');
+    setError('');
+
+    try {
+      console.log('Searching for profiles with prompt:', searchPrompt);
+      
+      const response = await fetch('http://localhost:5001/search-profiles', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_prompt: searchPrompt,
+          limit: 20
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log(`✅ Found ${data.total_found} profiles`);
+        
+        // Create a blob from the CSV data
+        const blob = new Blob([data.csv_data], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        
+        // Create a download link and trigger it
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `linkedin_search_results_${new Date().getTime()}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        showNotification(`Downloaded ${data.total_found} profiles as CSV!`, 'success');
+      } else {
+        setError(data.error || 'Failed to search profiles');
+      }
+    } catch (err) {
+      setError('Network error. Please make sure the Flask server is running on port 5001.');
+      console.error('Error:', err);
+    } finally {
+      setSearchLoading(false);
+      setShowLoadingOverlay(false);
+    }
   };
 
   const clearAllResults = () => {
@@ -877,25 +948,86 @@ function App() {
       <div className="container">
         <h1>LinkedIn Profile AI Assessor</h1>
         <p className="description">
-          {batchMode ? 'Upload a CSV file with LinkedIn URLs for batch assessment' : 'Enter a LinkedIn profile URL and get an AI-powered assessment'}
+          {searchMode 
+            ? 'Search for LinkedIn profiles using natural language and download results as CSV' 
+            : batchMode 
+            ? 'Upload a CSV file with LinkedIn URLs for batch assessment' 
+            : 'Enter a LinkedIn profile URL and get an AI-powered assessment'}
         </p>
 
         <div className="mode-toggle">
           <button 
-            className={`mode-btn ${!batchMode ? 'active' : ''}`}
-            onClick={() => setBatchMode(false)}
+            className={`mode-btn ${searchMode ? 'active' : ''}`}
+            onClick={() => {
+              setSearchMode(true);
+              setBatchMode(false);
+            }}
+          >
+            Profile Search
+          </button>
+          <button 
+            className={`mode-btn ${!batchMode && !searchMode ? 'active' : ''}`}
+            onClick={() => {
+              setBatchMode(false);
+              setSearchMode(false);
+            }}
           >
             Single Profile
           </button>
           <button 
-            className={`mode-btn ${batchMode ? 'active' : ''}`}
-            onClick={() => setBatchMode(true)}
+            className={`mode-btn ${batchMode && !searchMode ? 'active' : ''}`}
+            onClick={() => {
+              setBatchMode(true);
+              setSearchMode(false);
+            }}
           >
             Batch Processing
           </button>
         </div>
 
-        {!batchMode ? (
+        {searchMode ? (
+          <div className="search-form">
+            <div className="form-group">
+              <label htmlFor="searchPrompt">Describe the candidate you're looking for:</label>
+              <textarea
+                id="searchPrompt"
+                value={searchPrompt}
+                onChange={(e) => setSearchPrompt(e.target.value)}
+                placeholder="e.g., 'Find me a technical leader with AI/ML experience based in the United States' or 'Looking for a sales director in healthcare based in New York'"
+                rows="4"
+                required
+              />
+              <p className="file-help">
+                Use natural language to describe the role, location, industry, skills, or experience you're looking for. 
+                The AI will find matching profiles and download them as a CSV file.
+              </p>
+            </div>
+
+            <div className="button-group">
+              <button 
+                type="button" 
+                onClick={handleProfileSearch}
+                className="submit-btn search-btn-text" 
+                disabled={searchLoading}
+              >
+                {searchLoading ? 'Searching...' : (
+                  <>
+                    <span>Search Profiles</span>
+                    <span className="btn-subtitle">(Download CSV)</span>
+                  </>
+                )}
+              </button>
+              
+              <button 
+                type="button" 
+                onClick={resetToSingleMode}
+                className="test-btn"
+              >
+                Back to Single
+              </button>
+            </div>
+          </div>
+        ) : !batchMode ? (
           <form onSubmit={handleSubmit} className="input-form">
             <div className="form-group">
               <label htmlFor="linkedinUrl">LinkedIn Profile URL:</label>
@@ -1258,8 +1390,8 @@ function App() {
                   >
                     Clear All Results
                   </button>
-                )}
-              </div>
+            )}
+          </div>
               <h2>
                 Assessment Results ({allCandidates.length} candidate{allCandidates.length !== 1 ? 's' : ''})
               </h2>
@@ -1268,68 +1400,83 @@ function App() {
                   <p>No assessments found. Process some profiles or load from database to see results.</p>
                 </div>
               ) : (
-                <div className="candidates-list">
+            <div className="candidates-list">
                   {allCandidates.map((candidate, index) => (
                   <div key={`${candidate.type}-${candidate.originalIndex || 0}`} className="candidate-card">
-                    <div className="candidate-header">
-                      <div className="candidate-rank">
+                  <div className="candidate-header">
+                    <div className="candidate-rank">
                         <span className="rank-number">#{candidate.rank}</span>
-                      </div>
-                      <div className="candidate-info">
+                    </div>
+                    <div className="candidate-info">
+                      <div className="candidate-name-row">
                         <h3>{candidate.name}</h3>
-                        <div className="candidate-meta">
-                          <span className="candidate-headline">{candidate.headline}</span>
-                        </div>
-                      </div>
-                      <div className="candidate-score">
-                        {candidate.assessment && (
-                          <div className="final-score">
-                            {candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.weighted_score !== undefined ? (
-                              <div className="score-display">
-                                <span className="score-label">Weighted Score</span>
-                                <span className="score-value">
-                                  {candidate.assessment.weighted_analysis.weighted_score === 'N/A' ? 'N/A' : `${candidate.assessment.weighted_analysis.weighted_score}/10`}
-                                </span>
-                              </div>
-                            ) : candidate.assessment.overall_score ? (
-                              <div className="score-display">
-                                <span className="score-label">Overall Score</span>
-                                <span className="score-value">
-                                  {candidate.assessment.overall_score === 'N/A' ? 'N/A' : `${candidate.assessment.overall_score}/10`}
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="score-display">
-                                <span className="score-label">Score</span>
-                                <span className="score-value">N/A</span>
-                              </div>
-                            )}
-                          </div>
+                        {candidate.url && candidate.url !== 'Test Profile' && (
+                          <a 
+                            href={candidate.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="linkedin-icon"
+                            title="View LinkedIn Profile"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#0077b5">
+                              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                            </svg>
+                          </a>
                         )}
                       </div>
+                      <div className="candidate-meta">
+                          <span className="candidate-headline">{candidate.headline}</span>
+                      </div>
+                    </div>
+                    <div className="candidate-score">
+                        {candidate.assessment && (
+                        <div className="final-score">
+                            {candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.weighted_score !== undefined ? (
+                            <div className="score-display">
+                              <span className="score-label">Weighted Score</span>
+                              <span className="score-value">
+                                  {candidate.assessment.weighted_analysis.weighted_score === 'N/A' ? 'N/A' : `${candidate.assessment.weighted_analysis.weighted_score}/10`}
+                              </span>
+                            </div>
+                            ) : candidate.assessment.overall_score ? (
+                            <div className="score-display">
+                              <span className="score-label">Overall Score</span>
+                              <span className="score-value">
+                                  {candidate.assessment.overall_score === 'N/A' ? 'N/A' : `${candidate.assessment.overall_score}/10`}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="score-display">
+                              <span className="score-label">Score</span>
+                              <span className="score-value">N/A</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                       {/* <div className="candidate-status">
                         {candidate.success && candidate.assessment ? (
-                          <div className="status-badge success">
-                            ✅ Assessed
-                          </div>
+                        <div className="status-badge success">
+                          ✅ Assessed
+                        </div>
                         ) : candidate.success ? (
-                          <div className="status-badge warning">
-                            ⚠️ Profile Found, Assessment Failed
-                          </div>
-                        ) : (
-                          <div className="status-badge error">
-                            ❌ Not Found
-                          </div>
-                        )}
+                        <div className="status-badge warning">
+                          ⚠️ Profile Found, Assessment Failed
+                        </div>
+                      ) : (
+                        <div className="status-badge error">
+                          ❌ Not Found
+                        </div>
+                      )}
                       </div> */}
-                    </div>
-                    
+                  </div>
+                  
                     {candidate.assessment && (
-                      <div className="candidate-details">
-                        <details className="assessment-details">
-                          <summary className="details-summary">View Detailed Assessment</summary>
-                          
-                          <div className="details-content">
+                    <div className="candidate-details">
+                      <details className="assessment-details">
+                        <summary className="details-summary">View Detailed Assessment</summary>
+                        
+                        <div className="details-content">
                             {/* Profile Summary - only for single profile */}
                             {/* {candidate.type === 'single' && candidate.profileSummary && (
                               <div className="profile-summary-section">
@@ -1354,104 +1501,104 @@ function App() {
                               </div>
                             )} */}
 
-                            {/* Assessment Scores */}
-                            <div className="assessment-scores">
+                          {/* Assessment Scores */}
+                          <div className="assessment-scores">
                               {candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.weighted_score !== undefined ? (
-                                <div className="score-section">
-                                  <h4>Weighted Final Score</h4>
+                              <div className="score-section">
+                                <h4>Weighted Final Score</h4>
                                   {renderScoreBar(candidate.assessment.weighted_analysis.weighted_score)}
-                                </div>
+                              </div>
                               ) : candidate.assessment.overall_score ? (
-                                <div className="score-section">
-                                  <h4>Overall Score</h4>
+                              <div className="score-section">
+                                <h4>Overall Score</h4>
                                   {renderScoreBar(candidate.assessment.overall_score)}
-                                </div>
-                              ) : null}
-                            </div>
+                              </div>
+                            ) : null}
+                          </div>
 
-                            {/* Weighted Analysis */}
+                          {/* Weighted Analysis */}
                             {candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.requirements && candidate.assessment.weighted_analysis.requirements.length > 0 && (
-                              <div className="weighted-analysis-section">
-                                <h4>Weighted Analysis</h4>
-                                <div className="weighted-requirements">
+                            <div className="weighted-analysis-section">
+                              <h4>Weighted Analysis</h4>
+                              <div className="weighted-requirements">
                                   {candidate.assessment.weighted_analysis.requirements.map((req, reqIdx) => (
-                                    <div key={reqIdx} className="requirement-item">
-                                      <div className="requirement-header">
-                                        <span className="requirement-text">{req.requirement} ({req.weight}%)</span>
-                                        <span className="requirement-score">{renderWeightedScore(req.score)}</span>
-                                      </div>
-                                      <p className="requirement-analysis">{req.analysis}</p>
+                                  <div key={reqIdx} className="requirement-item">
+                                    <div className="requirement-header">
+                                      <span className="requirement-text">{req.requirement} ({req.weight}%)</span>
+                                      <span className="requirement-score">{renderWeightedScore(req.score)}</span>
                                     </div>
-                                  ))}
-                                  
+                                    <p className="requirement-analysis">{req.analysis}</p>
+                                  </div>
+                                ))}
+                                
                                   {candidate.assessment.weighted_analysis.general_fit_weight > 0 && (
-                                    <div className="requirement-item general-fit">
-                                      <div className="requirement-header">
+                                  <div className="requirement-item general-fit">
+                                    <div className="requirement-header">
                                         <span className="requirement-text">General Fit ({candidate.assessment.weighted_analysis.general_fit_weight}%)</span>
                                         <span className="requirement-score">{renderWeightedScore(candidate.assessment.weighted_analysis.general_fit_score)}</span>
-                                      </div>
-                                      <p className="requirement-analysis">{candidate.assessment.weighted_analysis.general_fit_analysis}</p>
                                     </div>
-                                  )}
-                                </div>
+                                      <p className="requirement-analysis">{candidate.assessment.weighted_analysis.general_fit_analysis}</p>
+                                  </div>
+                                )}
                               </div>
-                            )}
-
-                            {/* Key Strengths and Weaknesses */}
-                            <div className="assessment-summary">
-                              {candidate.assessment.strengths && candidate.assessment.strengths.length > 0 && (
-                                <div className="strengths-section">
-                                  <h4>Key Strengths</h4>
-                                  <ul>
-                                    {candidate.assessment.strengths.map((strength, idx) => (
-                                      <li key={idx}>{strength}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                              
-                              {candidate.assessment.weaknesses && candidate.assessment.weaknesses.length > 0 && (
-                                <div className="weaknesses-section">
-                                  <h4>Key Weaknesses</h4>
-                                  <ul>
-                                    {candidate.assessment.weaknesses.map((weakness, idx) => (
-                                      <li key={idx}>{weakness}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
                             </div>
+                          )}
 
-                            {/* Career Trajectory */}
-                            {candidate.assessment.career_trajectory && candidate.assessment.career_trajectory !== 'Profile not found in CoreSignal database' && (
-                              <div className="career-trajectory-section">
-                                <h4>Career Trajectory</h4>
-                                <p>{candidate.assessment.career_trajectory}</p>
+                          {/* Key Strengths and Weaknesses */}
+                          <div className="assessment-summary">
+                              {candidate.assessment.strengths && candidate.assessment.strengths.length > 0 && (
+                              <div className="strengths-section">
+                                <h4>Key Strengths</h4>
+                                <ul>
+                                    {candidate.assessment.strengths.map((strength, idx) => (
+                                    <li key={idx}>{strength}</li>
+                                  ))}
+                                </ul>
                               </div>
                             )}
+                            
+                              {candidate.assessment.weaknesses && candidate.assessment.weaknesses.length > 0 && (
+                              <div className="weaknesses-section">
+                                <h4>Key Weaknesses</h4>
+                                <ul>
+                                    {candidate.assessment.weaknesses.map((weakness, idx) => (
+                                    <li key={idx}>{weakness}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Career Trajectory */}
+                            {candidate.assessment.career_trajectory && candidate.assessment.career_trajectory !== 'Profile not found in CoreSignal database' && (
+                            <div className="career-trajectory-section">
+                              <h4>Career Trajectory</h4>
+                                <p>{candidate.assessment.career_trajectory}</p>
+                            </div>
+                          )}
 
                             {/* Detailed Analysis
                             {candidate.assessment.detailed_analysis && candidate.assessment.detailed_analysis !== 'Unable to assess - LinkedIn profile not found in our database' && (
-                              <div className="detailed-analysis-section">
-                                <h4>Detailed Analysis</h4>
+                            <div className="detailed-analysis-section">
+                              <h4>Detailed Analysis</h4>
                                 <p>{candidate.assessment.detailed_analysis}</p>
-                              </div>
+                            </div>
                             )} */}
 
                             {/* Profile Not Found Message - only for batch results */}
                             {candidate.type === 'batch' && !candidate.success && (
-                              <div className="profile-not-found-section">
-                                <h4>Profile Not Found</h4>
-                                <p>This LinkedIn profile was not found in our database. Assessment could not be completed.</p>
+                            <div className="profile-not-found-section">
+                              <h4>Profile Not Found</h4>
+                              <p>This LinkedIn profile was not found in our database. Assessment could not be completed.</p>
                                 <p><strong>URL:</strong> {candidate.url}</p>
-                              </div>
-                            )}
-                          </div>
-                        </details>
-                      </div>
-                    )}
-                  </div>
-                  ))}
+                            </div>
+                          )}
+                        </div>
+                      </details>
+                    </div>
+                  )}
+                </div>
+              ))}
                 </div>
               )}
             </div>
@@ -1465,16 +1612,16 @@ function App() {
         <div className="loading-overlay">
           <div className="loading-spinner">
             <div className="spinner"></div>
-            <p>Processing...</p>
+            <p>{loadingMessage}</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Notification */}
       {notification.show && (
         <div className={`notification ${notification.type}`}>
           {notification.type === 'success' ? '✅' : '❌'} {notification.message}
-        </div>
+      </div>
       )}
     </div>
   );

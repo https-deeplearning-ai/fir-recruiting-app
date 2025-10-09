@@ -8,9 +8,12 @@ from concurrent.futures import ThreadPoolExecutor
 from anthropic import Anthropic
 from datetime import datetime
 import calendar
+import time
 from coresignal_service import CoreSignalService
 from dotenv import load_dotenv
 import requests
+import csv
+from io import StringIO
 
 # Load environment variables from .env file
 load_dotenv()
@@ -25,6 +28,20 @@ anthropic_client = Anthropic(
 
 # Initialize CoreSignal service
 coresignal_service = CoreSignalService()
+
+# CoreSignal API configuration
+CORESIGNAL_API_KEY = "zGZEUYUw2Koty9kxPidzCHTce5Wl2vYL"
+
+# Load valid input values for intelligent search
+script_dir = os.path.dirname(os.path.abspath(__file__))
+input_values_path = os.path.join(script_dir, 'input_values.json')
+try:
+    with open(input_values_path, 'r') as f:
+        VALID_INPUT_VALUES = json.load(f)
+    print("✅ Loaded input values for intelligent search")
+except Exception as e:
+    print(f"⚠️ Warning: Could not load input_values.json: {e}")
+    VALID_INPUT_VALUES = {}
 
 # Database configuration - using Supabase REST API
 SUPABASE_URL = "https://csikerdodixcqzfweiao.supabase.co"
@@ -124,6 +141,246 @@ def load_from_supabase_api(limit):
     except Exception as e:
         print(f"❌ Error loading assessments from Supabase API: {str(e)}")
         return []
+
+def process_user_prompt_for_search(user_prompt: str) -> dict:
+    """Process user prompt using Anthropic to extract search criteria"""
+    try:
+        # Get tech-related industries
+        tech_industries = [ind for ind in VALID_INPUT_VALUES.get('company_industry', []) if any(keyword in ind for keyword in [
+            'Technology', 'Software', 'IT ', 'Computer', 'Internet', 'Data', 'Mobile', 'Desktop', 'Embedded', 'Blockchain'
+        ])]
+        
+        management_levels_str = json.dumps(VALID_INPUT_VALUES.get('management_level', []), indent=2)
+        departments_str = json.dumps(VALID_INPUT_VALUES.get('department', []), indent=2)
+        tech_industries_str = json.dumps(tech_industries, indent=2)
+        all_industries_str = json.dumps(VALID_INPUT_VALUES.get('company_industry', []), indent=2)
+        total_industries = len(VALID_INPUT_VALUES.get('company_industry', []))
+        
+        system_prompt = f"""You are an expert at extracting MINIMUM REQUIREMENTS from user prompts for LinkedIn profile searches and mapping them to valid Coresignal database values.
+
+CRITICAL: 
+1. Extract ONLY the absolute minimum requirements that MUST be met
+2. You MUST use ONLY exact values from the provided lists - DO NOT make up or modify values
+3. If user mentions an industry, find the closest matching value from the exact list
+4. These will be used as hard filters - candidates must meet ALL requirements
+
+===== VALID FIELD VALUES (USE ONLY THESE) =====
+
+**management_level:** (Choose from ONLY these {len(VALID_INPUT_VALUES.get('management_level', []))} exact values)
+{management_levels_str}
+
+**department:** (Choose from ONLY these {len(VALID_INPUT_VALUES.get('department', []))} exact values)
+{departments_str}
+
+**company_industry:** (Choose from ONLY these {total_industries} exact values)
+
+TECHNOLOGY-RELATED INDUSTRIES (most common for tech searches):
+{tech_industries_str}
+
+ALL AVAILABLE INDUSTRIES (full list - search this for non-tech):
+{all_industries_str}
+
+Return a JSON object with ONLY minimum requirements:
+{{
+    "must_have_location": "United States",
+    "must_have_industries": ["Technology, Information and Internet", "Software Development"],
+    "must_have_role_titles": ["CTO", "Director", "VP", "Head", "Lead", "Chief"],
+    "must_have_management_levels": ["C-Level", "Director", "VP"],
+    "must_have_departments": null,
+    "must_have_skills_in_headline": ["AI", "ML", "Machine Learning"],
+    "must_have_experience_years": 5,
+    "explanation": "Brief explanation of extracted criteria"
+}}"""
+
+        response = anthropic_client.messages.create(
+            model="claude-3-7-sonnet-20250219",
+            max_tokens=2000,
+            temperature=0.3,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}]
+        )
+        
+        response_text = response.content[0].text
+        
+        # Parse JSON from response
+        if "```json" in response_text:
+            json_start = response_text.find("```json") + 7
+            json_end = response_text.find("```", json_start)
+            json_str = response_text[json_start:json_end].strip()
+        elif "```" in response_text:
+            json_start = response_text.find("```") + 3
+            json_end = response_text.find("```", json_start)
+            json_str = response_text[json_start:json_end].strip()
+        else:
+            json_str = response_text.strip()
+        
+        return json.loads(json_str)
+        
+    except Exception as e:
+        print(f"Error processing user prompt: {e}")
+        return {}
+
+def build_intelligent_elasticsearch_query(criteria: dict) -> dict:
+    """Build Elasticsearch DSL query from extracted criteria"""
+    must_conditions = []
+    
+    # Always include working status - use match instead of term for compatibility
+    must_conditions.append({"match": {"is_working": 1}})
+    
+    # Location
+    if criteria.get("must_have_location"):
+        location = criteria["must_have_location"]
+        location_conditions = []
+        
+        if location.lower() in ["united states", "us", "usa", "america"]:
+            location_conditions.append({"term": {"location_country": "United States"}})
+            location_conditions.append({"term": {"location_country": "US"}})
+            location_conditions.append({"term": {"location_country": "USA"}})
+        else:
+            location_conditions.append({"wildcard": {"location_raw_address": f"*{location.lower()}*"}})
+            location_conditions.append({"wildcard": {"location_country": f"*{location.lower()}*"}})
+        
+        if location_conditions:
+            must_conditions.append({
+                "bool": {"should": location_conditions, "minimum_should_match": 1}
+            })
+    
+    # Industry
+    if criteria.get("must_have_industries"):
+        industry_conditions = []
+        for industry in criteria["must_have_industries"]:
+            industry_conditions.append({
+                "nested": {
+                    "path": "experience",
+                    "query": {"term": {"experience.company_industry.exact": industry}}
+                }
+            })
+        
+        if industry_conditions:
+            must_conditions.append({
+                "bool": {"should": industry_conditions, "minimum_should_match": 1}
+            })
+    
+    # Role titles
+    if criteria.get("must_have_role_titles"):
+        role_conditions = []
+        for role in criteria["must_have_role_titles"]:
+            role_conditions.append({"wildcard": {"job_title": f"*{role.lower()}*"}})
+        
+        if role_conditions:
+            must_conditions.append({
+                "bool": {"should": role_conditions, "minimum_should_match": 1}
+            })
+    
+    # Management levels
+    if criteria.get("must_have_management_levels") and not criteria.get("must_have_role_titles"):
+        mgmt_conditions = []
+        for level in criteria["must_have_management_levels"]:
+            mgmt_conditions.append({"term": {"management_level": level}})
+        
+        if mgmt_conditions:
+            must_conditions.append({
+                "bool": {"should": mgmt_conditions, "minimum_should_match": 1}
+            })
+    
+    # Skills in headline
+    if criteria.get("must_have_skills_in_headline"):
+        skill_conditions = []
+        for skill in criteria["must_have_skills_in_headline"][:3]:
+            skill_conditions.append({"wildcard": {"headline": f"*{skill.lower()}*"}})
+            skill_conditions.append({"term": {"skills": skill}})
+        
+        if skill_conditions:
+            must_conditions.append({
+                "bool": {"should": skill_conditions, "minimum_should_match": 1}
+            })
+    
+    # Experience years
+    if criteria.get("must_have_experience_years"):
+        must_conditions.append({
+            "range": {
+                "total_experience_duration_months": {
+                    "gte": criteria["must_have_experience_years"] * 12
+                }
+            }
+        })
+    
+    query = {
+        "query": {"bool": {"must": must_conditions}},
+        "sort": ["_score"]
+    }
+    
+    return query
+
+def search_coresignal_profiles(criteria: dict, limit: int = 20) -> dict:
+    """Search for profiles using Coresignal API"""
+    headers = {
+        "accept": "application/json",
+        "apikey": CORESIGNAL_API_KEY,
+        "Content-Type": "application/json"
+    }
+    
+    query = build_intelligent_elasticsearch_query(criteria)
+    
+    try:
+        print(f"Searching for up to {limit} profiles...")
+        print(f"Query: {json.dumps(query, indent=2)}")
+        
+        # Use the es_dsl/preview endpoint (same as new_search.py)
+        response = requests.post(
+            "https://api.coresignal.com/cdapi/v2/employee_clean/search/es_dsl/preview",
+            json=query,
+            headers=headers
+        )
+        print(f"Response status: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # The preview endpoint returns a list directly
+            results = data if isinstance(data, list) else []
+            
+            # Limit results to requested amount
+            limited_results = results[:limit] if len(results) > limit else results
+            
+            print(f"✅ Found {len(limited_results)} profiles")
+            
+            return {
+                "success": True,
+                "results": limited_results,
+                "total_found": len(limited_results),
+                "query": query
+            }
+        else:
+            error_text = response.text
+            print(f"❌ Search error: {response.status_code} - {error_text}")
+            return {"success": False, "error": f"API error {response.status_code}: {error_text}"}
+            
+    except Exception as e:
+        print(f"❌ Search error: {e}")
+        return {"success": False, "error": str(e)}
+
+def convert_search_results_to_csv(results: list) -> str:
+    """Convert search results to CSV format for batch processing"""
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow(['Profile URL', 'First Name', 'Last Name', 'Full Name', 'Headline', 'Location', 'Current Title'])
+    
+    # Write data
+    for profile in results:
+        profile_url = profile.get('websites_linkedin', '')
+        full_name = profile.get('full_name', '')
+        first_name = profile.get('name_first', '')
+        last_name = profile.get('name_last', '')
+        headline = profile.get('headline', '')
+        location = profile.get('location_raw_address', '')
+        job_title = profile.get('job_title', '')
+        
+        writer.writerow([profile_url, first_name, last_name, full_name, headline, location, job_title])
+    
+    return output.getvalue()
 
 def extract_profile_summary(profile_data):
     """Extract key information from LinkedIn profile for analysis"""
@@ -571,13 +828,33 @@ def assess_single_profile_sync(profile_data, user_prompt, weighted_requirements)
         
         print(f"Calling Anthropic API for {profile_data.get('full_name', 'Unknown')}...")
         
-        # Call Anthropic API
-        response = anthropic_client.messages.create(
-            model="claude-3-7-sonnet-20250219",
-            max_tokens=4000,
-            temperature=0.1,
-            messages=[{"role": "user", "content": prompt}]
-        )
+        # Call Anthropic API with retry logic for rate limits
+        max_retries = 3
+        retry_delay = 20  # Start with 20 seconds
+        
+        for attempt in range(max_retries):
+            try:
+                response = anthropic_client.messages.create(
+                    model="claude-3-7-sonnet-20250219",
+                    max_tokens=4000,
+                    temperature=0.1,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                break  # Success, exit retry loop
+            except Exception as api_error:
+                error_str = str(api_error)
+                # Check if it's a rate limit error (429)
+                if "429" in error_str or "rate_limit" in error_str.lower():
+                    if attempt < max_retries - 1:
+                        wait_time = retry_delay * (attempt + 1)  # Exponential backoff
+                        print(f"⚠️ Rate limit hit for {profile_data.get('full_name', 'Unknown')}. Retrying in {wait_time} seconds (attempt {attempt + 2}/{max_retries})...")
+                        time.sleep(wait_time)
+                    else:
+                        print(f"❌ Rate limit persists after {max_retries} attempts for {profile_data.get('full_name', 'Unknown')}")
+                        raise api_error
+                else:
+                    # Not a rate limit error, raise immediately
+                    raise api_error
         
         # Parse the response
         response_text = response.content[0].text
@@ -634,7 +911,7 @@ async def assess_single_profile_async(session, profile_data, user_prompt, weight
     return result
 
 async def assess_profiles_batch_async(profiles_data, user_prompt, weighted_requirements):
-    """Assess multiple profiles in parallel"""
+    """Assess multiple profiles in parallel with rate limit batching (5 at a time)"""
     async with aiohttp.ClientSession() as session:
         # Create tasks for all profiles that were successfully fetched
         assessment_tasks = []
@@ -665,14 +942,34 @@ async def assess_profiles_batch_async(profiles_data, user_prompt, weighted_requi
         
         print(f"Created {len([t for t in assessment_tasks if t is not None])} parallel assessment tasks")
         
-        # Execute all tasks in parallel
+        # Execute tasks in batches to avoid rate limits
         if assessment_tasks:
-            # Filter out None tasks and execute the real ones in parallel
+            # Filter out None tasks and execute the real ones in batches
             real_tasks = [task for task in assessment_tasks if task is not None]
             if real_tasks:
-                print("🚀 Starting parallel AI assessments...")
-                assessment_results = await asyncio.gather(*real_tasks, return_exceptions=True)
-                print("✅ All parallel assessments completed!")
+                print(f"🚀 Starting batched AI assessments ({len(real_tasks)} total, processing 5 at a time)...")
+                
+                assessment_results = []
+                BATCH_SIZE = 5
+                DELAY_BETWEEN_BATCHES = 12  # 12 seconds between batches (optimized for rate limit)
+                
+                for i in range(0, len(real_tasks), BATCH_SIZE):
+                    batch = real_tasks[i:i+BATCH_SIZE]
+                    batch_num = (i // BATCH_SIZE) + 1
+                    total_batches = (len(real_tasks) + BATCH_SIZE - 1) // BATCH_SIZE
+                    
+                    print(f"📦 Processing batch {batch_num}/{total_batches} ({len(batch)} profiles)...")
+                    batch_results = await asyncio.gather(*batch, return_exceptions=True)
+                    assessment_results.extend(batch_results)
+                    
+                    print(f"✅ Batch {batch_num}/{total_batches} completed!")
+                    
+                    # Add delay between batches (except after the last batch)
+                    if i + BATCH_SIZE < len(real_tasks):
+                        print(f"⏳ Waiting {DELAY_BETWEEN_BATCHES} seconds before next batch to avoid rate limits...")
+                        await asyncio.sleep(DELAY_BETWEEN_BATCHES)
+                
+                print("✅ All batched assessments completed!")
             else:
                 assessment_results = []
         else:
@@ -887,6 +1184,63 @@ def load_assessments():
         })
         
     except Exception as e:
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/search-profiles', methods=['POST'])
+def search_profiles_endpoint():
+    """Search for profiles based on natural language prompt and return CSV"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        user_prompt = data.get('user_prompt', '')
+        limit = data.get('limit', 20)
+        
+        if not user_prompt:
+            return jsonify({'error': 'User prompt is required'}), 400
+        
+        # Validate limit
+        if limit > 50:
+            limit = 50
+        if limit < 1:
+            limit = 1
+        
+        print(f"🔍 Processing search request: {user_prompt[:100]}...")
+        
+        # Step 1: Process user prompt with Anthropic
+        print("🤖 Extracting search criteria with AI...")
+        criteria = process_user_prompt_for_search(user_prompt)
+        
+        if not criteria:
+            return jsonify({'error': 'Failed to extract search criteria from prompt'}), 400
+        
+        print(f"✅ Extracted criteria: {criteria.get('explanation', 'No explanation')}")
+        
+        # Step 2: Search CoreSignal API
+        print("🌐 Searching CoreSignal database...")
+        search_results = search_coresignal_profiles(criteria, limit)
+        
+        if not search_results.get('success'):
+            return jsonify({'error': search_results.get('error', 'Search failed')}), 400
+        
+        results = search_results.get('results', [])
+        print(f"✅ Found {len(results)} profiles")
+        
+        # Step 3: Convert to CSV
+        print("📄 Converting results to CSV...")
+        csv_data = convert_search_results_to_csv(results)
+        
+        return jsonify({
+            'success': True,
+            'csv_data': csv_data,
+            'total_found': len(results),
+            'criteria': criteria
+        })
+        
+    except Exception as e:
+        print(f"❌ Search error: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/health', methods=['GET'])

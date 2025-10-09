@@ -117,6 +117,20 @@ textarea:focus, input[type="text"]:focus {
   flex: 1;
 }
 
+.submit-btn.search-btn-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 30px;
+}
+
+.btn-subtitle {
+  font-size: 0.85em;
+  font-weight: 400;
+  opacity: 0.9;
+}
+
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
@@ -591,6 +605,7 @@ textarea:focus, input[type="text"]:focus {
   margin-bottom: 15px;
   padding-bottom: 10px;
   border-bottom: 1px solid #e9ecef;
+  margin-right: 12px;
 }
 
 .requirement-header h4 {
@@ -738,6 +753,15 @@ textarea:focus, input[type="text"]:focus {
   cursor: not-allowed;
 }
 
+/* Search Form */
+.search-form {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  margin-bottom: 30px;
+}
+
 /* Batch Form */
 .batch-form {
   background: white;
@@ -834,6 +858,8 @@ textarea:focus, input[type="text"]:focus {
   font-size: 18px;
   font-weight: 500;
   color: #333;
+  white-space: pre-line;
+  text-align: center;
 }
 
 /* Notification */
@@ -1199,10 +1225,33 @@ textarea:focus, input[type="text"]:focus {
   flex: 1;
 }
 
+.candidate-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
 .candidate-info h3 {
-  margin: 0 0 8px 0;
+  margin: 0;
   font-size: 20px;
   font-weight: 600;
+}
+
+.linkedin-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.linkedin-icon:hover {
+  transform: scale(1.1);
+}
+
+.linkedin-icon svg {
+  display: block;
 }
 
 .candidate-meta {
