@@ -404,6 +404,10 @@ def search_coresignal_profiles_preview(criteria: dict, page: int = 1) -> dict:
     
     query = build_intelligent_elasticsearch_query(criteria)
     
+    # Debug: Print the actual query being sent
+    print(f"🔍 DEBUG: Elasticsearch query being sent:")
+    print(json.dumps(query, indent=2))
+    
     try:
         # Use the /preview endpoint with page parameter (max page=5)
         url = f"https://api.coresignal.com/cdapi/v2/employee_clean/search/es_dsl/preview?page={page}"
@@ -1624,6 +1628,8 @@ def search_profiles_endpoint():
             return jsonify({'error': 'Failed to extract search criteria from prompt'}), 400
         
         print(f"✅ Extracted criteria: {criteria.get('explanation', 'No explanation')}")
+        print(f"🔍 DEBUG: Full extracted criteria:")
+        print(json.dumps(criteria, indent=2))
         
         # Step 2: Search CoreSignal API using /preview endpoint
         # Limitation: /preview only supports pages 1-5, so max 100 profiles per search
