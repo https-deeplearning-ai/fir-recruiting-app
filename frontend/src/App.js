@@ -700,8 +700,8 @@ function App() {
       const csvText = await csvFile.text();
       const candidates = parseCsv(csvText);
       
-      // Split candidates into batches of 3 to avoid timeout
-      const BATCH_SIZE = 3;
+      // Split candidates into batches of 5 to avoid timeout
+      const BATCH_SIZE = 5;
       const batches = [];
       for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
         batches.push(candidates.slice(i, i + BATCH_SIZE));
@@ -709,7 +709,8 @@ function App() {
       
       const numCandidates = candidates.length;
       const numBatches = batches.length;
-      const estimatedSeconds = numBatches * 15; // ~15 seconds per batch of 3
+      const DELAY_BETWEEN_BATCHES = 20; // 20 seconds delay to let rate limit reset
+      const estimatedSeconds = numBatches * 20 + (numBatches - 1) * DELAY_BETWEEN_BATCHES; // ~20s per batch + delays
       const estimatedMinutes = Math.ceil(estimatedSeconds / 60);
       
       console.log(`Processing ${numCandidates} candidates in ${numBatches} batch(es) of up to ${BATCH_SIZE}...`);
@@ -721,11 +722,14 @@ function App() {
         const batch = batches[i];
         const batchNum = i + 1;
         
+        const remainingBatches = numBatches - i;
+        const remainingTime = remainingBatches * 20 + (remainingBatches - 1) * DELAY_BETWEEN_BATCHES;
+        
         setLoadingMessage(
           `Processing batch ${batchNum}/${numBatches}\n` +
           `(${batch.length} candidate${batch.length !== 1 ? 's' : ''} in this batch)\n` +
           `Total progress: ${allResults.length}/${numCandidates} completed\n` +
-          `Estimated time remaining: ~${Math.ceil((numBatches - i) * 15 / 60)} min`
+          `Estimated time remaining: ~${Math.ceil(remainingTime / 60)} min`
         );
         
         console.log(`📦 Processing batch ${batchNum}/${numBatches} (${batch.length} candidates)...`);
@@ -772,9 +776,15 @@ function App() {
           setError(`Batch ${batchNum} error: ${err.message}. Check if server is overloaded. Continuing...`);
         }
         
-        // Small delay between batches to avoid overwhelming the server
+        // Wait 20 seconds between batches to let Anthropic rate limit reset
         if (i < batches.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          setLoadingMessage(
+            `✅ Batch ${batchNum}/${numBatches} complete!\n` +
+            `Waiting 20 seconds before next batch...\n` +
+            `(Letting API rate limit reset)\n` +
+            `Total progress: ${allResults.length}/${numCandidates} completed`
+          );
+          await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES * 1000));
         }
       }
       

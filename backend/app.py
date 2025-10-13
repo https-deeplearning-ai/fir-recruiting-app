@@ -950,10 +950,10 @@ async def assess_profiles_batch_async(profiles_data, user_prompt, weighted_requi
             # Filter out None tasks and execute the real ones in batches
             real_tasks = [task for task in assessment_tasks if task is not None]
             if real_tasks:
-                print(f"🚀 Starting batched AI assessments ({len(real_tasks)} total, processing 3 at a time)...")
+                print(f"🚀 Starting batched AI assessments ({len(real_tasks)} total, processing 5 at a time)...")
                 
                 assessment_results = []
-                BATCH_SIZE = 3
+                BATCH_SIZE = 5
                 DELAY_BETWEEN_BATCHES = 3  # 3 seconds between batches (reduced for faster processing)
                 
                 for i in range(0, len(real_tasks), BATCH_SIZE):
@@ -1066,8 +1066,8 @@ def batch_assess_profiles():
         
         # Limit batch size to prevent overwhelming the API and avoid timeouts
         # Heroku has a 30-second timeout, so we keep batches small
-        if len(candidates) > 3:  # Reduced limit to avoid Heroku timeout and rate limits
-            return jsonify({'error': 'Batch size cannot exceed 3 candidates for AI assessment. Process multiple batches separately.'}), 400
+        if len(candidates) > 5:  # Batch size of 5 with 20s delays between batches
+            return jsonify({'error': 'Batch size cannot exceed 5 candidates for AI assessment. Process multiple batches separately.'}), 400
         
         print(f"Processing batch assessment of {len(candidates)} candidates...")
         print("Received candidates:", candidates)
