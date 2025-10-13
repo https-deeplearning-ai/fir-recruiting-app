@@ -700,107 +700,129 @@ function App() {
       const csvText = await csvFile.text();
       const candidates = parseCsv(csvText);
       
-      // Split candidates into batches of 5 to avoid timeout
-      const BATCH_SIZE = 5;
-      const batches = [];
-      for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
-        batches.push(candidates.slice(i, i + BATCH_SIZE));
-      }
-      
       const numCandidates = candidates.length;
-      const numBatches = batches.length;
-      const DELAY_BETWEEN_BATCHES = 20; // 20 seconds delay to let rate limit reset
-      const estimatedSeconds = numBatches * 20 + (numBatches - 1) * DELAY_BETWEEN_BATCHES; // ~20s per batch + delays
-      const estimatedMinutes = Math.ceil(estimatedSeconds / 60);
+      console.log(`🚀 Starting background assessment for ${numCandidates} candidates...`);
       
-      console.log(`Processing ${numCandidates} candidates in ${numBatches} batch(es) of up to ${BATCH_SIZE}...`);
+      setLoadingMessage(
+        `Starting background assessment...\n` +
+        `Processing ${numCandidates} candidates\n` +
+        `This will run in the background to avoid timeouts`
+      );
       
-      let allResults = [];
-      
-      // Process each batch sequentially
-      for (let i = 0; i < batches.length; i++) {
-        const batch = batches[i];
-        const batchNum = i + 1;
-        
-        const remainingBatches = numBatches - i;
-        const remainingTime = remainingBatches * 20 + (remainingBatches - 1) * DELAY_BETWEEN_BATCHES;
-        
-        setLoadingMessage(
-          `Processing batch ${batchNum}/${numBatches}\n` +
-          `(${batch.length} candidate${batch.length !== 1 ? 's' : ''} in this batch)\n` +
-          `Total progress: ${allResults.length}/${numCandidates} completed\n` +
-          `Estimated time remaining: ~${Math.ceil(remainingTime / 60)} min`
-        );
-        
-        console.log(`📦 Processing batch ${batchNum}/${numBatches} (${batch.length} candidates)...`);
-        
-        try {
-          const response = await fetch('/batch-assess-profiles', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              candidates: batch,
-              user_prompt: userPrompt || 'Provide a general professional assessment',
-              weighted_requirements: weightedRequirements
-            }),
-          });
+      // Start the background job
+      const startResponse = await fetch('/start-batch-assessment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          candidates: candidates,
+          user_prompt: userPrompt || 'Provide a general professional assessment',
+          weighted_requirements: weightedRequirements
+        }),
+      });
 
-          // Check if response is OK
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`❌ Batch ${batchNum} HTTP error ${response.status}:`, errorText.substring(0, 200));
-            setError(`Batch ${batchNum} failed with status ${response.status}. Continuing with remaining batches...`);
-            // Skip to next batch
-            if (i < batches.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-            continue;
-          }
-
-          const data = await response.json();
-
-          if (data.success) {
-            allResults = [...allResults, ...data.results];
-            console.log(`✅ Batch ${batchNum}/${numBatches} complete! Total: ${allResults.length}/${numCandidates}`);
-            
-            // Update results after each batch so user can see progress
-            setBatchResults([...allResults]);
-          } else {
-            console.error(`❌ Batch ${batchNum} failed:`, data.error);
-            setError(`Batch ${batchNum} failed: ${data.error}. Continuing with remaining batches...`);
-          }
-        } catch (err) {
-          console.error(`❌ Batch ${batchNum} error:`, err);
-          setError(`Batch ${batchNum} error: ${err.message}. Check if server is overloaded. Continuing...`);
-        }
-        
-        // Wait 20 seconds between batches to let Anthropic rate limit reset
-        if (i < batches.length - 1) {
-          setLoadingMessage(
-            `✅ Batch ${batchNum}/${numBatches} complete!\n` +
-            `Waiting 20 seconds before next batch...\n` +
-            `(Letting API rate limit reset)\n` +
-            `Total progress: ${allResults.length}/${numCandidates} completed`
-          );
-          await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES * 1000));
-        }
+      if (!startResponse.ok) {
+        const errorText = await startResponse.text();
+        throw new Error(`Failed to start assessment: ${errorText}`);
       }
-      
-      console.log(`🎉 All batches complete! Total results: ${allResults.length}/${numCandidates}`);
-      setBatchResults(allResults);
-      
-      if (allResults.length < numCandidates) {
-        showNotification(
-          `Completed ${allResults.length}/${numCandidates} assessments. Some failed.`,
-          'warning'
-        );
-      } else {
-        showNotification(
-          `Successfully completed all ${numCandidates} assessments!`,
-          'success'
-        );
+
+      const startData = await startResponse.json();
+      if (!startData.success) {
+        throw new Error(startData.error || 'Failed to start assessment');
+      }
+
+      const jobId = startData.job_id;
+      console.log(`✅ Background job started with ID: ${jobId}`);
+
+      // Poll for job completion
+      const pollInterval = 3000; // Poll every 3 seconds
+      let isCompleted = false;
+      let lastProgress = 0;
+
+      while (!isCompleted) {
+        try {
+          const statusResponse = await fetch(`/check-job-status/${jobId}`);
+          
+          if (!statusResponse.ok) {
+            throw new Error(`Failed to check job status: ${statusResponse.status}`);
+          }
+
+          const statusData = await statusResponse.json();
+          
+          if (!statusData.success) {
+            throw new Error(statusData.error || 'Failed to check job status');
+          }
+
+          const jobInfo = statusData.job_info;
+          const progress = jobInfo.progress || 0;
+          const completed = jobInfo.completed || 0;
+          const failed = jobInfo.failed || 0;
+          const status = jobInfo.status;
+
+          // Update progress display
+          if (progress !== lastProgress) {
+            setLoadingMessage(
+              `Background assessment in progress...\n` +
+              `Progress: ${progress}% (${completed}/${numCandidates} completed)\n` +
+              `Failed: ${failed}\n` +
+              `Status: ${status}`
+            );
+            lastProgress = progress;
+          }
+
+          if (status === 'completed') {
+            console.log(`✅ Background job ${jobId} completed!`);
+            isCompleted = true;
+            
+            // Get final results
+            const resultsResponse = await fetch(`/get-job-results/${jobId}`);
+            
+            if (!resultsResponse.ok) {
+              throw new Error(`Failed to get job results: ${resultsResponse.status}`);
+            }
+
+            const resultsData = await resultsResponse.json();
+            
+            if (!resultsData.success) {
+              throw new Error(resultsData.error || 'Failed to get job results');
+            }
+
+            const results = resultsData.results;
+            const summary = resultsData.summary;
+            
+            console.log(`🎉 Assessment complete! Results: ${summary.successful}/${summary.total} successful, ${summary.failed} failed`);
+            
+            setBatchResults(results);
+            
+            if (summary.failed > 0) {
+              showNotification(
+                `Completed ${summary.successful}/${summary.total} assessments. ${summary.failed} failed.`,
+                'warning'
+              );
+            } else {
+              showNotification(
+                `Successfully completed all ${summary.total} assessments!`,
+                'success'
+              );
+            }
+            
+            break;
+            
+          } else if (status === 'failed') {
+            throw new Error(jobInfo.error || 'Background job failed');
+          }
+
+          // Wait before next poll
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          
+        } catch (pollError) {
+          console.error('Error polling job status:', pollError);
+          setError(`Error checking progress: ${pollError.message}`);
+          
+          // Wait a bit longer before retrying
+          await new Promise(resolve => setTimeout(resolve, pollInterval * 2));
+        }
       }
       
     } catch (err) {

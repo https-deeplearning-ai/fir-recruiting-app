@@ -10,6 +10,8 @@ from datetime import datetime
 import calendar
 import time
 import random
+import uuid
+import threading
 from coresignal_service import CoreSignalService
 from dotenv import load_dotenv
 import requests
@@ -27,6 +29,10 @@ CORS(app)
 
 # Session-based page tracking (resets on server restart)
 used_pages_tracker = set()
+
+# Job tracking system for background processing
+job_tracker = {}
+job_lock = threading.Lock()
 
 # Initialize Anthropic client
 anthropic_client = Anthropic(
@@ -1195,6 +1201,286 @@ def load_assessments():
         
     except Exception as e:
         return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/start-batch-assessment', methods=['POST'])
+def start_batch_assessment():
+    """Start a background batch assessment job and return job_id"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        candidates = data.get('candidates', [])
+        user_prompt = data.get('user_prompt', 'Provide a general professional assessment')
+        weighted_requirements = data.get('weighted_requirements', [])
+        
+        if not candidates:
+            return jsonify({'error': 'No candidates provided'}), 400
+        
+        # Generate unique job ID
+        job_id = str(uuid.uuid4())
+        
+        # Initialize job status
+        with job_lock:
+            job_tracker[job_id] = {
+                'status': 'processing',
+                'progress': 0,
+                'total': len(candidates),
+                'completed': 0,
+                'failed': 0,
+                'results': [],
+                'error': None,
+                'started_at': time.time()
+            }
+        
+        # Start background processing
+        def process_job():
+            try:
+                print(f"🚀 Starting background job {job_id} with {len(candidates)} candidates")
+                
+                # Process candidates in sequential batches to avoid timeouts
+                batch_size = 3  # Process 3 at a time to stay under 30s
+                for i in range(0, len(candidates), batch_size):
+                    batch_candidates = candidates[i:i + batch_size]
+                    batch_num = (i // batch_size) + 1
+                    total_batches = (len(candidates) + batch_size - 1) // batch_size
+                    
+                    print(f"Processing batch {batch_num}/{total_batches} for job {job_id}")
+                    
+                    # Process this batch
+                    batch_results = process_candidate_batch(batch_candidates, user_prompt, weighted_requirements)
+                    
+                    # Update job status
+                    with job_lock:
+                        if job_id in job_tracker:
+                            job_tracker[job_id]['results'].extend(batch_results)
+                            job_tracker[job_id]['completed'] = len(job_tracker[job_id]['results'])
+                            job_tracker[job_id]['progress'] = int((job_tracker[job_id]['completed'] / len(candidates)) * 100)
+                            
+                            # Count successful vs failed
+                            successful = len([r for r in batch_results if r.get('success', False)])
+                            failed = len(batch_results) - successful
+                            job_tracker[job_id]['failed'] += failed
+                    
+                    # Small delay between batches
+                    if i + batch_size < len(candidates):
+                        time.sleep(2)
+                
+                # Mark job as completed
+                with job_lock:
+                    if job_id in job_tracker:
+                        job_tracker[job_id]['status'] = 'completed'
+                        job_tracker[job_id]['progress'] = 100
+                
+                print(f"✅ Background job {job_id} completed successfully")
+                
+            except Exception as e:
+                print(f"❌ Background job {job_id} failed: {str(e)}")
+                with job_lock:
+                    if job_id in job_tracker:
+                        job_tracker[job_id]['status'] = 'failed'
+                        job_tracker[job_id]['error'] = str(e)
+        
+        # Start the background thread
+        thread = threading.Thread(target=process_job)
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'message': 'Background assessment started'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/check-job-status/<job_id>', methods=['GET'])
+def check_job_status(job_id):
+    """Check the status of a background job"""
+    try:
+        with job_lock:
+            if job_id not in job_tracker:
+                return jsonify({'error': 'Job not found'}), 404
+            
+            job_info = job_tracker[job_id].copy()
+        
+        return jsonify({
+            'success': True,
+            'job_info': job_info
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/get-job-results/<job_id>', methods=['GET'])
+def get_job_results(job_id):
+    """Get the results of a completed job"""
+    try:
+        with job_lock:
+            if job_id not in job_tracker:
+                return jsonify({'error': 'Job not found'}), 404
+            
+            job_info = job_tracker[job_id]
+            
+            if job_info['status'] != 'completed':
+                return jsonify({'error': 'Job not completed yet'}), 400
+            
+            results = job_info['results']
+            successful = len([r for r in results if r.get('success', False)])
+            failed = job_info['failed']
+            
+            # Clean up old job (optional, to prevent memory leaks)
+            # del job_tracker[job_id]
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'summary': {
+                'total': len(results),
+                'successful': successful,
+                'failed': failed
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+def process_candidate_batch(candidates, user_prompt, weighted_requirements):
+    """Process a small batch of candidates (extracted from original batch function)"""
+    try:
+        print(f"Processing batch assessment of {len(candidates)} candidates...")
+        print(f"Received candidates: {candidates}")
+        
+        # Step 1: Fetch all profiles in parallel
+        print("Step 1: Fetching profiles...")
+        profiles_data = []
+        
+        for candidate in candidates:
+            url = candidate.get('url', '')
+            if not url:
+                print(f"⚠️ Skipping candidate with no URL: {candidate}")
+                profiles_data.append({
+                    'success': False,
+                    'url': url,
+                    'profile_data': None,
+                    'error': 'No URL provided'
+                })
+                continue
+            
+            print(f"Searching for profile: {url}")
+            try:
+                # Search for employee ID
+                print("Step 1: Searching for employee ID...")
+                search_results = coresignal_service.search_employee(url)
+                
+                if not search_results or len(search_results) == 0:
+                    print(f"❌ No search results for {url}")
+                    profiles_data.append({
+                        'success': False,
+                        'url': url,
+                        'profile_data': None,
+                        'error': 'No search results found'
+                    })
+                    continue
+                
+                print(f"Search returned {len(search_results)} results")
+                employee_id = search_results[0].get('id')
+                if not employee_id:
+                    print(f"❌ No employee ID found in search results for {url}")
+                    profiles_data.append({
+                        'success': False,
+                        'url': url,
+                        'profile_data': None,
+                        'error': 'No employee ID found'
+                    })
+                    continue
+                
+                print(f"✅ Found employee ID: {employee_id}")
+                
+                # Fetch full profile
+                print("Step 2: Fetching full profile...")
+                profile_data = coresignal_service.fetch_employee_profile(employee_id)
+                
+                if not profile_data:
+                    print(f"❌ Failed to fetch profile for employee ID: {employee_id}")
+                    profiles_data.append({
+                        'success': False,
+                        'url': url,
+                        'profile_data': None,
+                        'error': 'Failed to fetch profile data'
+                    })
+                    continue
+                
+                print("✅ Profile data retrieved successfully!")
+                profiles_data.append({
+                    'success': True,
+                    'url': url,
+                    'profile_data': profile_data,
+                    'error': None
+                })
+                
+            except Exception as e:
+                print(f"❌ Error processing {url}: {str(e)}")
+                profiles_data.append({
+                    'success': False,
+                    'url': url,
+                    'profile_data': None,
+                    'error': str(e)
+                })
+        
+        # Step 2: Process AI assessments sequentially to avoid rate limits
+        print("Step 2: Matching profiles with candidates and assessing with AI...")
+        print(f"Profiles data before assessment: {[(p.get('url', 'No URL'), p.get('success', False), 'has_data' if p.get('profile_data') else 'no_data') for p in profiles_data]}")
+        
+        results = []
+        for i, profile_result in enumerate(profiles_data):
+            if profile_result.get('success') and profile_result.get('profile_data'):
+                profile_data = profile_result['profile_data']
+                
+                # Handle nested profile data structure
+                if isinstance(profile_data, dict) and 'profile_data' in profile_data:
+                    actual_profile_data = profile_data['profile_data']
+                else:
+                    actual_profile_data = profile_data
+                
+                print(f"Profile {i}: {actual_profile_data.get('full_name', 'Unknown')} - {profile_result.get('url', 'No URL')}")
+                
+                # Assess single profile
+                assessment_result = assess_single_profile_sync(actual_profile_data, user_prompt, weighted_requirements)
+                
+                results.append({
+                    'success': assessment_result.get('success', False),
+                    'url': profile_result.get('url'),
+                    'profile_summary': assessment_result.get('profile_summary'),
+                    'assessment': assessment_result.get('assessment'),
+                    'error': assessment_result.get('error')
+                })
+                
+                # Small delay between assessments
+                time.sleep(0.5)
+            else:
+                print(f"Profile {i}: Skipping failed profile - {profile_result.get('url', 'No URL')}")
+                results.append({
+                    'success': False,
+                    'url': profile_result.get('url'),
+                    'profile_summary': None,
+                    'assessment': None,
+                    'error': profile_result.get('error', 'Profile fetch failed')
+                })
+        
+        return results
+        
+    except Exception as e:
+        print(f"❌ Error in process_candidate_batch: {str(e)}")
+        return [{
+            'success': False,
+            'url': candidate.get('url', 'Unknown'),
+            'profile_summary': None,
+            'assessment': None,
+            'error': f'Batch processing error: {str(e)}'
+        } for candidate in candidates]
 
 @app.route('/search-profiles', methods=['POST'])
 def search_profiles_endpoint():
