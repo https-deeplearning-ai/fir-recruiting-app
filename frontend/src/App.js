@@ -743,6 +743,18 @@ function App() {
             }),
           });
 
+          // Check if response is OK
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ Batch ${batchNum} HTTP error ${response.status}:`, errorText.substring(0, 200));
+            setError(`Batch ${batchNum} failed with status ${response.status}. Continuing with remaining batches...`);
+            // Skip to next batch
+            if (i < batches.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            continue;
+          }
+
           const data = await response.json();
 
           if (data.success) {
@@ -757,7 +769,7 @@ function App() {
           }
         } catch (err) {
           console.error(`❌ Batch ${batchNum} error:`, err);
-          setError(`Batch ${batchNum} error: ${err.message}. Continuing with remaining batches...`);
+          setError(`Batch ${batchNum} error: ${err.message}. Check if server is overloaded. Continuing...`);
         }
         
         // Small delay between batches to avoid overwhelming the server
