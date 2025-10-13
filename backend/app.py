@@ -34,31 +34,81 @@ used_pages_tracker = set()
 job_tracker = {}
 job_lock = threading.Lock()
 
-# File-based job persistence
-script_dir = os.path.dirname(os.path.abspath(__file__))
-JOB_STORAGE_FILE = os.path.join(script_dir, 'job_storage.json')
-
+# Database-based job persistence
 def load_job_tracker():
-    """Load job tracker from file"""
+    """Load job tracker from database"""
     try:
-        if os.path.exists(JOB_STORAGE_FILE):
-            with open(JOB_STORAGE_FILE, 'r') as f:
-                return json.load(f)
+        # Query database for active jobs
+        response = requests.get(
+            f"{SUPABASE_URL}/rest/v1/job_tracker",
+            headers={
+                "apikey": SUPABASE_KEY,
+                "Authorization": f"Bearer {SUPABASE_KEY}",
+                "Content-Type": "application/json"
+            }
+        )
+        
+        if response.status_code == 200:
+            jobs_data = response.json()
+            job_dict = {}
+            for job in jobs_data:
+                job_dict[job['job_id']] = {
+                    'status': job['status'],
+                    'progress': job['progress'],
+                    'total': job['total'],
+                    'completed': job['completed'],
+                    'failed': job['failed'],
+                    'results': job.get('results', []),
+                    'error': job.get('error'),
+                    'started_at': job.get('started_at', time.time())
+                }
+            return job_dict
     except Exception as e:
-        print(f"⚠️ Error loading job tracker: {e}")
+        print(f"⚠️ Error loading job tracker from database: {e}")
     return {}
 
 def save_job_tracker():
-    """Save job tracker to file"""
+    """Save job tracker to database"""
     try:
-        with open(JOB_STORAGE_FILE, 'w') as f:
-            json.dump(job_tracker, f, indent=2)
+        # Clear existing jobs first
+        requests.delete(
+            f"{SUPABASE_URL}/rest/v1/job_tracker",
+            headers={
+                "apikey": SUPABASE_KEY,
+                "Authorization": f"Bearer {SUPABASE_KEY}",
+                "Content-Type": "application/json"
+            }
+        )
+        
+        # Insert current jobs
+        for job_id, job_data in job_tracker.items():
+            job_record = {
+                "job_id": job_id,
+                "status": job_data['status'],
+                "progress": job_data['progress'],
+                "total": job_data['total'],
+                "completed": job_data['completed'],
+                "failed": job_data['failed'],
+                "results": job_data.get('results', []),
+                "error": job_data.get('error'),
+                "started_at": job_data.get('started_at', time.time())
+            }
+            
+            requests.post(
+                f"{SUPABASE_URL}/rest/v1/job_tracker",
+                headers={
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json=job_record
+            )
     except Exception as e:
-        print(f"⚠️ Error saving job tracker: {e}")
+        print(f"⚠️ Error saving job tracker to database: {e}")
 
 # Load existing jobs on startup
 job_tracker = load_job_tracker()
-print(f"📋 Loaded {len(job_tracker)} existing jobs from storage")
+print(f"📋 Loaded {len(job_tracker)} existing jobs from database")
 
 # Initialize Anthropic client
 anthropic_client = Anthropic(
@@ -72,6 +122,7 @@ coresignal_service = CoreSignalService()
 CORESIGNAL_API_KEY = os.getenv("CORESIGNAL_API_KEY", "zGZEUYUw2Koty9kxPidzCHTce5Wl2vYL")
 
 # Load valid input values for intelligent search
+script_dir = os.path.dirname(os.path.abspath(__file__))
 input_values_path = os.path.join(script_dir, 'input_values.json')
 try:
     with open(input_values_path, 'r') as f:
@@ -1398,13 +1449,15 @@ def start_batch_assessment():
 def check_job_status(job_id):
     """Check the status of a background job"""
     try:
-        with job_lock:
-            if job_id not in job_tracker:
-                print(f"❌ Job {job_id} not found in tracker. Available jobs: {list(job_tracker.keys())}")
-                return jsonify({'error': 'Job not found'}), 404
-            
-            job_info = job_tracker[job_id].copy()
-            print(f"✅ Job {job_id} found. Status: {job_info.get('status')}, Progress: {job_info.get('progress')}%")
+        # Load job from database to ensure we have the latest state
+        current_job_tracker = load_job_tracker()
+        
+        if job_id not in current_job_tracker:
+            print(f"❌ Job {job_id} not found in tracker. Available jobs: {list(current_job_tracker.keys())}")
+            return jsonify({'error': 'Job not found'}), 404
+        
+        job_info = current_job_tracker[job_id].copy()
+        print(f"✅ Job {job_id} found. Status: {job_info.get('status')}, Progress: {job_info.get('progress')}%")
         
         return jsonify({
             'success': True,
@@ -1419,21 +1472,23 @@ def check_job_status(job_id):
 def get_job_results(job_id):
     """Get the results of a completed job"""
     try:
-        with job_lock:
-            if job_id not in job_tracker:
-                return jsonify({'error': 'Job not found'}), 404
-            
-            job_info = job_tracker[job_id]
-            
-            if job_info['status'] != 'completed':
-                return jsonify({'error': 'Job not completed yet'}), 400
-            
-            results = job_info['results']
-            successful = len([r for r in results if r.get('success', False)])
-            failed = job_info['failed']
-            
-            # Clean up old job (optional, to prevent memory leaks)
-            # del job_tracker[job_id]
+        # Load job from database to ensure we have the latest state
+        current_job_tracker = load_job_tracker()
+        
+        if job_id not in current_job_tracker:
+            return jsonify({'error': 'Job not found'}), 404
+        
+        job_info = current_job_tracker[job_id]
+        
+        if job_info['status'] != 'completed':
+            return jsonify({'error': 'Job not completed yet'}), 400
+        
+        results = job_info['results']
+        successful = len([r for r in results if r.get('success', False)])
+        failed = job_info['failed']
+        
+        # Clean up old job (optional, to prevent memory leaks)
+        # del job_tracker[job_id]
         
         return jsonify({
             'success': True,
@@ -1522,6 +1577,7 @@ def process_candidate_batch(candidates, user_prompt, weighted_requirements):
         # Prepare assessment tasks for parallel processing
         assessment_tasks = []
         profile_mapping = {}  # Map task index to profile_result
+        task_index = 0
         
         for i, profile_result in enumerate(profiles_data):
             if profile_result.get('success') and profile_result.get('profile_data'):
@@ -1543,12 +1599,14 @@ def process_candidate_batch(candidates, user_prompt, weighted_requirements):
                 
                 task = create_assessment_task(actual_profile_data)
                 assessment_tasks.append(task)
-                profile_mapping[len(assessment_tasks) - 1] = profile_result
+                profile_mapping[task_index] = profile_result
+                task_index += 1
             else:
                 print(f"Profile {i}: Skipping failed profile - {profile_result.get('url', 'No URL')}")
                 # Add None to maintain index mapping
                 assessment_tasks.append(None)
-                profile_mapping[len(assessment_tasks) - 1] = profile_result
+                profile_mapping[task_index] = profile_result
+                task_index += 1
         
         print(f"Created {len([t for t in assessment_tasks if t is not None])} assessment tasks for parallel processing")
         
@@ -1567,9 +1625,12 @@ def process_candidate_batch(candidates, user_prompt, weighted_requirements):
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
                     # Submit all tasks
                     future_to_index = {}
-                    for i, task in enumerate(real_tasks):
-                        future = executor.submit(task)
-                        future_to_index[future] = i
+                    real_task_index = 0
+                    for i, task in enumerate(assessment_tasks):
+                        if task is not None:
+                            future = executor.submit(task)
+                            future_to_index[future] = i
+                            real_task_index += 1
                     
                     # Collect results as they complete
                     for future in future_to_index:
