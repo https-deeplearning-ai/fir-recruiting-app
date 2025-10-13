@@ -837,9 +837,9 @@ def assess_single_profile_sync(profile_data, user_prompt, weighted_requirements)
         
         print(f"Calling Anthropic API for {profile_data.get('full_name', 'Unknown')}...")
         
-        # Call Anthropic API with minimal retry for Heroku timeout constraints
-        max_retries = 2
-        retry_delay = 3  # Short delay to stay under 30s timeout
+        # Call Anthropic API with minimal retry (new API key has higher rate limits)
+        max_retries = 3
+        retry_delay = 2  # Short delay for retries
         
         for attempt in range(max_retries):
             try:
@@ -951,40 +951,41 @@ async def assess_profiles_batch_async(profiles_data, user_prompt, weighted_requi
         
         print(f"Created {len([t for t in assessment_tasks if t is not None])} assessment tasks")
         
-        # Execute tasks SEQUENTIALLY to avoid rate limits and timeouts
+        # Execute tasks in PARALLEL (new API has higher rate limits)
         if assessment_tasks:
-            # Filter out None tasks and execute the real ones one at a time
+            # Filter out None tasks and execute the real ones in parallel
             real_tasks = [task for task in assessment_tasks if task is not None]
             if real_tasks:
-                print(f"🚀 Starting sequential AI assessments ({len(real_tasks)} total, one at a time)...")
+                print(f"🚀 Starting parallel AI assessments ({len(real_tasks)} total)...")
                 
-                assessment_results = []
-                
-                for i, task in enumerate(real_tasks):
-                    profile_num = i + 1
-                    total_profiles = len(real_tasks)
+                # Execute all tasks in parallel
+                try:
+                    assessment_results = await asyncio.gather(*real_tasks, return_exceptions=True)
                     
-                    print(f"📝 Processing profile {profile_num}/{total_profiles}...")
+                    # Handle any exceptions that occurred
+                    processed_results = []
+                    for i, result in enumerate(assessment_results):
+                        if isinstance(result, Exception):
+                            print(f"❌ Assessment task {i+1} failed: {result}")
+                            processed_results.append({
+                                'success': False,
+                                'assessment': None,
+                                'profile_summary': None,
+                                'error': str(result)
+                            })
+                        else:
+                            processed_results.append(result)
                     
-                    # Process one at a time
-                    try:
-                        result = await task
-                        assessment_results.append(result)
-                        print(f"✅ Profile {profile_num}/{total_profiles} completed!")
-                    except Exception as e:
-                        print(f"❌ Profile {profile_num}/{total_profiles} failed: {e}")
-                        assessment_results.append({
-                            'success': False,
-                            'assessment': None,
-                            'profile_summary': None,
-                            'error': str(e)
-                        })
-                    
-                    # Small delay between assessments to space them out
-                    if i < len(real_tasks) - 1:
-                        await asyncio.sleep(0.5)
-                
-                print("✅ All sequential assessments completed!")
+                    assessment_results = processed_results
+                    print("✅ All parallel assessments completed!")
+                except Exception as e:
+                    print(f"❌ Error in parallel assessment execution: {e}")
+                    assessment_results = [{
+                        'success': False,
+                        'assessment': None,
+                        'profile_summary': None,
+                        'error': str(e)
+                    } for _ in real_tasks]
             else:
                 assessment_results = []
         else:
@@ -1077,9 +1078,9 @@ def batch_assess_profiles():
             return jsonify({'error': 'Candidates must be provided as a list'}), 400
         
         # Limit batch size to prevent overwhelming the API and avoid timeouts
-        # Heroku has a 30-second timeout, so we keep batches small
-        if len(candidates) > 5:  # Batch size of 5 with 20s delays between batches
-            return jsonify({'error': 'Batch size cannot exceed 5 candidates for AI assessment. Process multiple batches separately.'}), 400
+        # With new API key, we can handle larger batches with parallel processing
+        if len(candidates) > 20:  # Increased batch size with parallel processing
+            return jsonify({'error': 'Batch size cannot exceed 20 candidates for AI assessment. Process multiple batches separately.'}), 400
         
         print(f"Processing batch assessment of {len(candidates)} candidates...")
         print("Received candidates:", candidates)
@@ -1239,8 +1240,8 @@ def start_batch_assessment():
             try:
                 print(f"🚀 Starting background job {job_id} with {len(candidates)} candidates")
                 
-                # Process candidates in sequential batches to avoid timeouts
-                batch_size = 3  # Process 3 at a time to stay under 30s
+                # Process candidates in larger batches with parallel processing
+                batch_size = 10  # Process 10 at a time with parallel AI calls
                 for i in range(0, len(candidates), batch_size):
                     batch_candidates = candidates[i:i + batch_size]
                     batch_num = (i // batch_size) + 1
@@ -1430,11 +1431,14 @@ def process_candidate_batch(candidates, user_prompt, weighted_requirements):
                     'error': str(e)
                 })
         
-        # Step 2: Process AI assessments sequentially to avoid rate limits
+        # Step 2: Process AI assessments in parallel (new API has higher rate limits)
         print("Step 2: Matching profiles with candidates and assessing with AI...")
         print(f"Profiles data before assessment: {[(p.get('url', 'No URL'), p.get('success', False), 'has_data' if p.get('profile_data') else 'no_data') for p in profiles_data]}")
         
-        results = []
+        # Prepare assessment tasks for parallel processing
+        assessment_tasks = []
+        profile_mapping = {}  # Map task index to profile_result
+        
         for i, profile_result in enumerate(profiles_data):
             if profile_result.get('success') and profile_result.get('profile_data'):
                 profile_data = profile_result['profile_data']
@@ -1447,21 +1451,62 @@ def process_candidate_batch(candidates, user_prompt, weighted_requirements):
                 
                 print(f"Profile {i}: {actual_profile_data.get('full_name', 'Unknown')} - {profile_result.get('url', 'No URL')}")
                 
-                # Assess single profile
-                assessment_result = assess_single_profile_sync(actual_profile_data, user_prompt, weighted_requirements)
-                
-                results.append({
-                    'success': assessment_result.get('success', False),
-                    'url': profile_result.get('url'),
-                    'profile_summary': assessment_result.get('profile_summary'),
-                    'assessment': assessment_result.get('assessment'),
-                    'error': assessment_result.get('error')
-                })
-                
-                # Small delay between assessments
-                time.sleep(0.5)
+                # Create assessment task for parallel execution
+                task = assess_single_profile_sync(actual_profile_data, user_prompt, weighted_requirements)
+                assessment_tasks.append(task)
+                profile_mapping[len(assessment_tasks) - 1] = profile_result
             else:
                 print(f"Profile {i}: Skipping failed profile - {profile_result.get('url', 'No URL')}")
+                # Add None to maintain index mapping
+                assessment_tasks.append(None)
+                profile_mapping[len(assessment_tasks) - 1] = profile_result
+        
+        print(f"Created {len([t for t in assessment_tasks if t is not None])} assessment tasks for parallel processing")
+        
+        # Execute assessments in parallel using ThreadPoolExecutor
+        results = []
+        if assessment_tasks:
+            # Filter out None tasks
+            real_tasks = [task for task in assessment_tasks if task is not None]
+            if real_tasks:
+                print(f"🚀 Starting parallel AI assessments ({len(real_tasks)} total)...")
+                
+                # Use ThreadPoolExecutor for parallel processing
+                with ThreadPoolExecutor(max_workers=5) as executor:  # Limit to 5 concurrent workers
+                    # Submit all tasks
+                    future_to_index = {}
+                    for i, task in enumerate(real_tasks):
+                        future = executor.submit(task)
+                        future_to_index[future] = i
+                    
+                    # Collect results as they complete
+                    for future in future_to_index:
+                        try:
+                            assessment_result = future.result()
+                            results.append({
+                                'success': assessment_result.get('success', False),
+                                'url': profile_mapping[future_to_index[future]].get('url'),
+                                'profile_summary': assessment_result.get('profile_summary'),
+                                'assessment': assessment_result.get('assessment'),
+                                'error': assessment_result.get('error')
+                            })
+                        except Exception as e:
+                            print(f"❌ Assessment task failed: {str(e)}")
+                            results.append({
+                                'success': False,
+                                'url': profile_mapping[future_to_index[future]].get('url'),
+                                'profile_summary': None,
+                                'assessment': None,
+                                'error': str(e)
+                            })
+                
+                print("✅ All parallel assessments completed!")
+            else:
+                results = []
+        
+        # Add results for failed profiles
+        for i, profile_result in enumerate(profiles_data):
+            if not (profile_result.get('success') and profile_result.get('profile_data')):
                 results.append({
                     'success': False,
                     'url': profile_result.get('url'),
