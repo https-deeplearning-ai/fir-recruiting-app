@@ -179,6 +179,7 @@ CRITICAL:
 2. You MUST use ONLY exact values from the provided lists - DO NOT make up or modify values
 3. If user mentions an industry, find the closest matching value from the exact list
 4. These will be used as hard filters - candidates must meet ALL requirements
+5. **LOCATION CRITICAL**: If user specifies a city/region (like "San Francisco", "Bay Area", "New York", "Seattle"), preserve the EXACT city/region name in must_have_location. Only use "United States" if no specific location is mentioned.
 
 ===== VALID FIELD VALUES (USE ONLY THESE) =====
 
@@ -195,6 +196,12 @@ TECHNOLOGY-RELATED INDUSTRIES (most common for tech searches):
 
 ALL AVAILABLE INDUSTRIES (full list - search this for non-tech):
 {all_industries_str}
+
+LOCATION EXAMPLES:
+- "Find me people in San Francisco" → "must_have_location": "San Francisco"
+- "Find me Bay Area engineers" → "must_have_location": "San Francisco Bay Area"  
+- "Find me New York developers" → "must_have_location": "New York"
+- "Find me US-based candidates" → "must_have_location": "United States"
 
 Return a JSON object with ONLY minimum requirements:
 {{
@@ -253,8 +260,74 @@ def build_intelligent_elasticsearch_query(criteria: dict) -> dict:
             location_conditions.append({"term": {"location_country": "US"}})
             location_conditions.append({"term": {"location_country": "USA"}})
         else:
-            location_conditions.append({"wildcard": {"location_raw_address": f"*{location.lower()}*"}})
-            location_conditions.append({"wildcard": {"location_country": f"*{location.lower()}*"}})
+            # Handle specific location variations for better matching
+            location_lower = location.lower()
+            
+            # Bay Area variations
+            if "bay area" in location_lower or "san francisco" in location_lower:
+                bay_area_variations = [
+                    "*bay area*", "*san francisco*", "*sf bay*", "*silicon valley*",
+                    "*palo alto*", "*mountain view*", "*sunnyvale*", "*cupertino*",
+                    "*menlo park*", "*redwood city*", "*fremont*", "*hayward*",
+                    "*oakland*", "*berkeley*", "*san mateo*", "*foster city*"
+                ]
+                for variation in bay_area_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            # New York variations
+            elif "new york" in location_lower or "nyc" in location_lower:
+                ny_variations = [
+                    "*new york*", "*nyc*", "*manhattan*", "*brooklyn*", "*queens*",
+                    "*bronx*", "*staten island*", "*long island*"
+                ]
+                for variation in ny_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            # Los Angeles variations
+            elif "los angeles" in location_lower or "la" in location_lower:
+                la_variations = [
+                    "*los angeles*", "*la*", "*hollywood*", "*beverly hills*",
+                    "*santa monica*", "*venice*", "*west hollywood*", "*pasadena*"
+                ]
+                for variation in la_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            # Seattle variations
+            elif "seattle" in location_lower:
+                seattle_variations = [
+                    "*seattle*", "*bellevue*", "*redmond*", "*kirkland*"
+                ]
+                for variation in seattle_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            # Boston variations
+            elif "boston" in location_lower:
+                boston_variations = [
+                    "*boston*", "*cambridge*", "*somerville*", "*brookline*"
+                ]
+                for variation in boston_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            # Austin variations
+            elif "austin" in location_lower:
+                austin_variations = [
+                    "*austin*", "*round rock*", "*cedar park*"
+                ]
+                for variation in austin_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            # Chicago variations
+            elif "chicago" in location_lower:
+                chicago_variations = [
+                    "*chicago*", "*evanston*", "*oak park*"
+                ]
+                for variation in chicago_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            else:
+                # For other locations, use wildcard with the original location
+                location_conditions.append({"wildcard": {"location_raw_address": f"*{location.lower()}*"}})
+                location_conditions.append({"wildcard": {"location_country": f"*{location.lower()}*"}})
         
         if location_conditions:
             must_conditions.append({
@@ -340,6 +413,10 @@ def search_coresignal_profiles_preview(criteria: dict, page: int = 1) -> dict:
     }
     
     query = build_intelligent_elasticsearch_query(criteria)
+    
+    # Debug: Print the actual query being sent
+    print(f"🔍 DEBUG: Elasticsearch query being sent:")
+    print(json.dumps(query, indent=2))
     
     try:
         # Use the /preview endpoint with page parameter (max page=5)
@@ -1181,6 +1258,8 @@ def search_profiles_endpoint():
             return jsonify({'error': 'Failed to extract search criteria from prompt'}), 400
         
         print(f"✅ Extracted criteria: {criteria.get('explanation', 'No explanation')}")
+        print(f"🔍 DEBUG: Full extracted criteria:")
+        print(json.dumps(criteria, indent=2))
         
         # Step 2: Search CoreSignal API using /preview endpoint
         # Limitation: /preview only supports pages 1-5, so max 100 profiles per search
