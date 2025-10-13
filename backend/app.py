@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import json
 import os
@@ -53,10 +53,15 @@ except Exception as e:
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://csikerdodixcqzfweiao.supabase.co")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzaWtlcmRvZGl4Y3F6ZndlaWFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3ODEzMzMsImV4cCI6MjA3NTM1NzMzM30.5oDke2YAeabah-3o_lwxss-or6EzkkcaTA7sPvfsid4")
 
-# Enhanced configuration for high-concurrency processing
-MAX_CONCURRENT_CALLS = 15  # Maximum concurrent Anthropic API calls (reduced for Heroku timeout)
-TIMEOUT_SECONDS = 25  # Safety margin for Heroku 30s limit
-BATCH_SIZE = 50  # Process candidates in batches of 50
+# Import dynamic configuration based on deployment environment
+try:
+    from config import MAX_CONCURRENT_CALLS, TIMEOUT_SECONDS, BATCH_SIZE, WORKERS
+except ImportError:
+    # Fallback configuration if config.py not found
+    MAX_CONCURRENT_CALLS = 15  # Conservative default
+    TIMEOUT_SECONDS = 25       # Safety margin
+    BATCH_SIZE = 50            # Default batch size
+    WORKERS = 1                # Single worker
 
 def save_candidate_assessment(linkedin_url, full_name, headline, profile_data, assessment_data, assessment_type='single', session_name=None):
     """Save candidate assessment to database using Supabase REST API"""
@@ -893,183 +898,6 @@ def assess_single_profile_sync(profile_data, user_prompt, weighted_requirements)
             'profile_summary': None,
             'error': f'Error assessing profile: {str(e)}'
         }
-
-@app.route('/batch-assess-profiles-stream', methods=['POST'])
-def batch_assess_profiles_stream():
-    """Stream batch assessment results as they complete"""
-    try:
-        data = request.get_json()
-        
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-        
-        candidates = data.get('candidates', [])
-        user_prompt = data.get('user_prompt', 'Provide a general professional assessment')
-        weighted_requirements = data.get('weighted_requirements', [])
-        
-        if not candidates:
-            return jsonify({'error': 'No candidates provided'}), 400
-        
-        if not isinstance(candidates, list):
-            return jsonify({'error': 'Candidates must be provided as a list'}), 400
-        
-        # Limit batch size
-        if len(candidates) > 100:
-            return jsonify({'error': 'Batch size cannot exceed 100 candidates for AI assessment'}), 400
-        
-        def generate():
-            try:
-                print(f"🚀 Starting streaming batch assessment of {len(candidates)} candidates...")
-                
-                # Send initial progress
-                yield f"data: {json.dumps({'type': 'start', 'total': len(candidates), 'message': 'Starting batch assessment...'})}\n\n"
-                
-                # Extract URLs for profile fetching
-                linkedin_urls = [candidate['url'] for candidate in candidates]
-                
-                # Step 1: Fetch all profiles
-                yield f"data: {json.dumps({'type': 'progress', 'message': 'Fetching profiles...', 'step': 1, 'total_steps': 3})}\n\n"
-                
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    profiles_data = loop.run_until_complete(fetch_profiles_batch_async(linkedin_urls))
-                finally:
-                    loop.close()
-                
-                # Step 2: Process AI assessments
-                yield f"data: {json.dumps({'type': 'progress', 'message': 'Processing AI assessments...', 'step': 2, 'total_steps': 3})}\n\n"
-                
-                # Initialize results array
-                results = [None] * len(profiles_data)
-                
-                # Create assessment tasks
-                assessment_tasks = []
-                profile_mapping = {}
-                task_index = 0
-                
-                for i, profile_result in enumerate(profiles_data):
-                    if profile_result.get('success') and profile_result.get('profile_data'):
-                        profile_data = profile_result['profile_data']
-                        
-                        if isinstance(profile_data, dict) and 'profile_data' in profile_data:
-                            actual_profile_data = profile_data['profile_data']
-                        else:
-                            actual_profile_data = profile_data
-                        
-                        def create_assessment_task(profile_data):
-                            return lambda: assess_single_profile_sync(profile_data, user_prompt, weighted_requirements)
-                        
-                        task = create_assessment_task(actual_profile_data)
-                        assessment_tasks.append(task)
-                        profile_mapping[task_index] = profile_result
-                        task_index += 1
-                    else:
-                        assessment_tasks.append(None)
-                        profile_mapping[task_index] = profile_result
-                        task_index += 1
-                
-                # Execute assessments with streaming progress
-                if assessment_tasks:
-                    real_tasks_with_indices = []
-                    for i, task in enumerate(assessment_tasks):
-                        if task is not None:
-                            real_tasks_with_indices.append((task, i))
-                    
-                    if real_tasks_with_indices:
-                        max_workers = min(len(real_tasks_with_indices), 15)
-                        
-                        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                            future_to_original_index = {}
-                            for task, original_index in real_tasks_with_indices:
-                                future = executor.submit(task)
-                                future_to_original_index[future] = original_index
-                            
-                            completed_count = 0
-                            total_count = len(future_to_original_index)
-                            
-                            for future in future_to_original_index:
-                                original_index = future_to_original_index[future]
-                                try:
-                                    assessment_result = future.result(timeout=60)  # Longer timeout for streaming
-                                    profile_result = profile_mapping[original_index]
-                                    results[original_index] = {
-                                        'success': assessment_result.get('success', False),
-                                        'url': profile_result.get('url'),
-                                        'profile_data': profile_result.get('profile_data'),
-                                        'profile_summary': assessment_result.get('profile_summary'),
-                                        'assessment': assessment_result.get('assessment'),
-                                        'error': assessment_result.get('error')
-                                    }
-                                    completed_count += 1
-                                    
-                                    # Send progress update every completion
-                                    yield f"data: {json.dumps({'type': 'progress', 'completed': completed_count, 'total': total_count, 'message': f'Completed {completed_count}/{total_count} assessments'})}\n\n"
-                                    
-                                except Exception as e:
-                                    print(f"❌ Assessment task failed: {str(e)}")
-                                    profile_result = profile_mapping[original_index]
-                                    results[original_index] = {
-                                        'success': False,
-                                        'url': profile_result.get('url'),
-                                        'profile_data': profile_result.get('profile_data'),
-                                        'profile_summary': None,
-                                        'assessment': None,
-                                        'error': str(e)
-                                    }
-                                    completed_count += 1
-                                    yield f"data: {json.dumps({'type': 'progress', 'completed': completed_count, 'total': total_count, 'message': f'Completed {completed_count}/{total_count} assessments (1 failed)'})}\n\n"
-                
-                # Fill in results for failed profiles
-                for i, profile_result in enumerate(profiles_data):
-                    if results[i] is None:
-                        results[i] = {
-                            'success': False,
-                            'url': profile_result.get('url'),
-                            'profile_data': profile_result.get('profile_data'),
-                            'profile_summary': None,
-                            'assessment': None,
-                            'error': profile_result.get('error', 'Profile fetch failed')
-                        }
-                
-                # Add CSV names to results
-                for i, result in enumerate(results):
-                    if i < len(candidates):
-                        result['csv_name'] = candidates[i]['fullName']
-                        result['csv_first_name'] = candidates[i]['firstName']
-                        result['csv_last_name'] = candidates[i]['lastName']
-                
-                # Sort results by weighted score
-                def get_weighted_score(result):
-                    if result.get('assessment') and result['assessment'].get('weighted_analysis'):
-                        score = result['assessment']['weighted_analysis'].get('weighted_score', 0)
-                        if isinstance(score, str):
-                            return 0
-                        return score
-                    return 0
-                
-                results.sort(key=get_weighted_score, reverse=True)
-                
-                # Count successful and failed results
-                successful = sum(1 for r in results if r.get('success', False) and r.get('assessment') and not r.get('error'))
-                failed = len(results) - successful
-                
-                # Send final results
-                yield f"data: {json.dumps({'type': 'complete', 'results': results, 'summary': {'total': len(results), 'successful': successful, 'failed': failed}})}\n\n"
-                
-            except Exception as e:
-                print(f"❌ Streaming error: {str(e)}")
-                yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
-        
-        return Response(generate(), mimetype='text/event-stream', headers={
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'Cache-Control'
-        })
-        
-    except Exception as e:
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/batch-assess-profiles', methods=['POST'])
 def batch_assess_profiles():
