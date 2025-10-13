@@ -831,9 +831,9 @@ def assess_single_profile_sync(profile_data, user_prompt, weighted_requirements)
         
         print(f"Calling Anthropic API for {profile_data.get('full_name', 'Unknown')}...")
         
-        # Call Anthropic API with retry logic for rate limits
-        max_retries = 3
-        retry_delay = 20  # Start with 20 seconds
+        # Call Anthropic API with minimal retry for Heroku timeout constraints
+        max_retries = 2
+        retry_delay = 3  # Short delay to stay under 30s timeout
         
         for attempt in range(max_retries):
             try:
@@ -849,7 +849,7 @@ def assess_single_profile_sync(profile_data, user_prompt, weighted_requirements)
                 # Check if it's a rate limit error (429)
                 if "429" in error_str or "rate_limit" in error_str.lower():
                     if attempt < max_retries - 1:
-                        wait_time = retry_delay * (attempt + 1)  # Exponential backoff
+                        wait_time = retry_delay  # Fixed short delay instead of exponential
                         print(f"⚠️ Rate limit hit for {profile_data.get('full_name', 'Unknown')}. Retrying in {wait_time} seconds (attempt {attempt + 2}/{max_retries})...")
                         time.sleep(wait_time)
                     else:
@@ -954,7 +954,7 @@ async def assess_profiles_batch_async(profiles_data, user_prompt, weighted_requi
                 
                 assessment_results = []
                 BATCH_SIZE = 5
-                DELAY_BETWEEN_BATCHES = 12  # 12 seconds between batches (optimized for rate limit)
+                DELAY_BETWEEN_BATCHES = 3  # 3 seconds between batches (reduced for faster processing)
                 
                 for i in range(0, len(real_tasks), BATCH_SIZE):
                     batch = real_tasks[i:i+BATCH_SIZE]
