@@ -15,8 +15,6 @@ from dotenv import load_dotenv
 import requests
 import csv
 from io import StringIO
-import signal
-import sys
 
 # Load environment variables from .env file
 load_dotenv()
@@ -36,7 +34,7 @@ anthropic_client = Anthropic(
 coresignal_service = CoreSignalService()
 
 # CoreSignal API configuration
-CORESIGNAL_API_KEY = os.getenv("CORESIGNAL_API_KEY", "zGZEUYUw2Koty9kxPidzCHTce5Wl2vYL")
+CORESIGNAL_API_KEY = "zGZEUYUw2Koty9kxPidzCHTce5Wl2vYL"
 
 # Load valid input values for intelligent search
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -50,13 +48,8 @@ except Exception as e:
     VALID_INPUT_VALUES = {}
 
 # Database configuration - using Supabase REST API
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://csikerdodixcqzfweiao.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzaWtlcmRvZGl4Y3F6ZndlaWFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3ODEzMzMsImV4cCI6MjA3NTM1NzMzM30.5oDke2YAeabah-3o_lwxss-or6EzkkcaTA7sPvfsid4")
-
-# Enhanced configuration for high-concurrency processing
-MAX_CONCURRENT_CALLS = 100  # Maximum concurrent Anthropic API calls
-TIMEOUT_SECONDS = 25  # Safety margin for Heroku 30s limit
-BATCH_SIZE = 50  # Process candidates in batches of 50
+SUPABASE_URL = "https://csikerdodixcqzfweiao.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzaWtlcmRvZGl4Y3F6ZndlaWFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3ODEzMzMsImV4cCI6MjA3NTM1NzMzM30.5oDke2YAeabah-3o_lwxss-or6EzkkcaTA7sPvfsid4"
 
 def save_candidate_assessment(linkedin_url, full_name, headline, profile_data, assessment_data, assessment_type='single', session_name=None):
     """Save candidate assessment to database using Supabase REST API"""
@@ -771,8 +764,8 @@ def batch_fetch_profiles():
             return jsonify({'error': 'Candidates must be provided as a list'}), 400
         
         # Limit batch size to prevent overwhelming the API
-        if len(candidates) > 100:
-            return jsonify({'error': 'Batch size cannot exceed 100 URLs'}), 400
+        if len(candidates) > 50:
+            return jsonify({'error': 'Batch size cannot exceed 50 URLs'}), 400
         
         print(f"Processing batch of {len(candidates)} LinkedIn URLs...")
         print("Received candidates:", candidates)
@@ -836,22 +829,33 @@ def assess_single_profile_sync(profile_data, user_prompt, weighted_requirements)
         
         print(f"Calling Anthropic API for {profile_data.get('full_name', 'Unknown')}...")
         
-        # Call Anthropic API with timeout protection
-        try:
-            response = anthropic_client.messages.create(
-                model="claude-3-7-sonnet-20250219",
-                max_tokens=4000,
-                temperature=0.1,
-                messages=[{"role": "user", "content": prompt}]
-            )
-        except Exception as api_error:
-            print(f"❌ API error for {profile_data.get('full_name', 'Unknown')}: {str(api_error)}")
-            return {
-                'success': False,
-                'assessment': None,
-                'profile_summary': None,
-                'error': f'API error: {str(api_error)}'
-            }
+        # Call Anthropic API with retry logic for rate limits
+        max_retries = 3
+        retry_delay = 20  # Start with 20 seconds
+        
+        for attempt in range(max_retries):
+            try:
+                response = anthropic_client.messages.create(
+                    model="claude-3-7-sonnet-20250219",
+                    max_tokens=4000,
+                    temperature=0.1,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                break  # Success, exit retry loop
+            except Exception as api_error:
+                error_str = str(api_error)
+                # Check if it's a rate limit error (429)
+                if "429" in error_str or "rate_limit" in error_str.lower():
+                    if attempt < max_retries - 1:
+                        wait_time = retry_delay * (attempt + 1)  # Exponential backoff
+                        print(f"⚠️ Rate limit hit for {profile_data.get('full_name', 'Unknown')}. Retrying in {wait_time} seconds (attempt {attempt + 2}/{max_retries})...")
+                        time.sleep(wait_time)
+                    else:
+                        print(f"❌ Rate limit persists after {max_retries} attempts for {profile_data.get('full_name', 'Unknown')}")
+                        raise api_error
+                else:
+                    # Not a rate limit error, raise immediately
+                    raise api_error
         
         # Parse the response
         response_text = response.content[0].text
@@ -894,9 +898,154 @@ def assess_single_profile_sync(profile_data, user_prompt, weighted_requirements)
             'error': f'Error assessing profile: {str(e)}'
         }
 
+async def assess_single_profile_async(session, profile_data, user_prompt, weighted_requirements):
+    """Assess a single profile asynchronously using thread pool"""
+    loop = asyncio.get_event_loop()
+    with ThreadPoolExecutor() as executor:
+        result = await loop.run_in_executor(
+            executor, 
+            assess_single_profile_sync, 
+            profile_data, 
+            user_prompt, 
+            weighted_requirements
+        )
+    return result
+
+async def assess_profiles_batch_async(profiles_data, user_prompt, weighted_requirements):
+    """Assess multiple profiles in parallel with rate limit batching (5 at a time)"""
+    async with aiohttp.ClientSession() as session:
+        # Create tasks for all profiles that were successfully fetched
+        assessment_tasks = []
+        profile_mapping = {}  # Map task index to profile_result
+        
+        for i, profile_result in enumerate(profiles_data):
+            if profile_result.get('success') and profile_result.get('profile_data'):
+                # Extract the actual profile data from the nested structure
+                profile_data = profile_result['profile_data']
+                
+                if isinstance(profile_data, dict) and 'profile_data' in profile_data:
+                    # CoreSignal returns nested structure
+                    actual_profile_data = profile_data['profile_data']
+                else:
+                    # Direct profile data
+                    actual_profile_data = profile_data
+                
+                print(f"Profile {i}: {actual_profile_data.get('full_name', 'Unknown')} - {profile_result.get('url', 'No URL')}")
+                
+                task = assess_single_profile_async(session, actual_profile_data, user_prompt, weighted_requirements)
+                assessment_tasks.append(task)
+                profile_mapping[len(assessment_tasks) - 1] = profile_result
+            else:
+                # For failed profiles, add None to maintain index mapping
+                print(f"Profile {i}: Skipping failed profile - {profile_result.get('url', 'No URL')}")
+                assessment_tasks.append(None)
+                profile_mapping[len(assessment_tasks) - 1] = profile_result
+        
+        print(f"Created {len([t for t in assessment_tasks if t is not None])} parallel assessment tasks")
+        
+        # Execute tasks in batches to avoid rate limits
+        if assessment_tasks:
+            # Filter out None tasks and execute the real ones in batches
+            real_tasks = [task for task in assessment_tasks if task is not None]
+            if real_tasks:
+                print(f"🚀 Starting batched AI assessments ({len(real_tasks)} total, processing 5 at a time)...")
+                
+                assessment_results = []
+                BATCH_SIZE = 5
+                DELAY_BETWEEN_BATCHES = 12  # 12 seconds between batches (optimized for rate limit)
+                
+                for i in range(0, len(real_tasks), BATCH_SIZE):
+                    batch = real_tasks[i:i+BATCH_SIZE]
+                    batch_num = (i // BATCH_SIZE) + 1
+                    total_batches = (len(real_tasks) + BATCH_SIZE - 1) // BATCH_SIZE
+                    
+                    print(f"📦 Processing batch {batch_num}/{total_batches} ({len(batch)} profiles)...")
+                    batch_results = await asyncio.gather(*batch, return_exceptions=True)
+                    assessment_results.extend(batch_results)
+                    
+                    print(f"✅ Batch {batch_num}/{total_batches} completed!")
+                    
+                    # Add delay between batches (except after the last batch)
+                    if i + BATCH_SIZE < len(real_tasks):
+                        print(f"⏳ Waiting {DELAY_BETWEEN_BATCHES} seconds before next batch to avoid rate limits...")
+                        await asyncio.sleep(DELAY_BETWEEN_BATCHES)
+                
+                print("✅ All batched assessments completed!")
+            else:
+                assessment_results = []
+        else:
+            assessment_results = []
+        
+        # Map results back to original profile order
+        results = []
+        task_index = 0
+        for i, profile_result in enumerate(profiles_data):
+            if assessment_tasks[i] is not None:
+                # This profile had an assessment task
+                if task_index < len(assessment_results):
+                    assessment_result = assessment_results[task_index]
+                    
+                    # Handle exceptions
+                    if isinstance(assessment_result, Exception):
+                        print(f"❌ Assessment task failed with exception: {assessment_result}")
+                        assessment_result = {
+                            'success': False,
+                            'assessment': None,
+                            'profile_summary': None,
+                            'error': f'Assessment task failed: {str(assessment_result)}'
+                        }
+                    
+                    # Combine profile data with assessment
+                    combined_result = {
+                        'url': profile_result['url'],
+                        'success': profile_result['success'],
+                        'profile_data': profile_result['profile_data'],
+                        'assessment': assessment_result.get('assessment'),
+                        'profile_summary': assessment_result.get('profile_summary'),
+                        'assessment_error': assessment_result.get('error')
+                    }
+                    results.append(combined_result)
+                    task_index += 1
+                else:
+                    # This shouldn't happen, but handle gracefully
+                    results.append({
+                        'url': profile_result['url'],
+                        'success': False,
+                        'profile_data': profile_result['profile_data'],
+                        'assessment': None,
+                        'profile_summary': None,
+                        'assessment_error': 'Assessment result not found'
+                    })
+            else:
+                # Failed profile - no assessment, but create a structured response with N/A scores
+                results.append({
+                    'url': profile_result['url'],
+                    'success': False,
+                    'profile_data': None,
+                    'assessment': {
+                        'overall_score': 'N/A',
+                        'recommend': False,
+                        'strengths': [],
+                        'weaknesses': [],
+                        'career_trajectory': 'Profile not found in CoreSignal database',
+                        'detailed_analysis': 'Unable to assess - LinkedIn profile not found in our database',
+                        'weighted_analysis': {
+                            'requirements': [],
+                            'weighted_score': 'N/A',
+                            'general_fit_score': 'N/A',
+                            'general_fit_weight': 0,
+                            'general_fit_analysis': 'Profile not found'
+                        }
+                    },
+                    'profile_summary': None,
+                    'assessment_error': 'Profile not found'
+                })
+        
+        return results
+
 @app.route('/batch-assess-profiles', methods=['POST'])
 def batch_assess_profiles():
-    """Fetch profiles and assess them with AI in parallel - ENHANCED VERSION"""
+    """Fetch profiles and assess them with AI in parallel"""
     try:
         data = request.get_json()
         
@@ -914,10 +1063,10 @@ def batch_assess_profiles():
             return jsonify({'error': 'Candidates must be provided as a list'}), 400
         
         # Limit batch size to prevent overwhelming the API
-        if len(candidates) > 100:
-            return jsonify({'error': 'Batch size cannot exceed 100 candidates for AI assessment'}), 400
+        if len(candidates) > 20:  # Reduced limit for AI assessment
+            return jsonify({'error': 'Batch size cannot exceed 20 candidates for AI assessment'}), 400
         
-        print(f"🚀 Processing batch assessment of {len(candidates)} candidates...")
+        print(f"Processing batch assessment of {len(candidates)} candidates...")
         print("Received candidates:", candidates)
         
         # Extract URLs for profile fetching
@@ -932,115 +1081,26 @@ def batch_assess_profiles():
         finally:
             loop.close()
         
-        # Step 2: Process AI assessments with high concurrency
-        print("Step 2: Processing AI assessments with high concurrency...")
+        # Step 2: Match profiles with candidate names and assess with AI
+        print("Step 2: Matching profiles with candidates and assessing with AI...")
         print(f"Profiles data before assessment: {[(r.get('url'), r.get('success'), 'has_data' if r.get('profile_data') else 'no_data') for r in profiles_data]}")
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            assessment_results = loop.run_until_complete(assess_profiles_batch_async(profiles_data, user_prompt, weighted_requirements))
+        finally:
+            loop.close()
         
-        # Prepare assessment tasks for high-concurrency processing
-        assessment_tasks = []
-        profile_mapping = {}  # Map task index to profile_result
-        task_index = 0
+        print(f"Assessment results: {[(r.get('url'), r.get('success'), 'has_assessment' if r.get('assessment') else 'no_assessment', r.get('assessment_error')) for r in assessment_results]}")
         
-        for i, profile_result in enumerate(profiles_data):
-            if profile_result.get('success') and profile_result.get('profile_data'):
-                profile_data = profile_result['profile_data']
-                
-                # Handle nested profile data structure
-                if isinstance(profile_data, dict) and 'profile_data' in profile_data:
-                    actual_profile_data = profile_data['profile_data']
-                else:
-                    actual_profile_data = profile_data
-                
-                print(f"Profile {i}: {actual_profile_data.get('full_name', 'Unknown')} - {profile_result.get('url', 'No URL')}")
-                
-                # Create assessment task for high-concurrency execution
-                def create_assessment_task(profile_data):
-                    return lambda: assess_single_profile_sync(profile_data, user_prompt, weighted_requirements)
-                
-                task = create_assessment_task(actual_profile_data)
-                assessment_tasks.append(task)
-                profile_mapping[task_index] = profile_result
-                task_index += 1
-            else:
-                print(f"Profile {i}: Skipping failed profile - {profile_result.get('url', 'No URL')}")
-                # Add None to maintain index mapping
-                assessment_tasks.append(None)
-                profile_mapping[task_index] = profile_result
-                task_index += 1
-        
-        print(f"Created {len([t for t in assessment_tasks if t is not None])} assessment tasks for high-concurrency processing")
-        
-        # Execute assessments with high concurrency using ThreadPoolExecutor
-        results = []
-        if assessment_tasks:
-            # Filter out None tasks
-            real_tasks = [task for task in assessment_tasks if task is not None]
-            if real_tasks:
-                print(f"🚀 Starting high-concurrency AI assessments ({len(real_tasks)} total)...")
-                
-                # Use ThreadPoolExecutor with high concurrency
-                max_workers = min(len(real_tasks), MAX_CONCURRENT_CALLS)
-                print(f"🔧 Using {max_workers} parallel workers for {len(real_tasks)} AI assessments")
-                
-                with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    # Submit all tasks
-                    future_to_index = {}
-                    real_task_index = 0
-                    for i, task in enumerate(assessment_tasks):
-                        if task is not None:
-                            future = executor.submit(task)
-                            future_to_index[future] = i
-                            real_task_index += 1
-                    
-                    # Collect results as they complete
-                    for future in future_to_index:
-                        try:
-                            assessment_result = future.result(timeout=TIMEOUT_SECONDS)
-                            profile_result = profile_mapping[future_to_index[future]]
-                            results.append({
-                                'success': assessment_result.get('success', False),
-                                'url': profile_result.get('url'),
-                                'profile_data': profile_result.get('profile_data'),
-                                'profile_summary': assessment_result.get('profile_summary'),
-                                'assessment': assessment_result.get('assessment'),
-                                'error': assessment_result.get('error')
-                            })
-                        except Exception as e:
-                            print(f"❌ Assessment task failed: {str(e)}")
-                            profile_result = profile_mapping[future_to_index[future]]
-                            results.append({
-                                'success': False,
-                                'url': profile_result.get('url'),
-                                'profile_data': profile_result.get('profile_data'),
-                                'profile_summary': None,
-                                'assessment': None,
-                                'error': str(e)
-                            })
-                
-                print("✅ All high-concurrency assessments completed!")
-            else:
-                results = []
-        
-        # Add results for failed profiles
-        for i, profile_result in enumerate(profiles_data):
-            if not (profile_result.get('success') and profile_result.get('profile_data')):
-                results.append({
-                    'success': False,
-                    'url': profile_result.get('url'),
-                    'profile_data': profile_result.get('profile_data'),
-                    'profile_summary': None,
-                    'assessment': None,
-                    'error': profile_result.get('error', 'Profile fetch failed')
-                })
-        
-        # Add CSV names to results to match with candidates
-        for i, result in enumerate(results):
+        # Step 3: Add CSV names to results and sort by weighted score (descending)
+        print("Step 3: Adding CSV names and ranking profiles by weighted score...")
+        for i, result in enumerate(assessment_results):
             if i < len(candidates):
                 result['csv_name'] = candidates[i]['fullName']
                 result['csv_first_name'] = candidates[i]['firstName']
                 result['csv_last_name'] = candidates[i]['lastName']
         
-        # Sort results by weighted score (descending)
         def get_weighted_score(result):
             if result.get('assessment') and result['assessment'].get('weighted_analysis'):
                 score = result['assessment']['weighted_analysis'].get('weighted_score', 0)
@@ -1050,26 +1110,27 @@ def batch_assess_profiles():
                 return score
             return 0
         
-        results.sort(key=get_weighted_score, reverse=True)
+        assessment_results.sort(key=get_weighted_score, reverse=True)
         
         # Count successful and failed results
-        successful = sum(1 for r in results if r.get('success', False) and r.get('assessment') and not r.get('error'))
-        failed = len(results) - successful
+        # Successful = profile found AND assessment completed successfully
+        successful = sum(1 for r in assessment_results if r.get('success', False) and r.get('assessment') and not r.get('assessment_error'))
+        # Failed = profile not found OR assessment failed
+        failed = len(assessment_results) - successful
         
-        print(f"✅ Batch assessment complete: {successful} successful, {failed} failed")
+        print(f"Batch assessment complete: {successful} successful, {failed} failed")
         
         return jsonify({
             'success': True,
-            'results': results,
+            'results': assessment_results,
             'summary': {
-                'total': len(results),
+                'total': len(assessment_results),
                 'successful': successful,
                 'failed': failed
             }
         })
         
     except Exception as e:
-        print(f"❌ Batch assessment error: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/save-assessment', methods=['POST'])

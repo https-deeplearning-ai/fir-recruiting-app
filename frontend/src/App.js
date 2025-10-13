@@ -704,13 +704,12 @@ function App() {
       console.log(`🚀 Starting background assessment for ${numCandidates} candidates...`);
       
       setLoadingMessage(
-        `Starting background assessment...\n` +
-        `Processing ${numCandidates} candidates\n` +
-        `This will run in the background to avoid timeouts`
+        `Processing ${numCandidates} candidates...\n` +
+        `Using high-concurrency processing for faster results`
       );
       
-      // Start the background job
-      const startResponse = await fetch('/start-batch-assessment', {
+      // Process batch assessment directly with high concurrency
+      const response = await fetch('/batch-assess-profiles', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -722,107 +721,34 @@ function App() {
         }),
       });
 
-      if (!startResponse.ok) {
-        const errorText = await startResponse.text();
-        throw new Error(`Failed to start assessment: ${errorText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to process assessment: ${errorText}`);
       }
 
-      const startData = await startResponse.json();
-      if (!startData.success) {
-        throw new Error(startData.error || 'Failed to start assessment');
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to process assessment');
       }
 
-      const jobId = startData.job_id;
-      console.log(`✅ Background job started with ID: ${jobId}`);
-
-      // Poll for job completion
-      const pollInterval = 3000; // Poll every 3 seconds
-      let isCompleted = false;
-      let lastProgress = 0;
-
-      while (!isCompleted) {
-        try {
-          const statusResponse = await fetch(`/check-job-status/${jobId}`);
-          
-          if (!statusResponse.ok) {
-            throw new Error(`Failed to check job status: ${statusResponse.status}`);
-          }
-
-          const statusData = await statusResponse.json();
-          
-          if (!statusData.success) {
-            throw new Error(statusData.error || 'Failed to check job status');
-          }
-
-          const jobInfo = statusData.job_info;
-          const progress = jobInfo.progress || 0;
-          const completed = jobInfo.completed || 0;
-          const failed = jobInfo.failed || 0;
-          const status = jobInfo.status;
-
-          // Update progress display
-          if (progress !== lastProgress) {
-            setLoadingMessage(
-              `Background assessment in progress...\n` +
-              `Progress: ${progress}% (${completed}/${numCandidates} completed)\n` +
-              `Failed: ${failed}\n` +
-              `Status: ${status}`
-            );
-            lastProgress = progress;
-          }
-
-          if (status === 'completed') {
-            console.log(`✅ Background job ${jobId} completed!`);
-            isCompleted = true;
-            
-            // Get final results
-            const resultsResponse = await fetch(`/get-job-results/${jobId}`);
-            
-            if (!resultsResponse.ok) {
-              throw new Error(`Failed to get job results: ${resultsResponse.status}`);
-            }
-
-            const resultsData = await resultsResponse.json();
-            
-            if (!resultsData.success) {
-              throw new Error(resultsData.error || 'Failed to get job results');
-            }
-
-            const results = resultsData.results;
-            const summary = resultsData.summary;
-            
-            console.log(`🎉 Assessment complete! Results: ${summary.successful}/${summary.total} successful, ${summary.failed} failed`);
-            
-            setBatchResults(results);
-            
-            if (summary.failed > 0) {
-              showNotification(
-                `Completed ${summary.successful}/${summary.total} assessments. ${summary.failed} failed.`,
-                'warning'
-              );
-            } else {
-              showNotification(
-                `Successfully completed all ${summary.total} assessments!`,
-                'success'
-              );
-            }
-            
-            break;
-            
-          } else if (status === 'failed') {
-            throw new Error(jobInfo.error || 'Background job failed');
-          }
-
-          // Wait before next poll
-          await new Promise(resolve => setTimeout(resolve, pollInterval));
-          
-        } catch (pollError) {
-          console.error('Error polling job status:', pollError);
-          setError(`Error checking progress: ${pollError.message}`);
-          
-          // Wait a bit longer before retrying
-          await new Promise(resolve => setTimeout(resolve, pollInterval * 2));
-        }
+      const results = data.results;
+      const summary = data.summary;
+      
+      console.log(`🎉 Assessment complete! Results: ${summary.successful}/${summary.total} successful, ${summary.failed} failed`);
+      
+      setBatchResults(results);
+      
+      if (summary.failed > 0) {
+        showNotification(
+          `Completed ${summary.successful}/${summary.total} assessments. ${summary.failed} failed.`,
+          'warning'
+        );
+      } else {
+        showNotification(
+          `Successfully completed all ${summary.total} assessments!`,
+          'success'
+        );
       }
       
     } catch (err) {
