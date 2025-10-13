@@ -176,6 +176,7 @@ CRITICAL:
 2. You MUST use ONLY exact values from the provided lists - DO NOT make up or modify values
 3. If user mentions an industry, find the closest matching value from the exact list
 4. These will be used as hard filters - candidates must meet ALL requirements
+5. **LOCATION CRITICAL**: If user specifies a city/region (like "San Francisco", "Bay Area", "New York", "Seattle"), preserve the EXACT city/region name in must_have_location. Only use "United States" if no specific location is mentioned.
 
 ===== VALID FIELD VALUES (USE ONLY THESE) =====
 
@@ -192,6 +193,12 @@ TECHNOLOGY-RELATED INDUSTRIES (most common for tech searches):
 
 ALL AVAILABLE INDUSTRIES (full list - search this for non-tech):
 {all_industries_str}
+
+LOCATION EXAMPLES:
+- "Find me people in San Francisco" → "must_have_location": "San Francisco"
+- "Find me Bay Area engineers" → "must_have_location": "San Francisco Bay Area"  
+- "Find me New York developers" → "must_have_location": "New York"
+- "Find me US-based candidates" → "must_have_location": "United States"
 
 Return a JSON object with ONLY minimum requirements:
 {{
