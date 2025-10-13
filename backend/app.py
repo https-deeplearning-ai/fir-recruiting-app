@@ -54,7 +54,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "https://csikerdodixcqzfweiao.supabase.
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzaWtlcmRvZGl4Y3F6ZndlaWFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3ODEzMzMsImV4cCI6MjA3NTM1NzMzM30.5oDke2YAeabah-3o_lwxss-or6EzkkcaTA7sPvfsid4")
 
 # Enhanced configuration for high-concurrency processing
-MAX_CONCURRENT_CALLS = 100  # Maximum concurrent Anthropic API calls
+MAX_CONCURRENT_CALLS = 15  # Maximum concurrent Anthropic API calls (reduced for Heroku timeout)
 TIMEOUT_SECONDS = 25  # Safety margin for Heroku 30s limit
 BATCH_SIZE = 50  # Process candidates in batches of 50
 
@@ -995,7 +995,10 @@ def batch_assess_profiles():
                         future = executor.submit(task)
                         future_to_original_index[future] = original_index
                     
-                    # Collect results as they complete
+                    # Collect results as they complete with progress tracking
+                    completed_count = 0
+                    total_count = len(future_to_original_index)
+                    
                     for future in future_to_original_index:
                         original_index = future_to_original_index[future]
                         try:
@@ -1009,6 +1012,8 @@ def batch_assess_profiles():
                                 'assessment': assessment_result.get('assessment'),
                                 'error': assessment_result.get('error')
                             }
+                            completed_count += 1
+                            print(f"📊 Progress: {completed_count}/{total_count} assessments completed")
                         except Exception as e:
                             print(f"❌ Assessment task failed: {str(e)}")
                             profile_result = profile_mapping[original_index]
@@ -1020,6 +1025,7 @@ def batch_assess_profiles():
                                 'assessment': None,
                                 'error': str(e)
                             }
+                            completed_count += 1
                 
                 print("✅ All high-concurrency assessments completed!")
         
