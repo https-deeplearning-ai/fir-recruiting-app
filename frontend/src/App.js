@@ -4,7 +4,7 @@ import './App.css';
 
 function App() {
   const [linkedinUrl, setLinkedinUrl] = useState('');
-  const [userPrompt, setUserPrompt] = useState('We are seeking a visionary and entrepreneurial leader to serve as the future CEO of a real-time voice AI startup. The ideal candidate brings repeat startup leadership experience (0→1 track record in B2B SaaS or infrastructure), strong AI/ML literacy, and a proven ability to drive go-to-market success, fundraising, and stakeholder engagement. This individual should be equally comfortable shaping product and technology strategy, recruiting top-tier teams, and inspiring investors, partners, and customers with a compelling narrative. Experience with real-time voice, developer-first products, or the AI voice ecosystem is a plus. Above all, we value leaders with grit, accountability, scrappiness, and a deep sense of ownership—someone who can refine the vision, execute under pressure, and build a category-defining company.');
+  const [userPrompt, setUserPrompt] = useState('');
   const [assessment, setAssessment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetchingProfile, setFetchingProfile] = useState(false);
@@ -19,6 +19,7 @@ function App() {
   const [searchMode, setSearchMode] = useState(false);
   const [searchPrompt, setSearchPrompt] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
+  const [profileCount, setProfileCount] = useState(20);
   const [singleProfileResults, setSingleProfileResults] = useState([]);
   const [savedAssessments, setSavedAssessments] = useState([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
@@ -758,7 +759,7 @@ function App() {
     setError('');
 
     try {
-      console.log('Searching for profiles with prompt:', searchPrompt);
+      console.log(`Searching for ${profileCount} profiles with prompt:`, searchPrompt);
       
       const response = await fetch('http://localhost:5001/search-profiles', {
         method: 'POST',
@@ -767,7 +768,7 @@ function App() {
         },
         body: JSON.stringify({
           user_prompt: searchPrompt,
-          limit: 20
+          limit: profileCount
         }),
       });
 
@@ -957,15 +958,6 @@ function App() {
 
         <div className="mode-toggle">
           <button 
-            className={`mode-btn ${searchMode ? 'active' : ''}`}
-            onClick={() => {
-              setSearchMode(true);
-              setBatchMode(false);
-            }}
-          >
-            Profile Search
-          </button>
-          <button 
             className={`mode-btn ${!batchMode && !searchMode ? 'active' : ''}`}
             onClick={() => {
               setBatchMode(false);
@@ -973,6 +965,15 @@ function App() {
             }}
           >
             Single Profile
+          </button>
+          <button 
+            className={`mode-btn ${searchMode ? 'active' : ''}`}
+            onClick={() => {
+              setSearchMode(true);
+              setBatchMode(false);
+            }}
+          >
+            Profile Search
           </button>
           <button 
             className={`mode-btn ${batchMode && !searchMode ? 'active' : ''}`}
@@ -1003,12 +1004,29 @@ function App() {
               </p>
             </div>
 
+            <div className="form-group">
+              <label htmlFor="profileCount">Number of profiles:</label>
+              <input
+                id="profileCount"
+                type="number"
+                min="20"
+                max="100"
+                step="20"
+                value={profileCount}
+                onChange={(e) => setProfileCount(Math.min(100, parseInt(e.target.value) || 20))}
+                className="profile-count-input"
+              />
+              <p className="file-help">
+                Enter 20, 40, 60, 80, or 100 profiles.
+              </p>
+            </div>
+
             <div className="button-group">
               <button 
                 type="button" 
                 onClick={handleProfileSearch}
                 className="submit-btn search-btn-text" 
-                disabled={searchLoading}
+                disabled={searchLoading || !searchPrompt.trim()}
               >
                 {searchLoading ? 'Searching...' : (
                   <>
@@ -1018,13 +1036,13 @@ function App() {
                 )}
               </button>
               
-              <button 
+              {/* <button 
                 type="button" 
                 onClick={resetToSingleMode}
                 className="test-btn"
               >
                 Back to Single
-              </button>
+              </button> */}
             </div>
           </div>
         ) : !batchMode ? (
@@ -1054,8 +1072,8 @@ function App() {
               id="userPrompt"
               value={userPrompt}
               onChange={(e) => setUserPrompt(e.target.value)}
-              placeholder="e.g., 'Focus on leadership experience and technical skills' or 'Evaluate for senior developer role'"
-              rows="3"
+              placeholder="Describe the role, ideal candidate profile, and any must-have skills or experiences (e.g., domain knowledge, fundraising, product strategy)"
+              rows="5"
             />
           </div>
 
@@ -1140,19 +1158,19 @@ function App() {
             <button 
               type="submit" 
               className="submit-btn" 
-              disabled={loading}
+              disabled={loading || !linkedinUrl.trim()}
             >
               {fetchingProfile ? 'Fetching Profile...' : loading ? 'Analyzing Profile...' : 'Assess Profile'}
             </button>
             
-            <button 
+            {/* <button 
               type="button" 
               onClick={handleTest}
               className="test-btn" 
               disabled={loading}
             >
               {loading ? 'Testing...' : 'Test'}
-            </button>
+            </button> */}
           </div>
         </form>
         ) : (
@@ -1177,8 +1195,8 @@ function App() {
                 id="batchUserPrompt"
                 value={userPrompt}
                 onChange={(e) => setUserPrompt(e.target.value)}
-                placeholder="e.g., 'Focus on leadership experience and technical skills' or 'Evaluate for senior developer role'"
-                rows="3"
+                placeholder="Describe the role, ideal candidate profile, and any must-have skills or experiences (e.g., domain knowledge, fundraising, product strategy)"
+                rows="5"
               />
             </div>
 
@@ -1269,13 +1287,13 @@ function App() {
                 {batchLoading ? 'Assessing Candidates...' : 'Assess Candidates'}
               </button>
               
-              <button 
+              {/* <button 
                 type="button" 
                 onClick={resetToSingleMode}
                 className="test-btn"
               >
                 Back to Single
-              </button>
+              </button> */}
             </div>
           </div>
         )}

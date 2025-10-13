@@ -1,0 +1,152 @@
+---
+alwaysApply: false
+---
+
+# Search Preview
+
+{% columns %}
+{% column width="16.666666666666664%" %}
+Data type:
+
+Query type:
+
+URL:
+{% endcolumn %}
+
+{% column %}
+Clean Employee
+
+Elasticsearch DSL
+
+<https://api.coresignal.com/cdapi/v2/employee\\_clean/search/es\\_dsl/preview>
+{% endcolumn %}
+{% endcolumns %}
+
+***
+
+## Overview
+
+Retrieve a limited set of fields from top-matching records in real time, and search suggestion features. Here, Clean Employee API search `/v2/employee_clean/search/es_dsl/preview` endpoint's usage is reviewed.
+
+<table data-view="cards"><thead><tr><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td>General information about search preview</td><td><a href="../../../api-introduction/requests/search-preview">search-preview</a></td></tr></tbody></table>
+
+## Request queries
+
+See the request example of `preview` endpoint. Search Preview endpoints accept the same query structure as their corresponding Search endpoints.
+
+{% code title="Elasticsearch DSL request" %}
+
+```json
+curl -X 'POST' \
+'https://api.coresignal.com/cdapi/v2/employee_clean/search/es_dsl/preview' \
+  -H 'accept: application/json' \
+  -H 'apikey: {API Key}' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": {
+        "bool": {
+            "should": [
+                {
+                    "query_string": {
+                        "query": "Python",
+                        "default_field": "description",
+                        "default_operator": "and"
+                    }
+                }
+            ]
+        }
+    }
+}'
+```
+
+{% endcode %}
+
+## Response structure
+
+Here is an overview of the fields that are retrieved using the Clean Employee API search preview endpoints.
+
+| Data point                         | Description                                                                                  | Data type |
+| ---------------------------------- | -------------------------------------------------------------------------------------------- | --------- |
+| `id`                               | Identification number                                                                        | Integer   |
+| `full_name`                        | Employee's full name                                                                         | String    |
+| `websites_professional_network`    | Professional network profile URL                                                             | String    |
+| `headline`                         | Profile headline                                                                             | String    |
+| `location_full`                    | Employee's full location                                                                     | String    |
+| `location_raw_address`             | Associated location                                                                          | String    |
+| `location_country`                 | Associated country                                                                           | String    |
+| `connections_count`                | Count of profile connections                                                                 | Integer   |
+| `follower_count`                   | Count of profile followers                                                                   | Integer   |
+| `company_name`                     | Company name. Data is from `experience` category                                             | String    |
+| `company_professional_network_url` | Company's Professional network URL. Data is from `experience` category                       | String    |
+| `company_website`                  | Company's website. Data is from `experience` category                                        | String    |
+| `company_industry`                 | Company's industry. Data is from `experience` category                                       | String    |
+| `job_title`                        | Current job position title                                                                   | String    |
+| `department`                       | Associated department                                                                        | String    |
+| `management_level`                 | Management level                                                                             | String    |
+| `company_location_hq_full_address` | Full address of the company's headquarters. Data is from `experience` category               | String    |
+| `company_location_hq_country`      | The country where the company's headquarters are located. Data is from `experience` category | String    |
+| `_score`                           | Elasticsearch score                                                                          | Float     |
+
+**Refer to the data example here:**
+
+{% hint style="info" %}
+All personal/company information mentioned within this context is entirely fictional and is solely intended for illustrative purposes.
+{% endhint %}
+
+{% code title="Elasticsearch DSL response" %}
+
+```json
+    {
+        "id": 12345678,
+        "full_name": "John Doe",
+        "websites_professional_network": "https://www.professional-network.com/in/john-doe",
+        "headline": "Senior Devops Engineer",
+        "location_raw_address": "California, United States",
+        "location_country": "United States",
+        "connections_count": 30,
+        "follower_count": 40,
+        "company_name": "Example Company",
+        "company_professional_network_url": "https://www.professional-network.com/company/example-company",
+        "company_website": "https://www.example-company.com",
+        "company_industry": "Defense and Space Manufacturing",
+        "job_title": "Senior Devops Engineer",
+        "department": "Engineering and Technical",
+        "management_level": "Senior",
+        "company_location_hq_full_address": "1 Example Ave; California 1234, US",
+        "company_location_hq_country": "United States",
+        "_score": 8.123456
+    },
+```
+
+{% endcode %}
+
+## Pagination
+
+Example of the request using pagination query parameter `page`.
+
+{% code title="Elasticsearch DSL request" %}
+
+```json
+curl -X 'POST' \
+'https://api.coresignal.com/cdapi/v2/employee_clean/search/es_dsl/preview?page=4' \
+  -H 'accept: application/json' \
+  -H 'apikey: {API Key}' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": {
+        "bool": {
+            "should": [
+                {
+                    "query_string": {
+                        "query": "Python",
+                        "default_field": "description",
+                        "default_operator": "and"
+                    }
+                }
+            ]
+        }
+    }
+}'
+```
+
+{% endcode %}

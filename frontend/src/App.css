@@ -42,7 +42,8 @@ h1 {
   position: relative;
 }
 
-#userPrompt {
+#userPrompt,
+#batchUserPrompt {
   width: 100%;
   min-width: 500px;
   min-height: 80px;
@@ -115,6 +116,7 @@ textarea:focus, input[type="text"]:focus {
   cursor: pointer;
   transition: all 0.3s ease;
   flex: 1;
+  max-width: 350px;
 }
 
 .submit-btn.search-btn-text {
@@ -760,6 +762,41 @@ textarea:focus, input[type="text"]:focus {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding: 30px;
   margin-bottom: 30px;
+}
+
+.profile-count-input {
+  width: 100%;
+  max-width: 250px;
+  padding: 14px 18px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+  color: #667eea;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.profile-count-input:hover {
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+}
+
+.profile-count-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background: #ffffff;
+}
+
+/* Number input arrows styling */
+.profile-count-input::-webkit-inner-spin-button,
+.profile-count-input::-webkit-outer-spin-button {
+  opacity: 1;
+  height: 40px;
 }
 
 /* Batch Form */

@@ -9,6 +9,7 @@ from anthropic import Anthropic
 from datetime import datetime
 import calendar
 import time
+import random
 from coresignal_service import CoreSignalService
 from dotenv import load_dotenv
 import requests
@@ -20,6 +21,9 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+
+# Session-based page tracking (resets on server restart)
+used_pages_tracker = set()
 
 # Initialize Anthropic client
 anthropic_client = Anthropic(
@@ -312,8 +316,11 @@ def build_intelligent_elasticsearch_query(criteria: dict) -> dict:
     
     return query
 
-def search_coresignal_profiles(criteria: dict, limit: int = 20) -> dict:
-    """Search for profiles using Coresignal API"""
+def search_coresignal_profiles_preview(criteria: dict, page: int = 1) -> dict:
+    """
+    Search for profiles using Coresignal API /preview endpoint.
+    Returns full profile objects. Limited to pages 1-5.
+    """
     headers = {
         "accept": "application/json",
         "apikey": CORESIGNAL_API_KEY,
@@ -323,41 +330,35 @@ def search_coresignal_profiles(criteria: dict, limit: int = 20) -> dict:
     query = build_intelligent_elasticsearch_query(criteria)
     
     try:
-        print(f"Searching for up to {limit} profiles...")
-        print(f"Query: {json.dumps(query, indent=2)}")
+        # Use the /preview endpoint with page parameter (max page=5)
+        url = f"https://api.coresignal.com/cdapi/v2/employee_clean/search/es_dsl/preview?page={page}"
         
-        # Use the es_dsl/preview endpoint (same as new_search.py)
-        response = requests.post(
-            "https://api.coresignal.com/cdapi/v2/employee_clean/search/es_dsl/preview",
-            json=query,
-            headers=headers
-        )
-        print(f"Response status: {response.status_code}")
+        print(f"📄 Fetching page {page}...")
+        
+        response = requests.post(url, json=query, headers=headers)
+        print(f"   Response status: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
             
-            # The preview endpoint returns a list directly
+            # /preview returns full profile objects
             results = data if isinstance(data, list) else []
             
-            # Limit results to requested amount
-            limited_results = results[:limit] if len(results) > limit else results
-            
-            print(f"✅ Found {len(limited_results)} profiles")
+            print(f"   ✅ Got {len(results)} full profiles from page {page}")
             
             return {
                 "success": True,
-                "results": limited_results,
-                "total_found": len(limited_results),
-                "query": query
+                "results": results,
+                "page": page,
+                "total_found": len(results)
             }
         else:
             error_text = response.text
-            print(f"❌ Search error: {response.status_code} - {error_text}")
+            print(f"   ❌ Error: {response.status_code} - {error_text}")
             return {"success": False, "error": f"API error {response.status_code}: {error_text}"}
             
     except Exception as e:
-        print(f"❌ Search error: {e}")
+        print(f"   ❌ Error: {e}")
         return {"success": False, "error": str(e)}
 
 def convert_search_results_to_csv(results: list) -> str:
@@ -1218,15 +1219,65 @@ def search_profiles_endpoint():
         
         print(f"✅ Extracted criteria: {criteria.get('explanation', 'No explanation')}")
         
-        # Step 2: Search CoreSignal API
-        print("🌐 Searching CoreSignal database...")
-        search_results = search_coresignal_profiles(criteria, limit)
+        # Step 2: Search CoreSignal API using /preview endpoint
+        # Limitation: /preview only supports pages 1-5, so max 100 profiles per search
+        profiles_per_page = 20
+        max_profiles_per_search = 100  # 5 pages × 20 profiles
         
-        if not search_results.get('success'):
-            return jsonify({'error': search_results.get('error', 'Search failed')}), 400
+        if limit > max_profiles_per_search:
+            print(f"⚠️  Limiting request to {max_profiles_per_search} profiles (API limitation: /preview only supports pages 1-5)")
+            limit = max_profiles_per_search
         
-        results = search_results.get('results', [])
-        print(f"✅ Found {len(results)} profiles")
+        num_pages_needed = min((limit + profiles_per_page - 1) // profiles_per_page, 5)
+        
+        print(f"🌐 Searching CoreSignal database for {limit} profiles...")
+        print(f"   Will fetch {num_pages_needed} page(s) of ~{profiles_per_page} profiles each")
+        
+        # Track which pages to fetch - avoid already-used pages
+        available_pages = [p for p in range(1, 6) if p not in used_pages_tracker]
+        
+        # If we don't have enough unused pages, reset the tracker
+        if len(available_pages) < num_pages_needed:
+            print(f"ℹ️  Only {len(available_pages)} unused pages available, resetting tracker...")
+            used_pages_tracker.clear()
+            available_pages = list(range(1, 6))
+        
+        # Randomly select pages from available ones
+        pages_to_fetch = random.sample(available_pages, min(num_pages_needed, len(available_pages)))
+        
+        # Mark these pages as used
+        for page in pages_to_fetch:
+            used_pages_tracker.add(page)
+        
+        print(f"🎲 Selected random pages: {pages_to_fetch} (session tracker has {len(used_pages_tracker)} used pages)")
+        
+        all_results = []
+        
+        # Fetch each page
+        for i, page_num in enumerate(pages_to_fetch):
+            print(f"📡 API call {i+1}/{num_pages_needed} (page {page_num})...")
+            
+            # Fetch profiles from this page
+            page_result = search_coresignal_profiles_preview(criteria, page_num)
+            
+            if not page_result.get('success'):
+                print(f"⚠️  Page {page_num} failed: {page_result.get('error')}")
+                continue
+            
+            page_profiles = page_result.get('results', [])
+            all_results.extend(page_profiles)
+            
+            print(f"   Total so far: {len(all_results)} profiles")
+            
+            # Small delay between calls
+            if i < num_pages_needed - 1:
+                time.sleep(1)
+        
+        # Limit to requested amount
+        results = all_results[:limit]
+        
+        print(f"🎉 Successfully retrieved {len(results)} profiles from pages: {pages_to_fetch}")
+        print(f"📊 Pages used in this session so far: {sorted(used_pages_tracker)}")
         
         # Step 3: Convert to CSV
         print("📄 Converting results to CSV...")
