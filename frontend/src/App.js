@@ -398,7 +398,7 @@ function App() {
       // Step 1: Fetch profile data from CoreSignal API
       console.log('Fetching profile data for:', cleanedUrl);
       
-      const fetchResponse = await fetch('http://localhost:5001/fetch-profile', {
+      const fetchResponse = await fetch('/fetch-profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -541,7 +541,7 @@ function App() {
       // Step 2: Assess the profile
       console.log('Assessing profile...');
       
-      const assessResponse = await fetch('http://localhost:5001/assess-profile', {
+      const assessResponse = await fetch('/assess-profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -710,7 +710,7 @@ function App() {
       
       console.log(`Processing ${candidates.length} candidates with AI assessment...`);
       
-      const response = await fetch('http://localhost:5001/batch-assess-profiles', {
+      const response = await fetch('/batch-assess-profiles', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -761,7 +761,7 @@ function App() {
     try {
       console.log(`Searching for ${profileCount} profiles with prompt:`, searchPrompt);
       
-      const response = await fetch('http://localhost:5001/search-profiles', {
+      const response = await fetch('/search-profiles', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -814,7 +814,7 @@ function App() {
   const loadSavedAssessments = async () => {
     setLoadingSaved(true);
     try {
-      const response = await fetch('http://localhost:5001/load-assessments?limit=100');
+      const response = await fetch('/load-assessments?limit=100');
       const data = await response.json();
       
       if (data.success) {
@@ -871,7 +871,7 @@ function App() {
     try {
       // Save each assessment
       const savePromises = allCurrentAssessments.map(assessment => 
-        fetch('http://localhost:5001/save-assessment', {
+        fetch('/save-assessment', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

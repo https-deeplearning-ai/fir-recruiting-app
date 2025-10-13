@@ -1,0 +1,16 @@
+# Environment Variables Template
+# Copy these to Heroku using: heroku config:set KEY=value
+
+# Anthropic API Key - Get from https://console.anthropic.com/
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# CoreSignal API Key - Get from CoreSignal dashboard
+CORESIGNAL_API_KEY=your_coresignal_api_key_here
+
+# Supabase Configuration - Get from Supabase project settings
+SUPABASE_URL=your_supabase_url_here
+SUPABASE_KEY=your_supabase_anon_key_here
+
+# For local development, create a .env file in the backend/ directory with these values
+# NEVER commit the .env file to git!
+

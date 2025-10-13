@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import json
 import os
@@ -19,7 +19,10 @@ from io import StringIO
 # Load environment variables from .env file
 load_dotenv()
 
-app = Flask(__name__)
+# Initialize Flask app
+app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
+
+# Configure CORS
 CORS(app)
 
 # Session-based page tracking (resets on server restart)
@@ -34,7 +37,7 @@ anthropic_client = Anthropic(
 coresignal_service = CoreSignalService()
 
 # CoreSignal API configuration
-CORESIGNAL_API_KEY = "zGZEUYUw2Koty9kxPidzCHTce5Wl2vYL"
+CORESIGNAL_API_KEY = os.getenv("CORESIGNAL_API_KEY", "zGZEUYUw2Koty9kxPidzCHTce5Wl2vYL")
 
 # Load valid input values for intelligent search
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -48,8 +51,8 @@ except Exception as e:
     VALID_INPUT_VALUES = {}
 
 # Database configuration - using Supabase REST API
-SUPABASE_URL = "https://csikerdodixcqzfweiao.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzaWtlcmRvZGl4Y3F6ZndlaWFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3ODEzMzMsImV4cCI6MjA3NTM1NzMzM30.5oDke2YAeabah-3o_lwxss-or6EzkkcaTA7sPvfsid4"
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://csikerdodixcqzfweiao.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzaWtlcmRvZGl4Y3F6ZndlaWFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3ODEzMzMsImV4cCI6MjA3NTM1NzMzM30.5oDke2YAeabah-3o_lwxss-or6EzkkcaTA7sPvfsid4")
 
 def save_candidate_assessment(linkedin_url, full_name, headline, profile_data, assessment_data, assessment_type='single', session_name=None):
     """Save candidate assessment to database using Supabase REST API"""
@@ -1298,9 +1301,20 @@ def search_profiles_endpoint():
 def health_check():
     return jsonify({'status': 'healthy'})
 
+# Serve React App
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    """Serve React app for all non-API routes"""
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
+
 if __name__ == '__main__':
     # Check if API key is set
     if not os.getenv("ANTHROPIC_API_KEY"):
         print("Warning: ANTHROPIC_API_KEY environment variable not set!")
     
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    port = int(os.environ.get('PORT', 5001))
+    app.run(debug=False, host='0.0.0.0', port=port)
