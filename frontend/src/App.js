@@ -700,38 +700,89 @@ function App() {
       const csvText = await csvFile.text();
       const candidates = parseCsv(csvText);
       
-      // Calculate estimated time (12 sec delay between batches + ~5 sec per profile)
+      // Split candidates into batches of 8 to avoid timeout
+      const BATCH_SIZE = 8;
+      const batches = [];
+      for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+        batches.push(candidates.slice(i, i + BATCH_SIZE));
+      }
+      
       const numCandidates = candidates.length;
-      const numBatches = Math.ceil(numCandidates / 5);
-      const estimatedSeconds = (numBatches - 1) * 12 + numCandidates * 5;
+      const numBatches = batches.length;
+      const estimatedSeconds = numBatches * 25; // ~25 seconds per batch of 8
       const estimatedMinutes = Math.ceil(estimatedSeconds / 60);
       
-      setLoadingMessage(`Processing ${numCandidates} candidates in batches of 5...\nEstimated time: ~${estimatedMinutes} min\n(Includes automatic retry for rate limits)`);
+      console.log(`Processing ${numCandidates} candidates in ${numBatches} batch(es) of up to ${BATCH_SIZE}...`);
       
-      console.log(`Processing ${candidates.length} candidates with AI assessment...`);
+      let allResults = [];
       
-      const response = await fetch('/batch-assess-profiles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          candidates: candidates,
-          user_prompt: userPrompt || 'Provide a general professional assessment',
-          weighted_requirements: weightedRequirements
-        }),
-      });
+      // Process each batch sequentially
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        const batchNum = i + 1;
+        
+        setLoadingMessage(
+          `Processing batch ${batchNum}/${numBatches}\n` +
+          `(${batch.length} candidate${batch.length !== 1 ? 's' : ''} in this batch)\n` +
+          `Total progress: ${allResults.length}/${numCandidates} completed\n` +
+          `Estimated time remaining: ~${Math.ceil((numBatches - i) * 25 / 60)} min`
+        );
+        
+        console.log(`📦 Processing batch ${batchNum}/${numBatches} (${batch.length} candidates)...`);
+        
+        try {
+          const response = await fetch('/batch-assess-profiles', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              candidates: batch,
+              user_prompt: userPrompt || 'Provide a general professional assessment',
+              weighted_requirements: weightedRequirements
+            }),
+          });
 
-      const data = await response.json();
+          const data = await response.json();
 
-      if (data.success) {
-        setBatchResults(data.results);
-        console.log('Batch assessment complete:', data.summary);
-      } else {
-        setError(data.error || 'Failed to process batch assessment');
+          if (data.success) {
+            allResults = [...allResults, ...data.results];
+            console.log(`✅ Batch ${batchNum}/${numBatches} complete! Total: ${allResults.length}/${numCandidates}`);
+            
+            // Update results after each batch so user can see progress
+            setBatchResults([...allResults]);
+          } else {
+            console.error(`❌ Batch ${batchNum} failed:`, data.error);
+            setError(`Batch ${batchNum} failed: ${data.error}. Continuing with remaining batches...`);
+          }
+        } catch (err) {
+          console.error(`❌ Batch ${batchNum} error:`, err);
+          setError(`Batch ${batchNum} error: ${err.message}. Continuing with remaining batches...`);
+        }
+        
+        // Small delay between batches to avoid overwhelming the server
+        if (i < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
+      
+      console.log(`🎉 All batches complete! Total results: ${allResults.length}/${numCandidates}`);
+      setBatchResults(allResults);
+      
+      if (allResults.length < numCandidates) {
+        showNotification(
+          `Completed ${allResults.length}/${numCandidates} assessments. Some failed.`,
+          'warning'
+        );
+      } else {
+        showNotification(
+          `Successfully completed all ${numCandidates} assessments!`,
+          'success'
+        );
+      }
+      
     } catch (err) {
-      setError('Network error. Please make sure the Flask server is running on port 5001.');
+      setError(`Error processing CSV: ${err.message}`);
       console.error('Error:', err);
     } finally {
       setBatchLoading(false);
