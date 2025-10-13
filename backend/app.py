@@ -943,36 +943,42 @@ async def assess_profiles_batch_async(profiles_data, user_prompt, weighted_requi
                 assessment_tasks.append(None)
                 profile_mapping[len(assessment_tasks) - 1] = profile_result
         
-        print(f"Created {len([t for t in assessment_tasks if t is not None])} parallel assessment tasks")
+        print(f"Created {len([t for t in assessment_tasks if t is not None])} assessment tasks")
         
-        # Execute tasks in batches to avoid rate limits
+        # Execute tasks SEQUENTIALLY to avoid rate limits and timeouts
         if assessment_tasks:
-            # Filter out None tasks and execute the real ones in batches
+            # Filter out None tasks and execute the real ones one at a time
             real_tasks = [task for task in assessment_tasks if task is not None]
             if real_tasks:
-                print(f"🚀 Starting batched AI assessments ({len(real_tasks)} total, processing 5 at a time)...")
+                print(f"🚀 Starting sequential AI assessments ({len(real_tasks)} total, one at a time)...")
                 
                 assessment_results = []
-                BATCH_SIZE = 5
-                DELAY_BETWEEN_BATCHES = 3  # 3 seconds between batches (reduced for faster processing)
                 
-                for i in range(0, len(real_tasks), BATCH_SIZE):
-                    batch = real_tasks[i:i+BATCH_SIZE]
-                    batch_num = (i // BATCH_SIZE) + 1
-                    total_batches = (len(real_tasks) + BATCH_SIZE - 1) // BATCH_SIZE
+                for i, task in enumerate(real_tasks):
+                    profile_num = i + 1
+                    total_profiles = len(real_tasks)
                     
-                    print(f"📦 Processing batch {batch_num}/{total_batches} ({len(batch)} profiles)...")
-                    batch_results = await asyncio.gather(*batch, return_exceptions=True)
-                    assessment_results.extend(batch_results)
+                    print(f"📝 Processing profile {profile_num}/{total_profiles}...")
                     
-                    print(f"✅ Batch {batch_num}/{total_batches} completed!")
+                    # Process one at a time
+                    try:
+                        result = await task
+                        assessment_results.append(result)
+                        print(f"✅ Profile {profile_num}/{total_profiles} completed!")
+                    except Exception as e:
+                        print(f"❌ Profile {profile_num}/{total_profiles} failed: {e}")
+                        assessment_results.append({
+                            'success': False,
+                            'assessment': None,
+                            'profile_summary': None,
+                            'error': str(e)
+                        })
                     
-                    # Add delay between batches (except after the last batch)
-                    if i + BATCH_SIZE < len(real_tasks):
-                        print(f"⏳ Waiting {DELAY_BETWEEN_BATCHES} seconds before next batch to avoid rate limits...")
-                        await asyncio.sleep(DELAY_BETWEEN_BATCHES)
+                    # Small delay between assessments to space them out
+                    if i < len(real_tasks) - 1:
+                        await asyncio.sleep(0.5)
                 
-                print("✅ All batched assessments completed!")
+                print("✅ All sequential assessments completed!")
             else:
                 assessment_results = []
         else:
