@@ -1507,7 +1507,11 @@ def process_candidate_batch(candidates, user_prompt, weighted_requirements):
                 print(f"Profile {i}: {actual_profile_data.get('full_name', 'Unknown')} - {profile_result.get('url', 'No URL')}")
                 
                 # Create assessment task for parallel execution
-                task = lambda: assess_single_profile_sync(actual_profile_data, user_prompt, weighted_requirements)
+                # Use a closure to capture the current profile data
+                def create_assessment_task(profile_data):
+                    return lambda: assess_single_profile_sync(profile_data, user_prompt, weighted_requirements)
+                
+                task = create_assessment_task(actual_profile_data)
                 assessment_tasks.append(task)
                 profile_mapping[len(assessment_tasks) - 1] = profile_result
             else:
