@@ -30,6 +30,10 @@ CORS(app)
 # Session-based page tracking (resets on server restart)
 used_pages_tracker = set()
 
+# Database configuration - using Supabase REST API
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://csikerdodixcqzfweiao.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzaWtlcmRvZGl4Y3F6ZndlaWFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3ODEzMzMsImV4cCI6MjA3NTM1NzMzM30.5oDke2YAeabah-3o_lwxss-or6EzkkcaTA7sPvfsid4")
+
 # Job tracking system for background processing
 job_tracker = {}
 job_lock = threading.Lock()
@@ -131,10 +135,6 @@ try:
 except Exception as e:
     print(f"⚠️ Warning: Could not load input_values.json: {e}")
     VALID_INPUT_VALUES = {}
-
-# Database configuration - using Supabase REST API
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://csikerdodixcqzfweiao.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzaWtlcmRvZGl4Y3F6ZndlaWFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3ODEzMzMsImV4cCI6MjA3NTM1NzMzM30.5oDke2YAeabah-3o_lwxss-or6EzkkcaTA7sPvfsid4")
 
 def save_candidate_assessment(linkedin_url, full_name, headline, profile_data, assessment_data, assessment_type='single', session_name=None):
     """Save candidate assessment to database using Supabase REST API"""
