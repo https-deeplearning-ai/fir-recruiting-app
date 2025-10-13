@@ -427,7 +427,7 @@ function App() {
       // Step 2: Assess the profile
       console.log('Assessing profile...');
       
-      const assessResponse = await fetch('http://localhost:5001/assess-profile', {
+      const assessResponse = await fetch('/assess-profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
