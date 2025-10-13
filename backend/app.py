@@ -21,7 +21,7 @@ import sys
 # Load environment variables from .env file
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
 # Session-based page tracking (resets on server restart)
@@ -1236,6 +1236,37 @@ def search_profiles_endpoint():
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy'})
+
+@app.route('/', methods=['GET'])
+def serve_frontend():
+    """Serve the React frontend"""
+    try:
+        # Try to serve the built React app
+        return app.send_static_file('index.html')
+    except:
+        # Fallback if static files not found
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>LinkedIn AI Assessor</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+        </head>
+        <body>
+            <h1>LinkedIn AI Assessor</h1>
+            <p>Backend is running. Please build and deploy the frontend.</p>
+            <p>API endpoints are available at:</p>
+            <ul>
+                <li>POST /fetch-profile</li>
+                <li>POST /assess-profile</li>
+                <li>POST /batch-assess-profiles</li>
+                <li>POST /search-profiles</li>
+                <li>GET /health</li>
+            </ul>
+        </body>
+        </html>
+        """
 
 if __name__ == '__main__':
     # Check if API key is set
