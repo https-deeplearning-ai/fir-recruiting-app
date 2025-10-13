@@ -1156,8 +1156,8 @@ def batch_assess_profiles():
         
         # Limit batch size to prevent overwhelming the API and avoid timeouts
         # With new API key, we can handle larger batches with parallel processing
-        if len(candidates) > 20:  # Increased batch size with parallel processing
-            return jsonify({'error': 'Batch size cannot exceed 20 candidates for AI assessment. Process multiple batches separately.'}), 400
+        if len(candidates) > 50:  # Increased batch size with parallel processing
+            return jsonify({'error': 'Batch size cannot exceed 50 candidates for AI assessment. Process multiple batches separately.'}), 400
         
         print(f"Processing batch assessment of {len(candidates)} candidates...")
         print("Received candidates:", candidates)
@@ -1317,33 +1317,23 @@ def start_batch_assessment():
             try:
                 print(f"🚀 Starting background job {job_id} with {len(candidates)} candidates")
                 
-                # Process candidates in larger batches with parallel processing
-                batch_size = 10  # Process 10 at a time with parallel AI calls
-                for i in range(0, len(candidates), batch_size):
-                    batch_candidates = candidates[i:i + batch_size]
-                    batch_num = (i // batch_size) + 1
-                    total_batches = (len(candidates) + batch_size - 1) // batch_size
-                    
-                    print(f"Processing batch {batch_num}/{total_batches} for job {job_id}")
-                    
-                    # Process this batch
-                    batch_results = process_candidate_batch(batch_candidates, user_prompt, weighted_requirements)
-                    
-                    # Update job status
-                    with job_lock:
-                        if job_id in job_tracker:
-                            job_tracker[job_id]['results'].extend(batch_results)
-                            job_tracker[job_id]['completed'] = len(job_tracker[job_id]['results'])
-                            job_tracker[job_id]['progress'] = int((job_tracker[job_id]['completed'] / len(candidates)) * 100)
-                            
-                            # Count successful vs failed
-                            successful = len([r for r in batch_results if r.get('success', False)])
-                            failed = len(batch_results) - successful
-                            job_tracker[job_id]['failed'] += failed
-                    
-                    # Small delay between batches
-                    if i + batch_size < len(candidates):
-                        time.sleep(2)
+                # Process ALL candidates in one batch with parallel processing
+                print(f"Processing all {len(candidates)} candidates at once for job {job_id}")
+                
+                # Process all candidates in parallel
+                batch_results = process_candidate_batch(candidates, user_prompt, weighted_requirements)
+                
+                # Update job status
+                with job_lock:
+                    if job_id in job_tracker:
+                        job_tracker[job_id]['results'] = batch_results
+                        job_tracker[job_id]['completed'] = len(batch_results)
+                        job_tracker[job_id]['progress'] = 100
+                        
+                        # Count successful vs failed
+                        successful = len([r for r in batch_results if r.get('success', False)])
+                        failed = len(batch_results) - successful
+                        job_tracker[job_id]['failed'] = failed
                 
                 # Mark job as completed
                 with job_lock:
@@ -1549,7 +1539,10 @@ def process_candidate_batch(candidates, user_prompt, weighted_requirements):
                 print(f"🚀 Starting parallel AI assessments ({len(real_tasks)} total)...")
                 
                 # Use ThreadPoolExecutor for parallel processing
-                with ThreadPoolExecutor(max_workers=5) as executor:  # Limit to 5 concurrent workers
+                # Dynamic worker count: use the number of candidates as the worker count
+                max_workers = min(len(real_tasks), 50)  # Cap at 50 to prevent resource issues
+                print(f"🔧 Using {max_workers} parallel workers for {len(real_tasks)} AI assessments")
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
                     # Submit all tasks
                     future_to_index = {}
                     for i, task in enumerate(real_tasks):
