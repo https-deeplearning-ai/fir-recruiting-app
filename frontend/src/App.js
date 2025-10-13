@@ -708,8 +708,8 @@ function App() {
         `Using high-concurrency processing for faster results`
       );
       
-      // Process batch assessment directly with high concurrency
-      const response = await fetch('/batch-assess-profiles', {
+      // Process batch assessment with streaming progress
+      const response = await fetch('/batch-assess-profiles-stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -726,29 +726,61 @@ function App() {
         throw new Error(`Failed to process assessment: ${errorText}`);
       }
 
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to process assessment');
-      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-      const results = data.results;
-      const summary = data.summary;
-      
-      console.log(`🎉 Assessment complete! Results: ${summary.successful}/${summary.total} successful, ${summary.failed} failed`);
-      
-      setBatchResults(results);
-      
-      if (summary.failed > 0) {
-        showNotification(
-          `Completed ${summary.successful}/${summary.total} assessments. ${summary.failed} failed.`,
-          'warning'
-        );
-      } else {
-        showNotification(
-          `Successfully completed all ${summary.total} assessments!`,
-          'success'
-        );
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'start') {
+                setLoadingMessage(`Starting batch assessment...\nProcessing ${data.total} candidates`);
+              } else if (data.type === 'progress') {
+                if (data.completed !== undefined) {
+                  setLoadingMessage(
+                    `Processing AI assessments...\nCompleted ${data.completed}/${data.total} assessments\n${data.message}`
+                  );
+                } else {
+                  setLoadingMessage(`${data.message}\nStep ${data.step}/${data.total_steps}`);
+                }
+              } else if (data.type === 'complete') {
+                const results = data.results;
+                const summary = data.summary;
+                
+                console.log(`🎉 Assessment complete! Results: ${summary.successful}/${summary.total} successful, ${summary.failed} failed`);
+                
+                setBatchResults(results);
+                
+                if (summary.failed > 0) {
+                  showNotification(
+                    `Completed ${summary.successful}/${summary.total} assessments. ${summary.failed} failed.`,
+                    'warning'
+                  );
+                } else {
+                  showNotification(
+                    `Successfully completed all ${summary.total} assessments!`,
+                    'success'
+                  );
+                }
+                return; // Exit the function successfully
+              } else if (data.type === 'error') {
+                throw new Error(data.message);
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
+        }
       }
       
     } catch (err) {
