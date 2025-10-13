@@ -1505,6 +1505,7 @@ def process_candidate_batch(candidates, user_prompt, weighted_requirements):
                     actual_profile_data = profile_data
                 
                 print(f"Profile {i}: {actual_profile_data.get('full_name', 'Unknown')} - {profile_result.get('url', 'No URL')}")
+                print(f"DEBUG: Profile data keys: {list(actual_profile_data.keys()) if isinstance(actual_profile_data, dict) else 'Not a dict'}")
                 
                 # Create assessment task for parallel execution
                 # Use a closure to capture the current profile data
