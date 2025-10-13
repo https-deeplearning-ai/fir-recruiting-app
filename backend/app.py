@@ -250,8 +250,74 @@ def build_intelligent_elasticsearch_query(criteria: dict) -> dict:
             location_conditions.append({"term": {"location_country": "US"}})
             location_conditions.append({"term": {"location_country": "USA"}})
         else:
-            location_conditions.append({"wildcard": {"location_raw_address": f"*{location.lower()}*"}})
-            location_conditions.append({"wildcard": {"location_country": f"*{location.lower()}*"}})
+            # Handle specific location variations for better matching
+            location_lower = location.lower()
+            
+            # Bay Area variations
+            if "bay area" in location_lower or "san francisco" in location_lower:
+                bay_area_variations = [
+                    "*bay area*", "*san francisco*", "*sf bay*", "*silicon valley*",
+                    "*palo alto*", "*mountain view*", "*sunnyvale*", "*cupertino*",
+                    "*menlo park*", "*redwood city*", "*fremont*", "*hayward*",
+                    "*oakland*", "*berkeley*", "*san mateo*", "*foster city*"
+                ]
+                for variation in bay_area_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            # New York variations
+            elif "new york" in location_lower or "nyc" in location_lower:
+                ny_variations = [
+                    "*new york*", "*nyc*", "*manhattan*", "*brooklyn*", "*queens*",
+                    "*bronx*", "*staten island*", "*long island*"
+                ]
+                for variation in ny_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            # Los Angeles variations
+            elif "los angeles" in location_lower or "la" in location_lower:
+                la_variations = [
+                    "*los angeles*", "*la*", "*hollywood*", "*beverly hills*",
+                    "*santa monica*", "*venice*", "*west hollywood*", "*pasadena*"
+                ]
+                for variation in la_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            # Seattle variations
+            elif "seattle" in location_lower:
+                seattle_variations = [
+                    "*seattle*", "*bellevue*", "*redmond*", "*kirkland*"
+                ]
+                for variation in seattle_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            # Boston variations
+            elif "boston" in location_lower:
+                boston_variations = [
+                    "*boston*", "*cambridge*", "*somerville*", "*brookline*"
+                ]
+                for variation in boston_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            # Austin variations
+            elif "austin" in location_lower:
+                austin_variations = [
+                    "*austin*", "*round rock*", "*cedar park*"
+                ]
+                for variation in austin_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            # Chicago variations
+            elif "chicago" in location_lower:
+                chicago_variations = [
+                    "*chicago*", "*evanston*", "*oak park*"
+                ]
+                for variation in chicago_variations:
+                    location_conditions.append({"wildcard": {"location_raw_address": variation}})
+                    location_conditions.append({"wildcard": {"location_country": variation}})
+            else:
+                # For other locations, use wildcard with the original location
+                location_conditions.append({"wildcard": {"location_raw_address": f"*{location.lower()}*"}})
+                location_conditions.append({"wildcard": {"location_country": f"*{location.lower()}*"}})
         
         if location_conditions:
             must_conditions.append({
