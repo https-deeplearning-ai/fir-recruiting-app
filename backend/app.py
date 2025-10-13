@@ -1065,9 +1065,10 @@ def batch_assess_profiles():
         if not isinstance(candidates, list):
             return jsonify({'error': 'Candidates must be provided as a list'}), 400
         
-        # Limit batch size to prevent overwhelming the API
-        if len(candidates) > 20:  # Reduced limit for AI assessment
-            return jsonify({'error': 'Batch size cannot exceed 20 candidates for AI assessment'}), 400
+        # Limit batch size to prevent overwhelming the API and avoid timeouts
+        # Heroku has a 30-second timeout, so we keep batches small
+        if len(candidates) > 8:  # Reduced limit to avoid Heroku timeout
+            return jsonify({'error': 'Batch size cannot exceed 8 candidates for AI assessment. Process multiple batches separately.'}), 400
         
         print(f"Processing batch assessment of {len(candidates)} candidates...")
         print("Received candidates:", candidates)
