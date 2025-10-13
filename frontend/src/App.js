@@ -23,6 +23,7 @@ function App() {
   const [singleProfileResults, setSingleProfileResults] = useState([]);
   const [savedAssessments, setSavedAssessments] = useState([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
+  const [savingAssessments, setSavingAssessments] = useState(false);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Processing...');
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
@@ -889,6 +890,7 @@ function App() {
       return;
     }
     
+    setSavingAssessments(true);
     try {
       // Save each assessment
       const savePromises = allCurrentAssessments.map(assessment => 
@@ -916,6 +918,9 @@ function App() {
     } catch (err) {
       setError('Network error saving assessments');
       console.error('Error:', err);
+      showNotification('Network error saving assessments', 'error');
+    } finally {
+      setSavingAssessments(false);
     }
   };
 
@@ -1411,8 +1416,9 @@ function App() {
                   <button 
                     className="mode-btn save-btn"
                     onClick={saveCurrentAssessments}
+                    disabled={savingAssessments}
                   >
-                    Save Current Assessments
+                    {savingAssessments ? 'Saving...' : 'Save Current Assessments'}
                   </button>
                 )}
                 <button 
