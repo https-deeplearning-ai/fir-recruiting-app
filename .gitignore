@@ -14,7 +14,7 @@ env/
 ENV/
 *.egg-info/
 dist/
-build/
+backend/build/
 
 # Node
 node_modules/
