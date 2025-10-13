@@ -1441,47 +1441,31 @@ def process_candidate_batch(candidates, user_prompt, weighted_requirements):
             try:
                 # Search for employee ID
                 print("Step 1: Searching for employee ID...")
-                search_results = coresignal_service.search_employee(url)
+                result = coresignal_service.fetch_linkedin_profile(url)
                 
-                if not search_results or len(search_results) == 0:
-                    print(f"❌ No search results for {url}")
+                if not result.get('success', False):
+                    print(f"❌ Error fetching profile for {url}: {result.get('error', 'Unknown error')}")
                     profiles_data.append({
                         'success': False,
                         'url': url,
                         'profile_data': None,
-                        'error': 'No search results found'
+                        'error': result.get('error', 'Unknown error')
                     })
                     continue
                 
-                print(f"Search returned {len(search_results)} results")
-                employee_id = search_results[0].get('id')
-                if not employee_id:
-                    print(f"❌ No employee ID found in search results for {url}")
-                    profiles_data.append({
-                        'success': False,
-                        'url': url,
-                        'profile_data': None,
-                        'error': 'No employee ID found'
-                    })
-                    continue
-                
-                print(f"✅ Found employee ID: {employee_id}")
-                
-                # Fetch full profile
-                print("Step 2: Fetching full profile...")
-                profile_data = coresignal_service.fetch_employee_profile(employee_id)
+                profile_data = result.get('profile_data')
+                employee_id = result.get('employee_id')
                 
                 if not profile_data:
-                    print(f"❌ Failed to fetch profile for employee ID: {employee_id}")
+                    print(f"❌ No profile data found for {url}")
                     profiles_data.append({
                         'success': False,
                         'url': url,
                         'profile_data': None,
-                        'error': 'Failed to fetch profile data'
+                        'error': 'No profile data found'
                     })
                     continue
                 
-                print("✅ Profile data retrieved successfully!")
                 profiles_data.append({
                     'success': True,
                     'url': url,
