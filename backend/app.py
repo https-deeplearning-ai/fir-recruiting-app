@@ -34,6 +34,32 @@ used_pages_tracker = set()
 job_tracker = {}
 job_lock = threading.Lock()
 
+# File-based job persistence
+script_dir = os.path.dirname(os.path.abspath(__file__))
+JOB_STORAGE_FILE = os.path.join(script_dir, 'job_storage.json')
+
+def load_job_tracker():
+    """Load job tracker from file"""
+    try:
+        if os.path.exists(JOB_STORAGE_FILE):
+            with open(JOB_STORAGE_FILE, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"⚠️ Error loading job tracker: {e}")
+    return {}
+
+def save_job_tracker():
+    """Save job tracker to file"""
+    try:
+        with open(JOB_STORAGE_FILE, 'w') as f:
+            json.dump(job_tracker, f, indent=2)
+    except Exception as e:
+        print(f"⚠️ Error saving job tracker: {e}")
+
+# Load existing jobs on startup
+job_tracker = load_job_tracker()
+print(f"📋 Loaded {len(job_tracker)} existing jobs from storage")
+
 # Initialize Anthropic client
 anthropic_client = Anthropic(
     api_key=os.getenv("ANTHROPIC_API_KEY")  # Set your API key as environment variable
@@ -46,7 +72,6 @@ coresignal_service = CoreSignalService()
 CORESIGNAL_API_KEY = os.getenv("CORESIGNAL_API_KEY", "zGZEUYUw2Koty9kxPidzCHTce5Wl2vYL")
 
 # Load valid input values for intelligent search
-script_dir = os.path.dirname(os.path.abspath(__file__))
 input_values_path = os.path.join(script_dir, 'input_values.json')
 try:
     with open(input_values_path, 'r') as f:
@@ -1311,6 +1336,7 @@ def start_batch_assessment():
                 'error': None,
                 'started_at': time.time()
             }
+            save_job_tracker()
             print(f"✅ Created job {job_id} with {len(candidates)} candidates. Total jobs in tracker: {len(job_tracker)}")
         
         # Start background processing
@@ -1335,12 +1361,14 @@ def start_batch_assessment():
                         successful = len([r for r in batch_results if r.get('success', False)])
                         failed = len(batch_results) - successful
                         job_tracker[job_id]['failed'] = failed
+                        save_job_tracker()
                 
                 # Mark job as completed
                 with job_lock:
                     if job_id in job_tracker:
                         job_tracker[job_id]['status'] = 'completed'
                         job_tracker[job_id]['progress'] = 100
+                        save_job_tracker()
                 
                 print(f"✅ Background job {job_id} completed successfully")
                 
@@ -1350,6 +1378,7 @@ def start_batch_assessment():
                     if job_id in job_tracker:
                         job_tracker[job_id]['status'] = 'failed'
                         job_tracker[job_id]['error'] = str(e)
+                        save_job_tracker()
         
         # Start the background thread
         thread = threading.Thread(target=process_job)
@@ -1546,18 +1575,22 @@ def process_candidate_batch(candidates, user_prompt, weighted_requirements):
                     for future in future_to_index:
                         try:
                             assessment_result = future.result()
+                            profile_result = profile_mapping[future_to_index[future]]
                             results.append({
                                 'success': assessment_result.get('success', False),
-                                'url': profile_mapping[future_to_index[future]].get('url'),
+                                'url': profile_result.get('url'),
+                                'profile_data': profile_result.get('profile_data'),
                                 'profile_summary': assessment_result.get('profile_summary'),
                                 'assessment': assessment_result.get('assessment'),
                                 'error': assessment_result.get('error')
                             })
                         except Exception as e:
                             print(f"❌ Assessment task failed: {str(e)}")
+                            profile_result = profile_mapping[future_to_index[future]]
                             results.append({
                                 'success': False,
-                                'url': profile_mapping[future_to_index[future]].get('url'),
+                                'url': profile_result.get('url'),
+                                'profile_data': profile_result.get('profile_data'),
                                 'profile_summary': None,
                                 'assessment': None,
                                 'error': str(e)
@@ -1573,10 +1606,18 @@ def process_candidate_batch(candidates, user_prompt, weighted_requirements):
                 results.append({
                     'success': False,
                     'url': profile_result.get('url'),
+                    'profile_data': profile_result.get('profile_data'),
                     'profile_summary': None,
                     'assessment': None,
                     'error': profile_result.get('error', 'Profile fetch failed')
                 })
+        
+        # Add CSV names to results to match with candidates
+        for i, result in enumerate(results):
+            if i < len(candidates):
+                result['csv_name'] = candidates[i]['fullName']
+                result['csv_first_name'] = candidates[i]['firstName']
+                result['csv_last_name'] = candidates[i]['lastName']
         
         return results
         
