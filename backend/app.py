@@ -1311,6 +1311,7 @@ def start_batch_assessment():
                 'error': None,
                 'started_at': time.time()
             }
+            print(f"✅ Created job {job_id} with {len(candidates)} candidates. Total jobs in tracker: {len(job_tracker)}")
         
         # Start background processing
         def process_job():
@@ -1506,7 +1507,7 @@ def process_candidate_batch(candidates, user_prompt, weighted_requirements):
                 print(f"Profile {i}: {actual_profile_data.get('full_name', 'Unknown')} - {profile_result.get('url', 'No URL')}")
                 
                 # Create assessment task for parallel execution
-                task = assess_single_profile_sync(actual_profile_data, user_prompt, weighted_requirements)
+                task = lambda: assess_single_profile_sync(actual_profile_data, user_prompt, weighted_requirements)
                 assessment_tasks.append(task)
                 profile_mapping[len(assessment_tasks) - 1] = profile_result
             else:
