@@ -700,8 +700,8 @@ function App() {
       const csvText = await csvFile.text();
       const candidates = parseCsv(csvText);
       
-      // Split candidates into batches of 8 to avoid timeout
-      const BATCH_SIZE = 8;
+      // Split candidates into batches of 5 to avoid timeout
+      const BATCH_SIZE = 5;
       const batches = [];
       for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
         batches.push(candidates.slice(i, i + BATCH_SIZE));
@@ -709,7 +709,7 @@ function App() {
       
       const numCandidates = candidates.length;
       const numBatches = batches.length;
-      const estimatedSeconds = numBatches * 25; // ~25 seconds per batch of 8
+      const estimatedSeconds = numBatches * 20; // ~20 seconds per batch of 5
       const estimatedMinutes = Math.ceil(estimatedSeconds / 60);
       
       console.log(`Processing ${numCandidates} candidates in ${numBatches} batch(es) of up to ${BATCH_SIZE}...`);
@@ -725,7 +725,7 @@ function App() {
           `Processing batch ${batchNum}/${numBatches}\n` +
           `(${batch.length} candidate${batch.length !== 1 ? 's' : ''} in this batch)\n` +
           `Total progress: ${allResults.length}/${numCandidates} completed\n` +
-          `Estimated time remaining: ~${Math.ceil((numBatches - i) * 25 / 60)} min`
+          `Estimated time remaining: ~${Math.ceil((numBatches - i) * 20 / 60)} min`
         );
         
         console.log(`📦 Processing batch ${batchNum}/${numBatches} (${batch.length} candidates)...`);

@@ -1066,8 +1066,8 @@ def batch_assess_profiles():
         
         # Limit batch size to prevent overwhelming the API and avoid timeouts
         # Heroku has a 30-second timeout, so we keep batches small
-        if len(candidates) > 8:  # Reduced limit to avoid Heroku timeout
-            return jsonify({'error': 'Batch size cannot exceed 8 candidates for AI assessment. Process multiple batches separately.'}), 400
+        if len(candidates) > 5:  # Reduced limit to avoid Heroku timeout
+            return jsonify({'error': 'Batch size cannot exceed 5 candidates for AI assessment. Process multiple batches separately.'}), 400
         
         print(f"Processing batch assessment of {len(candidates)} candidates...")
         print("Received candidates:", candidates)
