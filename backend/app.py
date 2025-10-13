@@ -651,12 +651,11 @@ def assess_profile():
             # Clean the response by removing markdown code blocks
             cleaned_response = claude_response.strip()
             if cleaned_response.startswith('```json'):
-                cleaned_response = cleaned_response[7:]  # Remove ```json
-            if cleaned_response.startswith('```'):
-                cleaned_response = cleaned_response[3:]   # Remove ```
+                cleaned_response = cleaned_response[7:].strip()  # Remove ```json and strip whitespace
+            elif cleaned_response.startswith('```'):
+                cleaned_response = cleaned_response[3:].strip()   # Remove ``` and strip whitespace
             if cleaned_response.endswith('```'):
-                cleaned_response = cleaned_response[:-3]  # Remove trailing ```
-            cleaned_response = cleaned_response.strip()
+                cleaned_response = cleaned_response[:-3].strip()  # Remove trailing ``` and strip whitespace
             
             # Try to parse as JSON, fallback to plain text if it fails
             try:
