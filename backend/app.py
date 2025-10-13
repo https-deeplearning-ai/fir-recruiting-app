@@ -971,67 +971,69 @@ def batch_assess_profiles():
         print(f"Created {len([t for t in assessment_tasks if t is not None])} assessment tasks for high-concurrency processing")
         
         # Execute assessments with high concurrency using ThreadPoolExecutor
-        results = []
+        # Initialize results array with the same length as profiles_data
+        results = [None] * len(profiles_data)
+        
         if assessment_tasks:
-            # Filter out None tasks
-            real_tasks = [task for task in assessment_tasks if task is not None]
-            if real_tasks:
-                print(f"🚀 Starting high-concurrency AI assessments ({len(real_tasks)} total)...")
+            # Filter out None tasks and keep track of original indices
+            real_tasks_with_indices = []
+            for i, task in enumerate(assessment_tasks):
+                if task is not None:
+                    real_tasks_with_indices.append((task, i))
+            
+            if real_tasks_with_indices:
+                print(f"🚀 Starting high-concurrency AI assessments ({len(real_tasks_with_indices)} total)...")
                 
                 # Use ThreadPoolExecutor with high concurrency
-                max_workers = min(len(real_tasks), MAX_CONCURRENT_CALLS)
-                print(f"🔧 Using {max_workers} parallel workers for {len(real_tasks)} AI assessments")
+                max_workers = min(len(real_tasks_with_indices), MAX_CONCURRENT_CALLS)
+                print(f"🔧 Using {max_workers} parallel workers for {len(real_tasks_with_indices)} AI assessments")
                 
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    # Submit all tasks
-                    future_to_index = {}
-                    real_task_index = 0
-                    for i, task in enumerate(assessment_tasks):
-                        if task is not None:
-                            future = executor.submit(task)
-                            future_to_index[future] = i
-                            real_task_index += 1
+                    # Submit all tasks and keep track of original indices
+                    future_to_original_index = {}
+                    for task, original_index in real_tasks_with_indices:
+                        future = executor.submit(task)
+                        future_to_original_index[future] = original_index
                     
                     # Collect results as they complete
-                    for future in future_to_index:
+                    for future in future_to_original_index:
+                        original_index = future_to_original_index[future]
                         try:
                             assessment_result = future.result(timeout=TIMEOUT_SECONDS)
-                            profile_result = profile_mapping[future_to_index[future]]
-                            results.append({
+                            profile_result = profile_mapping[original_index]
+                            results[original_index] = {
                                 'success': assessment_result.get('success', False),
                                 'url': profile_result.get('url'),
                                 'profile_data': profile_result.get('profile_data'),
                                 'profile_summary': assessment_result.get('profile_summary'),
                                 'assessment': assessment_result.get('assessment'),
                                 'error': assessment_result.get('error')
-                            })
+                            }
                         except Exception as e:
                             print(f"❌ Assessment task failed: {str(e)}")
-                            profile_result = profile_mapping[future_to_index[future]]
-                            results.append({
+                            profile_result = profile_mapping[original_index]
+                            results[original_index] = {
                                 'success': False,
                                 'url': profile_result.get('url'),
                                 'profile_data': profile_result.get('profile_data'),
                                 'profile_summary': None,
                                 'assessment': None,
                                 'error': str(e)
-                            })
+                            }
                 
                 print("✅ All high-concurrency assessments completed!")
-            else:
-                results = []
         
-        # Add results for failed profiles
+        # Fill in results for failed profiles (those that weren't processed)
         for i, profile_result in enumerate(profiles_data):
-            if not (profile_result.get('success') and profile_result.get('profile_data')):
-                results.append({
+            if results[i] is None:  # This profile wasn't processed (failed to fetch)
+                results[i] = {
                     'success': False,
                     'url': profile_result.get('url'),
                     'profile_data': profile_result.get('profile_data'),
                     'profile_summary': None,
                     'assessment': None,
                     'error': profile_result.get('error', 'Profile fetch failed')
-                })
+                }
         
         # Add CSV names to results to match with candidates
         for i, result in enumerate(results):
