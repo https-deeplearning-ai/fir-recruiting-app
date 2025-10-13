@@ -1370,9 +1370,11 @@ def check_job_status(job_id):
     try:
         with job_lock:
             if job_id not in job_tracker:
+                print(f"❌ Job {job_id} not found in tracker. Available jobs: {list(job_tracker.keys())}")
                 return jsonify({'error': 'Job not found'}), 404
             
             job_info = job_tracker[job_id].copy()
+            print(f"✅ Job {job_id} found. Status: {job_info.get('status')}, Progress: {job_info.get('progress')}%")
         
         return jsonify({
             'success': True,
@@ -1380,6 +1382,7 @@ def check_job_status(job_id):
         })
         
     except Exception as e:
+        print(f"❌ Error checking job status: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/get-job-results/<job_id>', methods=['GET'])
