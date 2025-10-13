@@ -1041,6 +1041,12 @@ def batch_assess_profiles():
                 result['csv_name'] = candidates[i]['fullName']
                 result['csv_first_name'] = candidates[i]['firstName']
                 result['csv_last_name'] = candidates[i]['lastName']
+                print(f"DEBUG: Result {i} mapped to candidate: {candidates[i]['fullName']} - URL: {result.get('url', 'No URL')}")
+        
+        # Debug: Print results before sorting
+        print("DEBUG: Results before sorting:")
+        for i, result in enumerate(results):
+            print(f"  {i}: {result.get('csv_name', 'No name')} - Success: {result.get('success', False)} - URL: {result.get('url', 'No URL')}")
         
         # Sort results by weighted score (descending)
         def get_weighted_score(result):
@@ -1053,6 +1059,11 @@ def batch_assess_profiles():
             return 0
         
         results.sort(key=get_weighted_score, reverse=True)
+        
+        # Debug: Print results after sorting
+        print("DEBUG: Results after sorting:")
+        for i, result in enumerate(results):
+            print(f"  {i}: {result.get('csv_name', 'No name')} - Success: {result.get('success', False)} - URL: {result.get('url', 'No URL')}")
         
         # Count successful and failed results
         successful = sum(1 for r in results if r.get('success', False) and r.get('assessment') and not r.get('error'))
