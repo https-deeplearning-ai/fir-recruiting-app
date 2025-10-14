@@ -15,8 +15,6 @@ from dotenv import load_dotenv
 import requests
 import csv
 from io import StringIO
-import signal
-import sys
 
 # Load environment variables from .env file
 load_dotenv()
@@ -835,66 +833,6 @@ async def fetch_profiles_batch_async(urls):
         
         return processed_results
 
-@app.route('/batch-fetch-profiles', methods=['POST'])
-def batch_fetch_profiles():
-    """Fetch multiple LinkedIn profiles in parallel"""
-    try:
-        data = request.get_json()
-        
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-        
-        candidates = data.get('candidates', [])
-        
-        if not candidates:
-            return jsonify({'error': 'No candidates provided'}), 400
-        
-        if not isinstance(candidates, list):
-            return jsonify({'error': 'Candidates must be provided as a list'}), 400
-        
-        # Limit batch size to prevent overwhelming the API
-        if len(candidates) > 100:
-            return jsonify({'error': 'Batch size cannot exceed 100 URLs'}), 400
-        
-        print(f"Processing batch of {len(candidates)} LinkedIn URLs...")
-        print("Received candidates:", candidates)
-        
-        # Extract URLs for profile fetching
-        linkedin_urls = [candidate['url'] for candidate in candidates]
-        
-        # Run the async batch processing
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            results = loop.run_until_complete(fetch_profiles_batch_async(linkedin_urls))
-        finally:
-            loop.close()
-        
-        # Add CSV names to results
-        for i, result in enumerate(results):
-            if i < len(candidates):
-                result['csv_name'] = candidates[i]['fullName']
-                result['csv_first_name'] = candidates[i]['firstName']
-                result['csv_last_name'] = candidates[i]['lastName']
-        
-        # Count successful and failed results
-        successful = sum(1 for r in results if r.get('success', False))
-        failed = len(results) - successful
-        
-        print(f"Batch processing complete: {successful} successful, {failed} failed")
-        
-        return jsonify({
-            'success': True,
-            'results': results,
-            'summary': {
-                'total': len(results),
-                'successful': successful,
-                'failed': failed
-            }
-        })
-        
-    except Exception as e:
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 def assess_single_profile_sync(profile_data, user_prompt, weighted_requirements):
     """Assess a single profile synchronously (to be run in thread pool)"""

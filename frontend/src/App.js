@@ -474,10 +474,6 @@ function App() {
     }
   };
 
-  const handleLoadSample = () => {
-    // Load a sample LinkedIn URL
-    setLinkedinUrl('https://www.linkedin.com/in/adityakalro');
-  };
 
   const addRequirement = () => {
     const currentTotal = weightedRequirements.reduce((sum, req) => sum + req.weight, 0);
@@ -1062,13 +1058,6 @@ function App() {
                 )}
               </button>
               
-              {/* <button 
-                type="button" 
-                onClick={resetToSingleMode}
-                className="test-btn"
-              >
-                Back to Single
-              </button> */}
             </div>
           </div>
         ) : !batchMode ? (
@@ -1083,13 +1072,6 @@ function App() {
                 placeholder="https://www.linkedin.com/in/username"
                 required
               />
-              {/* <button 
-                type="button" 
-                onClick={handleLoadSample}
-                className="sample-btn"
-              >
-                Load Sample URL
-              </button> */}
             </div>
 
           <div className="form-group">
@@ -1189,14 +1171,6 @@ function App() {
               {fetchingProfile ? 'Fetching Profile...' : loading ? 'Analyzing Profile...' : 'Assess Profile'}
             </button>
             
-            {/* <button 
-              type="button" 
-              onClick={handleTest}
-              className="test-btn" 
-              disabled={loading}
-            >
-              {loading ? 'Testing...' : 'Test'}
-            </button> */}
           </div>
         </form>
         ) : (
@@ -1313,13 +1287,6 @@ function App() {
                 {batchLoading ? 'Assessing Candidates...' : 'Assess Candidates'}
               </button>
               
-              {/* <button 
-                type="button" 
-                onClick={resetToSingleMode}
-                className="test-btn"
-              >
-                Back to Single
-              </button> */}
             </div>
           </div>
         )}
@@ -1331,19 +1298,6 @@ function App() {
           </div>
         )}
 
-        {/* {profileData && (
-          <div className="profile-data">
-            <h2>Fetched Profile Data</h2>
-            <div className="profile-info">
-              <div><strong>Name:</strong> {profileData.full_name || 'N/A'}</div>
-              <div><strong>Headline:</strong> {profileData.headline || 'N/A'}</div>
-              <div><strong>Location:</strong> {profileData.location || 'N/A'}</div>
-              <div><strong>Industry:</strong> {profileData.industry || 'N/A'}</div>
-              <div><strong>Connections:</strong> {profileData.connections_count || 'N/A'}</div>
-              <div><strong>Experience Count:</strong> {profileData.experience_count || 'N/A'}</div>
-            </div>
-          </div>
-        )} */}
 
         {/* Combined Results Panel - Always Visible */}
         {(() => {
@@ -1499,21 +1453,6 @@ function App() {
                         </div>
                       )}
                     </div>
-                      {/* <div className="candidate-status">
-                        {candidate.success && candidate.assessment ? (
-                        <div className="status-badge success">
-                          ✅ Assessed
-                        </div>
-                        ) : candidate.success ? (
-                        <div className="status-badge warning">
-                          ⚠️ Profile Found, Assessment Failed
-                        </div>
-                      ) : (
-                        <div className="status-badge error">
-                          ❌ Not Found
-                        </div>
-                      )}
-                      </div> */}
                   </div>
                   
                     {candidate.assessment && (
@@ -1522,29 +1461,6 @@ function App() {
                         <summary className="details-summary">View Detailed Assessment</summary>
                         
                         <div className="details-content">
-                            {/* Profile Summary - only for single profile */}
-                            {/* {candidate.type === 'single' && candidate.profileSummary && (
-                              <div className="profile-summary-section">
-                                <h4>Profile Summary</h4>
-                                <div className="summary-grid">
-                                  <div><strong>Name:</strong> {candidate.profileSummary.full_name}</div>
-                                  <div><strong>Location:</strong> {candidate.profileSummary.location}</div>
-                                  <div><strong>Industry:</strong> {candidate.profileSummary.industry}</div>
-                                  <div><strong>Experience:</strong> {candidate.profileSummary.total_experience_years} years</div>
-                                </div>
-                                
-                                {candidate.profileSummary.current_roles && candidate.profileSummary.current_roles.length > 0 && (
-                                  <div className="current-roles">
-                                    <h5>Current Roles:</h5>
-                                    {candidate.profileSummary.current_roles.map((role, roleIndex) => (
-                                      <div key={roleIndex} className="role">
-                                        {role.title} at {role.company_name}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )} */}
 
                           {/* Assessment Scores */}
                           <div className="assessment-scores">
@@ -1622,13 +1538,6 @@ function App() {
                             </div>
                           )}
 
-                            {/* Detailed Analysis
-                            {candidate.assessment.detailed_analysis && candidate.assessment.detailed_analysis !== 'Unable to assess - LinkedIn profile not found in our database' && (
-                            <div className="detailed-analysis-section">
-                              <h4>Detailed Analysis</h4>
-                                <p>{candidate.assessment.detailed_analysis}</p>
-                            </div>
-                            )} */}
 
                             {/* Profile Not Found Message - only for batch results */}
                             {candidate.type === 'batch' && !candidate.success && (
