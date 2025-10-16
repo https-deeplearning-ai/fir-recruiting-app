@@ -1,181 +1,94 @@
-# LinkedIn Profile AI Assessor
+# LinkedIn Profile Assessor
 
-A full-stack web application that analyzes LinkedIn profiles using AI to provide comprehensive professional assessments. The system fetches LinkedIn profile data via CoreSignal API and uses Claude AI to generate detailed evaluations.
+A full-stack web application that analyzes LinkedIn profiles using AI for comprehensive professional assessments. Features intelligent search, single profile analysis, batch processing, and weighted requirement scoring.
 
 ## Features
 
-- 🔍 **LinkedIn URL Input**: Simply paste a LinkedIn profile URL
-- 🤖 **AI-Powered Assessment**: Uses Claude AI for intelligent profile analysis
-- 📊 **Comprehensive Scoring**: 1-10 scale with detailed breakdown
-- ✅ **Binary Recommendation**: Clear recommend/not recommend decision
-- 🎯 **Custom Criteria**: Specify assessment criteria for targeted evaluation
-- 📱 **Modern UI**: Clean, responsive React frontend
+- 🔎 **Intelligent Search**: Find profiles by user specified filters (e.g. job title, location, industry, etc.)
+- 💯 **Single Profile Assessment**: Analyze individual LinkedIn profiles
+- 📊 **Batch Processing**: Upload CSV files for bulk candidate assessment  
+- 🎯 **Weighted Requirements**: Define custom criteria with importance weights
+- 💾 **Data Persistence**: Save assessments to Supabase database
+- 🤖 **AI-Powered**: Uses Claude AI for intelligent analysis and scoring
 
 ## Tech Stack
 
 ### Backend
-- **Flask**: Python web framework
-- **CoreSignal API**: LinkedIn profile data extraction
+- **Flask** + **Gunicorn**: Python web framework with WSGI server
 - **Anthropic Claude**: AI assessment engine
-- **CORS**: Cross-origin resource sharing
+- **CoreSignal API**: LinkedIn profile data extraction
+- **Supabase**: PostgreSQL database for storing assessments
+- **aiohttp**: Async HTTP requests for batch processing
+- **python-dotenv**: Environment variable management
 
 ### Frontend
-- **React**: Modern JavaScript framework
-- **CSS3**: Responsive styling
+- **React 19**: Modern JavaScript framework
+- **CSS3**: Responsive styling with modern UI
 - **Fetch API**: HTTP requests
 
-## Setup Instructions
+### Deployment
+- **Render**: Cloud hosting platform
+- **Environment-based config**: Separate configs for development/production
+
+## Quick Start
 
 ### Prerequisites
 - Python 3.9+
 - Node.js 16+
 - CoreSignal API key
 - Anthropic API key
+- Supabase account
 
 ### Backend Setup
 
-1. **Navigate to backend directory:**
-   ```bash
-   cd backend
-   ```
-
-2. **Install Python dependencies:**
-   ```bash
-   pip3 install -r requirements.txt
-   ```
-
-3. **Set environment variables:**
-   ```bash
-   export ANTHROPIC_API_KEY="your_anthropic_api_key_here"
-   ```
-
-4. **Start the Flask server:**
-   ```bash
-   python3 app.py
-   ```
-   Server will run on `http://localhost:5001`
+```bash
+cd backend
+pip install -r requirements.txt
+export ANTHROPIC_API_KEY="your_key_here"
+export CORESIGNAL_API_KEY="your_key_here"  
+export SUPABASE_URL="your_supabase_url"
+export SUPABASE_KEY="your_supabase_key"
+python app.py
+```
 
 ### Frontend Setup
 
-1. **Navigate to frontend directory:**
-   ```bash
-   cd frontend
-   ```
-
-2. **Install Node.js dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Start the React development server:**
-   ```bash
-   npm start
-   ```
-   App will run on `http://localhost:3000`
+```bash
+cd frontend
+npm install
+npm start
+```
 
 ## Usage
 
-1. **Open the application** in your browser at `http://localhost:3000`
-2. **Enter a LinkedIn URL** in the format: `https://www.linkedin.com/in/username`
-3. **Add assessment criteria** (optional) to focus the evaluation
-4. **Click "Assess Profile"** to get AI-powered analysis
-5. **Review the results** including score, strengths, weaknesses, and recommendation
+1. **Intelligent Search**: Search profiles by skills/location
+3. **Single Profile**: Enter LinkedIn URL + optional criteria
+3. **Batch Processing**: Upload CSV with candidate URLs
+4. **Weighted Requirements**: Define custom criteria with importance weights
+5. **Save Results**: Store assessments in database for later review
 
-## API Endpoints
+## Key API Endpoints
 
-### `POST /fetch-profile`
-Fetches LinkedIn profile data from CoreSignal API.
-
-**Request:**
-```json
-{
-  "linkedin_url": "https://www.linkedin.com/in/username"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "profile_data": { ... },
-  "employee_id": "123456"
-}
-```
-
-### `POST /assess-profile`
-Generates AI assessment of the profile.
-
-**Request:**
-```json
-{
-  "profile_data": { ... },
-  "user_prompt": "Assessment criteria"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "profile_summary": { ... },
-  "assessment": {
-    "overall_score": 8,
-    "recommend": true,
-    "strengths": [...],
-    "weaknesses": [...],
-    "career_trajectory": "...",
-    "detailed_analysis": "..."
-  }
-}
-```
-
-### `GET /health`
-Health check endpoint.
-
-**Response:**
-```json
-{
-  "status": "healthy"
-}
-```
+- `POST /fetch-profile` - Get LinkedIn profile data
+- `POST /assess-profile` - Generate AI assessment
+- `POST /batch-assess-profiles` - Process multiple candidates
+- `POST /intelligent-search` - Find profiles by criteria
+- `GET /saved-assessments` - Retrieve stored assessments
+- `POST /save-assessments` - Store assessment results
 
 ## Project Structure
 
 ```
 linkedin-assessor/
 ├── backend/
-│   ├── app.py                 # Flask application
+│   ├── app.py                 # Main Flask application
 │   ├── coresignal_service.py  # CoreSignal API integration
-│   ├── requirements.txt       # Python dependencies
-│   └── linkedin_url.py       # Example usage script
+│   ├── config.py             # Environment-specific settings
+│   └── requirements.txt      # Python dependencies
 ├── frontend/
-│   ├── src/
-│   │   ├── App.js            # Main React component
-│   │   ├── App.css           # Styling
-│   │   └── index.js          # React entry point
-│   ├── package.json          # Node.js dependencies
-│   └── public/               # Static assets
-├── .gitignore               # Git ignore rules
-└── README.md               # This file
+│   ├── src/App.js            # React main component
+│   ├── src/App.css           # Styling
+│   └── package.json          # Node.js dependencies
+├── render.yaml               # Render deployment config
+└── requirements.txt          # Root dependencies
 ```
-
-## Configuration
-
-### CoreSignal API
-The CoreSignal API key is hardcoded in `coresignal_service.py`. For production, move this to environment variables.
-
-### Anthropic API
-Set your Anthropic API key as an environment variable:
-```bash
-export ANTHROPIC_API_KEY="your_key_here"
-```
-
-## Scoring System
-
-The AI assessment uses a rigorous 1-10 scoring system:
-
-- **9-10**: Exceptional fit - meets all key requirements
-- **7-8**: Good fit - minor gaps but strong potential
-- **5-6**: Moderate fit - some significant gaps but potential
-- **3-4**: Poor fit - major gaps, better suited for different roles
-- **1-2**: Not recommended - fundamental mismatches
