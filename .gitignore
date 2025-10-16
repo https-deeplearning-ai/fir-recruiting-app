@@ -41,5 +41,5 @@ test.csv
 *.csv
 !requirements.txt
 
-# Frontend build (uncomment if you want to rebuild on Heroku)
+# Frontend build (uncomment if you want to rebuild on Render)
 # frontend/build/
