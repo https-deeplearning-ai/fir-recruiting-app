@@ -43,3 +43,5 @@ test.csv
 
 # Frontend build (uncomment if you want to rebuild on Heroku)
 # frontend/build/
+backend/static/*
+.cursor/rules/byterover-rules.mdc

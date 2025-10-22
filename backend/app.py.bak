@@ -160,16 +160,10 @@ def load_from_supabase_api(limit):
 # STORAGE FUNCTIONS - SAVE API CREDITS!
 # ============================================
 
-def get_stored_profile(linkedin_url):
+def get_stored_profile(linkedin_url, freshness_days=3):
     """
-    Check if profile is stored in database and determine if we should use it
-
-    Smart Freshness Logic:
-    - If < 3 days old: Use stored data (SAVE 1 Collect credit!)
-    - If 3-90 days old: Use stored data BUT mark for background refresh
-    - If > 90 days (3 months) old: FORCE fresh pull from CoreSignal
-
-    Returns: dict with profile_data and metadata, or None if needs fresh pull
+    Check if profile is stored and fresh (< freshness_days old)
+    Returns cached data if fresh, None if needs refresh
     """
     try:
         headers = {
@@ -188,31 +182,22 @@ def get_stored_profile(linkedin_url):
         if response.status_code == 200:
             results = response.json()
             if results and len(results) > 0:
-                stored = results[0]
-                # Calculate age
+                cached = results[0]
+                # Check freshness
                 from datetime import datetime, timedelta
-                last_fetched = datetime.fromisoformat(stored['last_fetched'].replace('Z', '+00:00'))
+                last_fetched = datetime.fromisoformat(cached['last_fetched'].replace('Z', '+00:00'))
                 age = datetime.now(last_fetched.tzinfo) - last_fetched
-                age_days = age.days
 
-                # FORCE fresh pull if > 90 days (3 months)
-                if age_days >= 90:
-                    print(f"⚠️ Stored profile is {age_days} days old (>90 days) - FORCING fresh pull")
+                if age.days < freshness_days:
+                    print(f"✅ Using stored profile (age: {age.days} days) - SAVED 1 Collect credit!")
+                    return {
+                        'profile_data': cached['profile_data'],
+                        'checked_at': cached.get('checked_at'),
+                        'cache_age_days': age.days
+                    }
+                else:
+                    print(f"⏰ Stored profile too old ({age.days} days) - fetching fresh data")
                     return None
-
-                # Use stored data if < 90 days
-                print(f"✅ Using stored profile (age: {age_days} days) - SAVED 1 Collect credit!")
-
-                # Note if it's getting stale (3-90 days)
-                if age_days >= 3:
-                    print(f"   ℹ️  Note: Profile is {age_days} days old, consider refreshing soon")
-
-                return {
-                    'profile_data': stored['profile_data'],
-                    'checked_at': stored.get('checked_at'),
-                    'storage_age_days': age_days,
-                    'is_stale': age_days >= 3
-                }
         return None
     except Exception as e:
         print(f"⚠️ Error checking profile storage: {str(e)}")
@@ -310,7 +295,7 @@ def save_stored_company(company_id, company_data):
             print(f"⚠️ Failed to save company to cache: {response.status_code}")
             return False
     except Exception as e:
-        print(f"⚠️ Error saving company to storage: {str(e)}")
+        print(f"⚠️ Error saving company to cache: {str(e)}")
         return False
 
 def process_user_prompt_for_search(user_prompt: str) -> dict:
@@ -955,7 +940,6 @@ def fetch_profile():
 
         linkedin_url = data.get('linkedin_url')
         enrich_companies = data.get('enrich_companies', True)  # Default to True for detailed company data
-        force_refresh = data.get('force_refresh', False)  # NEW: Allow forcing fresh data pull
 
         if not linkedin_url:
             return jsonify({'error': 'LinkedIn URL is required'}), 400
@@ -964,57 +948,24 @@ def fetch_profile():
         if not linkedin_url.startswith('https://www.linkedin.com/in/'):
             return jsonify({'error': 'Invalid LinkedIn URL format. Please use: https://www.linkedin.com/in/username'}), 400
 
-        # ============================================
-        # CHECK STORAGE FIRST - SAVE API CREDITS!
-        # ============================================
-        # Skip storage check if user requests force refresh
-        if force_refresh:
-            print("🔄 FORCE REFRESH requested - bypassing storage and fetching fresh data...")
-            stored_result = None
-        else:
-            print("🔍 Checking if profile is stored in database...")
-            stored_result = get_stored_profile(linkedin_url)
+        # Fetch profile from CoreSignal
+        print("📦 Fetching profile from CoreSignal...")
+        result = coresignal_service.fetch_linkedin_profile(linkedin_url)
 
-        if stored_result:
-            # Found stored profile! Use it and save 1 Collect credit
-            print(f"✅ Using stored profile (saves 1 Collect credit!)")
-            profile_data = stored_result['profile_data']
-            storage_age_days = stored_result.get('storage_age_days', 0)
-            checked_at = stored_result.get('checked_at')
-        else:
-            # Not in storage or too old (>90 days) - fetch fresh from CoreSignal
-            print("📦 Fetching fresh profile from CoreSignal...")
-            result = coresignal_service.fetch_linkedin_profile(linkedin_url)
+        if not result['success']:
+            error_response = {'error': result['error']}
+            if 'debug_info' in result:
+                error_response['debug_info'] = result['debug_info']
+            return jsonify(error_response), 400
 
-            if not result['success']:
-                error_response = {'error': result['error']}
-                if 'debug_info' in result:
-                    error_response['debug_info'] = result['debug_info']
-                return jsonify(error_response), 400
-
-            profile_data = result['profile_data']
-            checked_at = profile_data.get('checked_at')
-            storage_age_days = 0  # Fresh from API
-
-            # Save to storage for next time
-            print("💾 Saving profile to storage for future use...")
-            save_stored_profile(linkedin_url, profile_data, checked_at)
+        profile_data = result['profile_data']
 
         # OPTIONAL: Enrich with detailed company data
         enrichment_summary = None
         if enrich_companies:
             print("🏢 Enriching profile with detailed company data...")
             # Changed min_year to 2015 to show tooltips for more companies
-            # Pass storage functions to save API credits on company enrichment
-            storage_functions = {
-                'get': get_stored_company,
-                'save': save_stored_company
-            }
-            enrichment_result = coresignal_service.enrich_profile_with_company_data(
-                profile_data,
-                min_year=2015,
-                storage_functions=storage_functions
-            )
+            enrichment_result = coresignal_service.enrich_profile_with_company_data(profile_data, min_year=2015)
             profile_data = enrichment_result['profile_data']
             enrichment_summary = enrichment_result['enrichment_summary']
             print(f"✅ Company enrichment complete: {enrichment_summary['companies_enriched']} companies enriched, {enrichment_summary['api_calls_made']} API calls made")
@@ -1621,93 +1572,6 @@ def search_profiles_endpoint():
         
     except Exception as e:
         print(f"❌ Search error: {str(e)}")
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
-
-@app.route('/save-feedback', methods=['POST'])
-def save_feedback():
-    """
-    Save recruiter feedback (like/dislike/note) for a candidate
-    Supports auto-save with debouncing on frontend
-    """
-    try:
-        data = request.get_json()
-
-        linkedin_url = data.get('linkedin_url')
-        feedback_type = data.get('feedback_type')  # 'like', 'dislike', 'note'
-        feedback_text = data.get('feedback_text', '')  # Optional for like/dislike
-        recruiter_name = data.get('recruiter_name', 'Unknown')
-
-        if not linkedin_url or not feedback_type:
-            return jsonify({'error': 'linkedin_url and feedback_type are required'}), 400
-
-        if feedback_type not in ['like', 'dislike', 'note']:
-            return jsonify({'error': 'feedback_type must be like, dislike, or note'}), 400
-
-        headers = {
-            'apikey': SUPABASE_KEY,
-            'Authorization': f'Bearer {SUPABASE_KEY}',
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-        }
-
-        payload = {
-            'candidate_linkedin_url': linkedin_url,
-            'feedback_type': feedback_type,
-            'feedback_text': feedback_text,
-            'recruiter_name': recruiter_name
-        }
-
-        url = f"{SUPABASE_URL}/rest/v1/recruiter_feedback"
-        response = requests.post(url, json=payload, headers=headers)
-
-        if response.status_code in [200, 201]:
-            print(f"✅ Saved {feedback_type} feedback from {recruiter_name} for {linkedin_url}")
-            return jsonify({
-                'success': True,
-                'message': 'Feedback saved successfully',
-                'feedback': response.json()[0] if response.json() else payload
-            })
-        else:
-            print(f"❌ Failed to save feedback: {response.status_code} - {response.text}")
-            return jsonify({'error': 'Failed to save feedback', 'details': response.text}), response.status_code
-
-    except Exception as e:
-        print(f"❌ Error saving feedback: {str(e)}")
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
-
-@app.route('/get-feedback/<path:linkedin_url>', methods=['GET'])
-def get_feedback(linkedin_url):
-    """
-    Get all feedback for a specific candidate
-    Returns array of feedback sorted by created_at DESC
-    """
-    try:
-        import urllib.parse
-        encoded_url = urllib.parse.quote(linkedin_url, safe='')
-
-        headers = {
-            'apikey': SUPABASE_KEY,
-            'Authorization': f'Bearer {SUPABASE_KEY}',
-            'Content-Type': 'application/json'
-        }
-
-        # Get all feedback for this candidate, sorted by newest first
-        url = f"{SUPABASE_URL}/rest/v1/recruiter_feedback?candidate_linkedin_url=eq.{encoded_url}&order=created_at.desc"
-        response = requests.get(url, headers=headers)
-
-        if response.status_code == 200:
-            feedback_list = response.json()
-            print(f"✅ Retrieved {len(feedback_list)} feedback items for {linkedin_url}")
-            return jsonify({
-                'success': True,
-                'feedback': feedback_list
-            })
-        else:
-            print(f"❌ Failed to get feedback: {response.status_code}")
-            return jsonify({'error': 'Failed to retrieve feedback'}), response.status_code
-
-    except Exception as e:
-        print(f"❌ Error getting feedback: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/health', methods=['GET'])

@@ -1,5 +1,7 @@
 // App.js
 import React, { useState } from 'react';
+import JsonView from '@uiw/react-json-view';
+import WorkExperienceSection from './components/WorkExperienceSection';
 import './App.css';
 
 function App() {
@@ -27,6 +29,16 @@ function App() {
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Processing...');
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+  const [useRealtimeData, setUseRealtimeData] = useState(false); // Toggle for fresh data
+  const [enrichCompanies, setEnrichCompanies] = useState(true); // Toggle for company enrichment (default: enabled)
+  const [forceRefresh, setForceRefresh] = useState(false); // Toggle for forcing fresh data pull (bypasses storage)
+  const [rawCoreSignalData, setRawCoreSignalData] = useState(null); // Store raw CoreSignal JSON
+  const [showRawJSON, setShowRawJSON] = useState(false); // Toggle to show/hide raw JSON
+  const [enrichmentSummary, setEnrichmentSummary] = useState(null); // Store company enrichment summary
+
+  // Recruiter feedback state
+  const [selectedRecruiter, setSelectedRecruiter] = useState('Jon'); // Default recruiter
+  const [candidateFeedback, setCandidateFeedback] = useState({}); // Store feedback per candidate URL
 
   // Notification function
   const showNotification = (message, type = 'success') => {
@@ -34,6 +46,121 @@ function App() {
     setTimeout(() => {
       setNotification({ show: false, message: '', type: '' });
     }, 3000);
+  };
+
+  // Format CoreSignal freshness badge
+  const formatFreshnessBadge = (checked_at) => {
+    if (!checked_at) return null;
+
+    try {
+      const checkedDate = new Date(checked_at.replace(' ', 'T'));
+      const now = new Date();
+      const diffMs = now - checkedDate;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      let badgeColor, badgeText, badgeEmoji;
+
+      if (diffDays === 0) {
+        badgeColor = '#10b981'; // Green
+        badgeText = 'Today';
+        badgeEmoji = '🟢';
+      } else if (diffDays === 1) {
+        badgeColor = '#10b981'; // Green
+        badgeText = 'Yesterday';
+        badgeEmoji = '🟢';
+      } else if (diffDays < 7) {
+        badgeColor = '#10b981'; // Green
+        badgeText = `${diffDays}d ago`;
+        badgeEmoji = '🟢';
+      } else if (diffDays < 30) {
+        badgeColor = '#f59e0b'; // Orange
+        badgeText = `${Math.floor(diffDays / 7)}w ago`;
+        badgeEmoji = '🟡';
+      } else if (diffDays < 90) {
+        badgeColor = '#f59e0b'; // Orange
+        badgeText = `${Math.floor(diffDays / 30)}mo ago`;
+        badgeEmoji = '🟡';
+      } else {
+        badgeColor = '#ef4444'; // Red
+        badgeText = `${Math.floor(diffDays / 30)}mo ago`;
+        badgeEmoji = '🔴';
+      }
+
+      return { badgeColor, badgeText, badgeEmoji, diffDays };
+    } catch (error) {
+      return null;
+    }
+  };
+
+  // Save recruiter feedback with debounce
+  const saveFeedback = async (linkedinUrl, feedbackType, feedbackText = '') => {
+    try {
+      const response = await fetch('/save-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          linkedin_url: linkedinUrl,
+          feedback_type: feedbackType,
+          feedback_text: feedbackText,
+          recruiter_name: selectedRecruiter
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        console.log(`✅ Saved ${feedbackType} from ${selectedRecruiter}`);
+        return true;
+      } else {
+        console.error('Failed to save feedback:', data.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+      return false;
+    }
+  };
+
+  // Debounced note saver (1 second delay)
+  const debouncedSaveNote = React.useCallback(
+    (() => {
+      let timeout;
+      return (linkedinUrl, noteText) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          saveFeedback(linkedinUrl, 'note', noteText);
+        }, 1000);
+      };
+    })(),
+    [selectedRecruiter]
+  );
+
+  // Handle like/dislike button clicks
+  const handleFeedbackClick = async (linkedinUrl, feedbackType) => {
+    await saveFeedback(linkedinUrl, feedbackType);
+
+    // Update local state to show which button was clicked
+    setCandidateFeedback(prev => ({
+      ...prev,
+      [linkedinUrl]: {
+        ...prev[linkedinUrl],
+        [feedbackType]: true
+      }
+    }));
+  };
+
+  // Handle note text change (with debounced auto-save)
+  const handleNoteChange = (linkedinUrl, noteText) => {
+    // Update local state immediately
+    setCandidateFeedback(prev => ({
+      ...prev,
+      [linkedinUrl]: {
+        ...prev[linkedinUrl],
+        note: noteText
+      }
+    }));
+
+    // Debounced save to backend
+    debouncedSaveNote(linkedinUrl, noteText);
   };
 
   // Dummy profile data for testing
@@ -405,7 +532,10 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          linkedin_url: cleanedUrl
+          linkedin_url: cleanedUrl,
+          use_realtime: useRealtimeData,
+          enrich_companies: enrichCompanies,
+          force_refresh: forceRefresh
         }),
       });
 
@@ -423,6 +553,16 @@ function App() {
       }
 
       console.log('Profile data fetched successfully');
+
+      // Store raw CoreSignal JSON for inspection
+      setRawCoreSignalData(fetchData);
+
+      // Store enrichment summary if available
+      if (fetchData.enrichment_summary) {
+        setEnrichmentSummary(fetchData.enrichment_summary);
+        console.log('Company enrichment summary:', fetchData.enrichment_summary);
+      }
+
       setFetchingProfile(false);
 
       // Step 2: Assess the profile
@@ -448,11 +588,12 @@ function App() {
           type: 'single',
           name: assessData.profile_summary?.full_name || 'Single Profile Assessment',
           headline: assessData.profile_summary?.headline || 'N/A',
-          score: assessData.assessment?.weighted_analysis?.weighted_score !== undefined 
+          score: assessData.assessment?.weighted_analysis?.weighted_score !== undefined
             ? (typeof assessData.assessment.weighted_analysis.weighted_score === 'number' ? assessData.assessment.weighted_analysis.weighted_score : 0)
             : (typeof assessData.assessment?.overall_score === 'number' ? assessData.assessment.overall_score : 0),
           assessment: assessData.assessment,
           profileSummary: assessData.profile_summary,
+          checked_at: assessData.profile_summary?.checked_at, // CoreSignal last scrape date
           success: true,
           url: cleanedUrl,
           timestamp: new Date().toISOString()
@@ -969,12 +1110,35 @@ function App() {
   return (
     <div className="App">
       <div className="container">
-        <h1>LinkedIn Profile AI Assessor</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <h1 style={{ margin: 0 }}>LinkedIn Profile AI Assessor</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: '600', color: '#4a5568' }}>Recruiter:</label>
+            <select
+              value={selectedRecruiter}
+              onChange={(e) => setSelectedRecruiter(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                border: '2px solid #0073b1',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#0073b1',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              <option value="Jon">Jon</option>
+              <option value="Mary">Mary</option>
+            </select>
+          </div>
+        </div>
         <p className="description">
-          {searchMode 
-            ? 'Search for LinkedIn profiles using natural language and download results as CSV' 
-            : batchMode 
-            ? 'Upload a CSV file with LinkedIn URLs for batch assessment' 
+          {searchMode
+            ? 'Search for LinkedIn profiles using natural language and download results as CSV'
+            : batchMode
+            ? 'Upload a CSV file with LinkedIn URLs for batch assessment'
             : 'Enter a LinkedIn profile URL and get an AI-powered assessment'}
         </p>
 
@@ -1162,16 +1326,130 @@ function App() {
             </div>
           </div>
 
+          {/* Company Enrichment Toggle */}
+          <div className="form-group checkbox-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={enrichCompanies}
+                onChange={(e) => setEnrichCompanies(e.target.checked)}
+                className="enrichment-checkbox"
+              />
+              <span className="checkbox-text">
+                <strong>🏢 Enable Deep Dive Company Research</strong>
+                <span className="checkbox-description">
+                  Fetch detailed company data (funding, stage, growth signals) for each experience.
+                  {enrichCompanies && <span className="cost-note"> +{enrichCompanies ? '~5-10 credits per profile' : ''}</span>}
+                </span>
+              </span>
+            </label>
+          </div>
+
+          {/* Force Refresh Toggle */}
+          <div className="form-group checkbox-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={forceRefresh}
+                onChange={(e) => setForceRefresh(e.target.checked)}
+                className="enrichment-checkbox"
+              />
+              <span className="checkbox-text">
+                <strong>🔄 Force Refresh Data</strong>
+                <span className="checkbox-description">
+                  Bypass stored data and fetch fresh profile from CoreSignal (uses 1 credit even if stored).
+                  {forceRefresh && <span className="cost-note"> ⚠️ Will use API credits</span>}
+                </span>
+              </span>
+            </label>
+          </div>
+
           <div className="button-group">
-            <button 
-              type="submit" 
-              className="submit-btn" 
+            <button
+              type="submit"
+              className="submit-btn"
               disabled={loading || !linkedinUrl.trim()}
             >
               {fetchingProfile ? 'Fetching Profile...' : loading ? 'Analyzing Profile...' : 'Assess Profile'}
             </button>
-            
+
+            {rawCoreSignalData && (
+              <button
+                type="button"
+                onClick={() => setShowRawJSON(!showRawJSON)}
+                className="secondary-btn"
+              >
+                {showRawJSON ? 'Hide Raw JSON' : 'View Raw CoreSignal JSON'}
+              </button>
+            )}
           </div>
+
+          {/* Company Enrichment Summary */}
+          {enrichmentSummary && (
+            <div className="enrichment-summary">
+              <h4>🏢 Company Intelligence Summary</h4>
+              <div className="enrichment-stats">
+                <div className="enrichment-stat">
+                  <strong>Total Companies:</strong>
+                  <span className="enrichment-stat-value">{enrichmentSummary.total_experiences}</span>
+                </div>
+                <div className="enrichment-stat">
+                  <strong>Enriched:</strong>
+                  <span className="enrichment-stat-value">{enrichmentSummary.companies_enriched}</span>
+                </div>
+                <div className="enrichment-stat">
+                  <strong>API Calls:</strong>
+                  <span className="enrichment-stat-value">{enrichmentSummary.api_calls_made}</span>
+                </div>
+                <div className="enrichment-stat">
+                  <strong>From Cache:</strong>
+                  <span className="enrichment-stat-value">{enrichmentSummary.companies_cached}</span>
+                </div>
+                {enrichmentSummary.companies_failed > 0 && (
+                  <div className="enrichment-stat">
+                    <strong>Failed:</strong>
+                    <span className="enrichment-stat-value" style={{color: '#d32f2f'}}>{enrichmentSummary.companies_failed}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Raw JSON Display */}
+          {showRawJSON && rawCoreSignalData && (
+            <div style={{
+              marginTop: '20px',
+              padding: '20px',
+              backgroundColor: '#fff',
+              borderRadius: '8px',
+              border: '2px solid #4a90e2',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}>
+              <h3 style={{
+                marginTop: 0,
+                marginBottom: '15px',
+                color: '#2c3e50',
+                fontSize: '18px',
+                fontWeight: '600'
+              }}>
+                CoreSignal API Response
+              </h3>
+              <JsonView
+                value={rawCoreSignalData}
+                collapsed={1}
+                displayDataTypes={false}
+                style={{
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '6px',
+                  padding: '15px',
+                  fontSize: '13px',
+                  fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                  maxHeight: '600px',
+                  overflow: 'auto'
+                }}
+              />
+            </div>
+          )}
         </form>
         ) : (
           <div className="batch-form">
@@ -1327,6 +1605,7 @@ function App() {
               score: batchScore,
               assessment: result.assessment,
               profileSummary: null,
+              checked_at: result.profile_data?.profile_data?.checked_at,
               success: result.success,
               url: result.url,
               originalIndex: index
@@ -1347,6 +1626,7 @@ function App() {
               score: savedScore,
               assessment: result.assessment_data,
               profileSummary: result.profile_data,
+              checked_at: result.profile_data?.checked_at,
               success: true,
               url: result.linkedin_url,
               created_at: result.created_at,
@@ -1425,8 +1705,101 @@ function App() {
                       </div>
                       <div className="candidate-meta">
                           <span className="candidate-headline">{candidate.headline}</span>
+                          {candidate.checked_at && (() => {
+                            const freshness = formatFreshnessBadge(candidate.checked_at);
+                            return freshness ? (
+                              <span
+                                className="freshness-badge"
+                                style={{
+                                  background: `${freshness.badgeColor}22`,
+                                  color: freshness.badgeColor,
+                                  border: `1px solid ${freshness.badgeColor}`,
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  fontSize: '11px',
+                                  fontWeight: '600',
+                                  marginLeft: '8px',
+                                  display: 'inline-block'
+                                }}
+                                title={`CoreSignal last scraped this profile ${freshness.diffDays} days ago`}
+                              >
+                                {freshness.badgeEmoji} {freshness.badgeText}
+                              </span>
+                            ) : null;
+                          })()}
                       </div>
                     </div>
+
+                    {/* Recruiter Feedback Section */}
+                    {candidate.url && candidate.url !== 'Test Profile' && (
+                      <div style={{
+                        borderTop: '1px solid #e2e8f0',
+                        padding: '15px 20px',
+                        backgroundColor: '#f8fafc',
+                        display: 'flex',
+                        gap: '15px',
+                        alignItems: 'flex-start'
+                      }}>
+                        {/* Like/Dislike Buttons */}
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => handleFeedbackClick(candidate.url, 'like')}
+                            style={{
+                              padding: '8px 16px',
+                              border: candidateFeedback[candidate.url]?.like ? '2px solid #10b981' : '2px solid #cbd5e1',
+                              borderRadius: '6px',
+                              backgroundColor: candidateFeedback[candidate.url]?.like ? '#d1fae5' : 'white',
+                              color: candidateFeedback[candidate.url]?.like ? '#059669' : '#64748b',
+                              cursor: 'pointer',
+                              fontWeight: '600',
+                              fontSize: '14px',
+                              transition: 'all 0.2s'
+                            }}
+                            title="Like this candidate"
+                          >
+                            👍 Like
+                          </button>
+                          <button
+                            onClick={() => handleFeedbackClick(candidate.url, 'dislike')}
+                            style={{
+                              padding: '8px 16px',
+                              border: candidateFeedback[candidate.url]?.dislike ? '2px solid #ef4444' : '2px solid #cbd5e1',
+                              borderRadius: '6px',
+                              backgroundColor: candidateFeedback[candidate.url]?.dislike ? '#fee2e2' : 'white',
+                              color: candidateFeedback[candidate.url]?.dislike ? '#dc2626' : '#64748b',
+                              cursor: 'pointer',
+                              fontWeight: '600',
+                              fontSize: '14px',
+                              transition: 'all 0.2s'
+                            }}
+                            title="Pass on this candidate"
+                          >
+                            👎 Pass
+                          </button>
+                        </div>
+
+                        {/* Notes Textarea */}
+                        <textarea
+                          value={candidateFeedback[candidate.url]?.note || ''}
+                          onChange={(e) => handleNoteChange(candidate.url, e.target.value)}
+                          placeholder={`Add ${selectedRecruiter}'s notes about this candidate... (auto-saves)`}
+                          style={{
+                            flex: 1,
+                            padding: '8px 12px',
+                            border: '2px solid #cbd5e1',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            fontFamily: 'inherit',
+                            resize: 'vertical',
+                            minHeight: '42px',
+                            outline: 'none'
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = '#0073b1'}
+                          onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                        />
+                      </div>
+                    )}
+
                     <div className="candidate-score">
                         {candidate.assessment && (
                         <div className="final-score">
@@ -1538,6 +1911,11 @@ function App() {
                             </div>
                           )}
 
+                          {/* Work Experience with Company Intelligence */}
+                          <WorkExperienceSection
+                            profileData={candidate.profileSummary || (candidate.type === 'batch' ? candidate.profile_data?.profile_data : null)}
+                            profileSummary={candidate.profileSummary}
+                          />
 
                             {/* Profile Not Found Message - only for batch results */}
                             {candidate.type === 'batch' && !candidate.success && (

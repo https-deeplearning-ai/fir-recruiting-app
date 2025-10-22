@@ -128,6 +128,26 @@ textarea:focus, input[type="text"]:focus {
   cursor: not-allowed;
 }
 
+.secondary-btn {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+  padding: 15px 30px;
+  border-radius: 8px;
+  font-size: 1.1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-left: 15px;
+}
+
+.secondary-btn:hover {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
 
 .error {
   background: #f8d7da;
@@ -1552,4 +1572,146 @@ textarea:focus, input[type="text"]:focus {
     align-items: flex-start;
     gap: 5px;
   }
+}
+
+/* Company Enrichment Checkbox Styling */
+.checkbox-group {
+  margin: 25px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+  border-radius: 10px;
+  border: 2px solid #e1e8ed;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  cursor: pointer;
+  user-select: none;
+  gap: 12px;
+}
+
+.enrichment-checkbox {
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #667eea;
+  flex-shrink: 0;
+}
+
+.checkbox-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.checkbox-text strong {
+  color: #2c3e50;
+  font-size: 1.05em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-description {
+  font-size: 0.9em;
+  color: #5a6c7d;
+  line-height: 1.5;
+  display: block;
+}
+
+.cost-note {
+  color: #667eea;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.enrichment-checkbox:checked + .checkbox-text strong {
+  color: #667eea;
+}
+
+.checkbox-label:hover .checkbox-text strong {
+  color: #667eea;
+}
+
+/* Enrichment Summary Display */
+.enrichment-summary {
+  margin: 20px 0;
+  padding: 15px 20px;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border-radius: 8px;
+  border-left: 4px solid #4caf50;
+}
+
+.enrichment-summary h4 {
+  margin: 0 0 10px 0;
+  color: #2e7d32;
+  font-size: 1em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.enrichment-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  font-size: 0.9em;
+  color: #1b5e20;
+}
+
+.enrichment-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+}
+
+.enrichment-stat strong {
+  font-weight: 600;
+}
+
+.enrichment-stat-value {
+  font-weight: 700;
+  color: #2e7d32;
+}
+
+/* ========================================
+   HIDE AI EVALUATION SECTIONS
+   (Components still exist, just hidden from view)
+   ======================================== */
+
+/* Hide strengths/weaknesses/trajectory sections */
+.strengths-section,
+.weaknesses-section,
+.career-trajectory-section {
+  display: none !important;
+}
+
+/* Hide all score displays */
+.score-container,
+.weighted-score,
+.score-bar,
+.score-fill,
+.score-text {
+  display: none !important;
+}
+
+/* Hide assessment criteria input fields */
+#userPrompt,
+#batchUserPrompt {
+  display: none !important;
+}
+
+/* Hide parent form groups of hidden textareas */
+form .form-group:has(#userPrompt),
+form .form-group:has(#batchUserPrompt) {
+  display: none !important;
+}
+
+/* Hide weighted requirements section */
+.weighted-requirements,
+.form-group:has(.weighted-requirements) {
+  display: none !important;
 }

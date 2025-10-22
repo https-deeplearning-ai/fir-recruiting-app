@@ -1,0 +1,323 @@
+/* Company Tooltip Styles */
+
+.company-tooltip {
+  position: relative;
+  z-index: 1000;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e0e0e0;
+  padding: 20px;
+  min-width: 320px;
+  max-width: 420px;
+  /* Removed width: 100% - was causing modal to be too wide */
+  animation: tooltipFadeIn 0.2s ease-in;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tooltip-header {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.tooltip-company-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  display: block;
+}
+
+.tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.tooltip-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.tooltip-label {
+  font-weight: 500;
+  color: #555;
+  min-width: 100px;
+}
+
+.tooltip-value {
+  color: #2c3e50;
+  font-weight: 400;
+  flex: 1;
+}
+
+.funding-row .tooltip-value {
+  font-weight: 600;
+}
+
+.funding-stage {
+  text-transform: capitalize;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  display: inline-block;
+}
+
+/* Growth Signals */
+.signals-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.growth-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.signal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.signal-badge:nth-child(1) {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.signal-badge:nth-child(2) {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.signal-badge:nth-child(3) {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.signal-badge:nth-child(4) {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+.signal-badge:nth-child(5) {
+  background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+}
+
+.tooltip-no-data {
+  text-align: center;
+  padding: 16px;
+  color: #999;
+  font-style: italic;
+}
+
+.tooltip-no-data p {
+  margin: 0;
+  font-size: 13px;
+}
+
+/* Company Links Section - Pill Buttons */
+.links-row {
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: 1px solid #f0f0f0;
+  flex-direction: column;
+  align-items: flex-start !important;
+  gap: 4px;
+}
+
+.company-links-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+/* Base pill button style */
+.link-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 1.5px solid;
+  white-space: nowrap;
+}
+
+.pill-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.pill-text {
+  line-height: 1;
+}
+
+/* Crunchbase pill - Orange */
+.crunchbase-pill {
+  background: #fff5f0;
+  color: #FF6B00;
+  border-color: #FF6B00;
+}
+
+.crunchbase-pill:hover {
+  background: #FF6B00;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 107, 0, 0.25);
+}
+
+/* Funding Round pill - Purple */
+.funding-pill {
+  background: #f8f0ff;
+  color: #9C27B0;
+  border-color: #9C27B0;
+}
+
+.funding-pill:hover {
+  background: #9C27B0;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(156, 39, 176, 0.25);
+}
+
+/* LinkedIn pill - Blue */
+.linkedin-pill {
+  background: #f0f7ff;
+  color: #0077b5;
+  border-color: #0077b5;
+}
+
+.linkedin-pill:hover {
+  background: #0077b5;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 119, 181, 0.25);
+}
+
+/* Website pill - Green */
+.website-pill {
+  background: #f0fff4;
+  color: #10b981;
+  border-color: #10b981;
+}
+
+.website-pill:hover {
+  background: #10b981;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+/* Company Description Section */
+.company-description-section {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.description-header {
+  margin-bottom: 8px;
+}
+
+.description-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.description-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #555;
+  margin-top: 8px;
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.description-text.collapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.description-text.expanded {
+  display: block;
+}
+
+.show-more-btn {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s ease;
+}
+
+.show-more-btn:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .company-tooltip {
+    min-width: 250px;
+    max-width: 90vw;
+    font-size: 13px;
+  }
+
+  .tooltip-row {
+    font-size: 13px;
+  }
+
+  .tooltip-label {
+    min-width: 80px;
+  }
+}
