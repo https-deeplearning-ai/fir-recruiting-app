@@ -37,8 +37,45 @@ function App() {
   const [enrichmentSummary, setEnrichmentSummary] = useState(null); // Store company enrichment summary
 
   // Recruiter feedback state
-  const [selectedRecruiter, setSelectedRecruiter] = useState('Jon'); // Default recruiter
+  const [selectedRecruiter, setSelectedRecruiter] = useState(() => {
+    // Load recruiter name from localStorage on initial load
+    return localStorage.getItem('recruiterName') || '';
+  });
   const [candidateFeedback, setCandidateFeedback] = useState({}); // Store feedback per candidate URL
+  const [feedbackHistory, setFeedbackHistory] = useState({}); // Store all feedback history from DB
+  const [isRecording, setIsRecording] = useState({}); // Track which candidate is being recorded
+  const [showFeedbackInput, setShowFeedbackInput] = useState({}); // Track if input is visible per candidate
+  const [hideAIAnalysis, setHideAIAnalysis] = useState({}); // Track if AI analysis sections are hidden per candidate
+  const [drawerOpen, setDrawerOpen] = useState({}); // Track which candidate's feedback drawer is open
+  const [activeCandidate, setActiveCandidate] = useState(null); // Track currently active candidate feedback
+  const [openAccordionId, setOpenAccordionId] = useState(null); // Track which candidate's accordion is currently open (auto-collapse)
+  const [candidateVisibility, setCandidateVisibility] = useState({}); // Track viewport visibility percentage for each candidate
+  const [aiAnalysisLoading, setAiAnalysisLoading] = useState({}); // Track AI analysis loading state per candidate
+  const [autoGenerateAI, setAutoGenerateAI] = useState(false); // Toggle for automatic AI analysis after profile fetch
+
+  // Save recruiter name to localStorage whenever it changes
+  React.useEffect(() => {
+    if (selectedRecruiter) {
+      localStorage.setItem('recruiterName', selectedRecruiter);
+    }
+  }, [selectedRecruiter]);
+
+  // Pre-made feedback reasons
+  const likeReasons = [
+    "✨ Relevant work experience",
+    "📈 Strong growth trajectory",
+    "🎯 Perfect skill match",
+    "🏢 Top-tier companies",
+    "🚀 Leadership potential"
+  ];
+
+  const passReasons = [
+    "❌ Not a good fit for role",
+    "🏢 Companies don't match",
+    "📊 Lack of relevant experience",
+    "🎯 Skills mismatch",
+    "⏰ Other timing/reasons"
+  ];
 
   // Notification function
   const showNotification = (message, type = 'success') => {
@@ -47,6 +84,50 @@ function App() {
       setNotification({ show: false, message: '', type: '' });
     }, 3000);
   };
+
+  // Get the most visible candidate in viewport
+  const getMostVisibleCandidate = () => {
+    let maxVisibility = 0;
+    let mostVisibleUrl = null;
+
+    Object.entries(candidateVisibility).forEach(([url, visibilityRatio]) => {
+      if (visibilityRatio > maxVisibility) {
+        maxVisibility = visibilityRatio;
+        mostVisibleUrl = url;
+      }
+    });
+
+    return mostVisibleUrl;
+  };
+
+  // Set up Intersection Observer to track candidate visibility
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const candidateUrl = entry.target.getAttribute('data-candidate-url');
+          if (candidateUrl) {
+            setCandidateVisibility(prev => ({
+              ...prev,
+              [candidateUrl]: entry.intersectionRatio
+            }));
+          }
+        });
+      },
+      {
+        threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+        rootMargin: '-50px 0px -50px 0px' // Give some margin from top/bottom
+      }
+    );
+
+    // Observe all candidate cards
+    const candidateCards = document.querySelectorAll('.candidate-card[data-candidate-url]');
+    candidateCards.forEach(card => observer.observe(card));
+
+    return () => {
+      candidateCards.forEach(card => observer.unobserve(card));
+    };
+  }, [singleProfileResults, batchResults, savedAssessments]); // Re-run when candidates change
 
   // Format CoreSignal freshness badge
   const formatFreshnessBadge = (checked_at) => {
@@ -120,7 +201,7 @@ function App() {
     }
   };
 
-  // Debounced note saver (1 second delay)
+  // Debounced note saver (2 second delay)
   const debouncedSaveNote = React.useCallback(
     (() => {
       let timeout;
@@ -128,7 +209,8 @@ function App() {
         clearTimeout(timeout);
         timeout = setTimeout(() => {
           saveFeedback(linkedinUrl, 'note', noteText);
-        }, 1000);
+          showNotification('Feedback auto-saved');
+        }, 2000);
       };
     })(),
     [selectedRecruiter]
@@ -159,8 +241,212 @@ function App() {
       }
     }));
 
-    // Debounced save to backend
+    // Debounced save to backend (2 seconds after typing stops)
     debouncedSaveNote(linkedinUrl, noteText);
+  };
+
+  // Handle note blur - save immediately
+  const handleNoteBlur = async (linkedinUrl, noteText) => {
+    if (noteText && noteText.trim()) {
+      await saveFeedback(linkedinUrl, 'note', noteText);
+    }
+  };
+
+  // Voice-to-text recording
+  const startVoiceRecording = (linkedinUrl) => {
+    if (!('webkitSpeechRecognition' in window)) {
+      alert('Voice input not supported in your browser. Please use Chrome.');
+      return;
+    }
+
+    const recognition = new window.webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsRecording(prev => ({ ...prev, [linkedinUrl]: true }));
+    };
+
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        const currentNote = candidateFeedback[linkedinUrl]?.note || '';
+        const newNote = currentNote + finalTranscript;
+        handleNoteChange(linkedinUrl, newNote);
+      }
+    };
+
+    recognition.onerror = () => {
+      setIsRecording(prev => ({ ...prev, [linkedinUrl]: false }));
+    };
+
+    recognition.onend = () => {
+      setIsRecording(prev => ({ ...prev, [linkedinUrl]: false }));
+    };
+
+    recognition.start();
+
+    // Store recognition object to stop it later
+    setCandidateFeedback(prev => ({
+      ...prev,
+      [linkedinUrl]: {
+        ...prev[linkedinUrl],
+        recognition
+      }
+    }));
+  };
+
+  const stopVoiceRecording = (linkedinUrl) => {
+    const recognition = candidateFeedback[linkedinUrl]?.recognition;
+    if (recognition) {
+      recognition.stop();
+    }
+    setIsRecording(prev => ({ ...prev, [linkedinUrl]: false }));
+  };
+
+  // Toggle accordion (work experience details)
+  const toggleAccordion = (candidateUrl) => {
+    const isCurrentlyOpen = openAccordionId === candidateUrl;
+
+    if (isCurrentlyOpen) {
+      // Closing this accordion
+      setOpenAccordionId(null);
+      // Also close feedback drawer if it's open for this candidate
+      if (drawerOpen[candidateUrl]) {
+        handleDrawerCollapse(candidateUrl);
+        setDrawerOpen(prev => ({
+          ...prev,
+          [candidateUrl]: false
+        }));
+        setActiveCandidate(null);
+      }
+    } else {
+      // Opening this accordion
+      // If a feedback drawer is active, auto-collapse other accordions
+      if (activeCandidate && activeCandidate !== candidateUrl) {
+        // Don't allow opening different accordion when feedback is active elsewhere
+        return;
+      }
+      setOpenAccordionId(candidateUrl);
+    }
+  };
+
+  // Toggle feedback drawer
+  const toggleDrawer = async (linkedinUrl, candidateName) => {
+    // Determine which candidate to open feedback for
+    let targetUrl = linkedinUrl;
+
+    // If no specific URL provided or if opening from a closed state,
+    // use the most visible candidate in viewport
+    if (!linkedinUrl || !drawerOpen[linkedinUrl]) {
+      const mostVisible = getMostVisibleCandidate();
+      if (mostVisible && (!linkedinUrl || mostVisible !== linkedinUrl)) {
+        console.log(`🎯 Opening feedback for most visible candidate: ${mostVisible}`);
+        targetUrl = mostVisible;
+      }
+    }
+
+    // If opening new drawer while another is open, save previous
+    if (activeCandidate && activeCandidate !== targetUrl && drawerOpen[activeCandidate]) {
+      await handleDrawerCollapse(activeCandidate);
+    }
+
+    setDrawerOpen(prev => ({
+      ...prev,
+      [targetUrl]: !prev[targetUrl]
+    }));
+
+    if (!drawerOpen[targetUrl]) {
+      setActiveCandidate(targetUrl);
+      // When opening feedback drawer, auto-collapse other accordions
+      setOpenAccordionId(targetUrl);
+      // Load feedback history when opening drawer
+      await loadFeedbackHistory(targetUrl);
+    } else {
+      setActiveCandidate(null);
+    }
+  };
+
+  // Auto-save and collapse drawer
+  const handleDrawerCollapse = async (linkedinUrl) => {
+    const note = candidateFeedback[linkedinUrl]?.note;
+    if (note && note.trim()) {
+      await saveFeedback(linkedinUrl, 'note', note);
+    }
+    setDrawerOpen(prev => ({ ...prev, [linkedinUrl]: false }));
+  };
+
+  // Clear current recruiter's feedback
+  const clearMyFeedback = async (linkedinUrl, candidateName) => {
+    if (!window.confirm(`Clear all your feedback for ${candidateName}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/clear-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          linkedin_url: linkedinUrl,
+          recruiter_name: selectedRecruiter
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Clear local state
+        setCandidateFeedback(prev => ({
+          ...prev,
+          [linkedinUrl]: { note: '' }
+        }));
+        // Reload feedback history
+        await loadFeedbackHistory(linkedinUrl);
+        showNotification(`Cleared feedback for ${candidateName}`);
+      } else {
+        showNotification('Failed to clear feedback', 'error');
+      }
+    } catch (error) {
+      console.error('Error clearing feedback:', error);
+      showNotification('Error clearing feedback', 'error');
+    }
+  };
+
+  // Load feedback history for a candidate
+  const loadFeedbackHistory = async (linkedinUrl) => {
+    try {
+      const response = await fetch(`/get-feedback/${encodeURIComponent(linkedinUrl)}`);
+      const data = await response.json();
+      if (data.success) {
+        setFeedbackHistory(prev => ({
+          ...prev,
+          [linkedinUrl]: data.feedback
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading feedback:', error);
+    }
+  };
+
+  // Handle quick reason button click
+  const handleQuickFeedback = async (linkedinUrl, feedbackType, reason) => {
+    await saveFeedback(linkedinUrl, feedbackType, reason);
+
+    // Don't hide input - allow multiple selections
+    // Just reload feedback history to show the new feedback
+    await loadFeedbackHistory(linkedinUrl);
+
+    showNotification(`Feedback saved: ${reason}`);
   };
 
   // Dummy profile data for testing
@@ -565,45 +851,27 @@ function App() {
 
       setFetchingProfile(false);
 
-      // Step 2: Assess the profile
-      console.log('Assessing profile...');
-      
-      const assessResponse = await fetch('/assess-profile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          profile_data: fetchData.profile_data,
-          user_prompt: userPrompt || 'Provide a general professional assessment',
-          weighted_requirements: weightedRequirements
-        }),
-      });
+      // Store profile WITHOUT AI analysis (on-demand only)
+      const singleProfileResult = {
+        type: 'single',
+        name: fetchData.profile_summary?.full_name || 'Single Profile Assessment',
+        headline: fetchData.profile_summary?.headline || 'N/A',
+        score: 0, // No score yet, will be updated when AI analysis runs
+        assessment: null, // No assessment yet, will be loaded on-demand
+        profileSummary: fetchData.profile_summary,
+        profile_data: { profile_data: fetchData.profile_data }, // Store raw profile data for work experience
+        checked_at: fetchData.profile_summary?.checked_at,
+        success: true,
+        url: cleanedUrl,
+        timestamp: new Date().toISOString()
+      };
 
-      const assessData = await assessResponse.json();
+      setSingleProfileResults(prev => [...prev, singleProfileResult]);
+      setProfileSummary(fetchData.profile_summary);
 
-      if (assessData.success) {
-        // Add the single profile result to the array instead of replacing
-        const singleProfileResult = {
-          type: 'single',
-          name: assessData.profile_summary?.full_name || 'Single Profile Assessment',
-          headline: assessData.profile_summary?.headline || 'N/A',
-          score: assessData.assessment?.weighted_analysis?.weighted_score !== undefined
-            ? (typeof assessData.assessment.weighted_analysis.weighted_score === 'number' ? assessData.assessment.weighted_analysis.weighted_score : 0)
-            : (typeof assessData.assessment?.overall_score === 'number' ? assessData.assessment.overall_score : 0),
-          assessment: assessData.assessment,
-          profileSummary: assessData.profile_summary,
-          checked_at: assessData.profile_summary?.checked_at, // CoreSignal last scrape date
-          success: true,
-          url: cleanedUrl,
-          timestamp: new Date().toISOString()
-        };
-        
-        setSingleProfileResults(prev => [...prev, singleProfileResult]);
-        setAssessment(assessData.assessment);
-        setProfileSummary(assessData.profile_summary);
-      } else {
-        setError(assessData.error || 'An error occurred while assessing the profile');
+      // If auto-generate is enabled, trigger AI analysis immediately
+      if (autoGenerateAI) {
+        handleGenerateAIAnalysis(cleanedUrl, fetchData.profile_data);
       }
     } catch (err) {
       setError('Network error. Please make sure the Flask server is running on port 5001.');
@@ -615,6 +883,55 @@ function App() {
     }
   };
 
+  // On-demand AI Analysis (triggered when user opens accordion)
+  const handleGenerateAIAnalysis = async (linkedinUrl, profileData) => {
+    console.log('Generating AI analysis for:', linkedinUrl);
+
+    // Mark as loading
+    setAiAnalysisLoading(prev => ({ ...prev, [linkedinUrl]: true }));
+
+    try {
+      const response = await fetch('/assess-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile_data: profileData,
+          user_prompt: userPrompt || 'Provide a general professional assessment',
+          weighted_requirements: weightedRequirements
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the candidate with assessment data
+        setSingleProfileResults(prev =>
+          prev.map(c => c.url === linkedinUrl
+            ? {
+                ...c,
+                assessment: data.assessment,
+                score: data.assessment?.weighted_analysis?.weighted_score !== undefined
+                  ? (typeof data.assessment.weighted_analysis.weighted_score === 'number' ? data.assessment.weighted_analysis.weighted_score : 0)
+                  : (typeof data.assessment?.overall_score === 'number' ? data.assessment.overall_score : 0)
+              }
+            : c
+          )
+        );
+
+        // Show success notification
+        showNotification('✅ AI analysis ready!', 'success');
+      } else {
+        showNotification('❌ Failed to generate AI analysis', 'error');
+        console.error('AI analysis error:', data.error);
+      }
+    } catch (error) {
+      showNotification('❌ Network error while generating analysis', 'error');
+      console.error('AI analysis network error:', error);
+    } finally {
+      // Clear loading state
+      setAiAnalysisLoading(prev => ({ ...prev, [linkedinUrl]: false }));
+    }
+  };
 
   const addRequirement = () => {
     const currentTotal = weightedRequirements.reduce((sum, req) => sum + req.weight, 0);
@@ -1110,28 +1427,18 @@ function App() {
   return (
     <div className="App">
       <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <h1 style={{ margin: 0 }}>LinkedIn Profile AI Assessor</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ fontWeight: '600', color: '#4a5568' }}>Recruiter:</label>
-            <select
+        <div className="app-header">
+          <h1>LinkedIn Profile AI Assessor</h1>
+          <div className="recruiter-input-wrapper">
+            <label htmlFor="recruiter-name">Recruiter:</label>
+            <input
+              id="recruiter-name"
+              type="text"
               value={selectedRecruiter}
               onChange={(e) => setSelectedRecruiter(e.target.value)}
-              style={{
-                padding: '8px 12px',
-                border: '2px solid #0073b1',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#0073b1',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-                outline: 'none'
-              }}
-            >
-              <option value="Jon">Jon</option>
-              <option value="Mary">Mary</option>
-            </select>
+              placeholder="Enter your name..."
+              className="recruiter-name-input"
+            />
           </div>
         </div>
         <p className="description">
@@ -1364,13 +1671,32 @@ function App() {
             </label>
           </div>
 
+          {/* Auto-Generate AI Analysis Toggle */}
+          <div className="form-group checkbox-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={autoGenerateAI}
+                onChange={(e) => setAutoGenerateAI(e.target.checked)}
+                className="enrichment-checkbox"
+              />
+              <span className="checkbox-text">
+                <strong>🤖 Auto-Generate AI Analysis</strong>
+                <span className="checkbox-description">
+                  Automatically run AI analysis after fetching profile (adds 10-15 seconds).
+                  {autoGenerateAI && <span className="cost-note"> ⚠️ +$0.01-0.02 per profile</span>}
+                </span>
+              </span>
+            </label>
+          </div>
+
           <div className="button-group">
             <button
               type="submit"
               className="submit-btn"
               disabled={loading || !linkedinUrl.trim()}
             >
-              {fetchingProfile ? 'Fetching Profile...' : loading ? 'Analyzing Profile...' : 'Assess Profile'}
+              {fetchingProfile ? 'Fetching Profile...' : loading ? 'Analyzing Profile...' : autoGenerateAI ? 'Fetch & Analyze Profile' : 'Fetch Profile'}
             </button>
 
             {rawCoreSignalData && (
@@ -1587,7 +1913,8 @@ function App() {
             allCandidates.push({
               ...result,
               rank: 0, // Will be updated after sorting
-              originalIndex: index
+              originalIndex: index,
+              checked_at: result.profileSummary?.checked_at  // Extract freshness timestamp for badge
             });
           });
           
@@ -1681,7 +2008,11 @@ function App() {
               ) : (
             <div className="candidates-list">
                   {allCandidates.map((candidate, index) => (
-                  <div key={`${candidate.type}-${candidate.originalIndex || 0}`} className="candidate-card">
+                  <div
+                    key={`${candidate.type}-${candidate.originalIndex || 0}`}
+                    className={`candidate-card ${drawerOpen[candidate.url] ? 'feedback-active' : ''}`}
+                    data-candidate-url={candidate.url}
+                  >
                   <div className="candidate-header">
                     <div className="candidate-rank">
                         <span className="rank-number">#{candidate.rank}</span>
@@ -1705,102 +2036,22 @@ function App() {
                       </div>
                       <div className="candidate-meta">
                           <span className="candidate-headline">{candidate.headline}</span>
-                          {candidate.checked_at && (() => {
-                            const freshness = formatFreshnessBadge(candidate.checked_at);
-                            return freshness ? (
-                              <span
-                                className="freshness-badge"
-                                style={{
-                                  background: `${freshness.badgeColor}22`,
-                                  color: freshness.badgeColor,
-                                  border: `1px solid ${freshness.badgeColor}`,
-                                  padding: '2px 8px',
-                                  borderRadius: '12px',
-                                  fontSize: '11px',
-                                  fontWeight: '600',
-                                  marginLeft: '8px',
-                                  display: 'inline-block'
-                                }}
-                                title={`CoreSignal last scraped this profile ${freshness.diffDays} days ago`}
-                              >
-                                {freshness.badgeEmoji} {freshness.badgeText}
-                              </span>
-                            ) : null;
-                          })()}
                       </div>
-                    </div>
-
-                    {/* Recruiter Feedback Section */}
-                    {candidate.url && candidate.url !== 'Test Profile' && (
-                      <div style={{
-                        borderTop: '1px solid #e2e8f0',
-                        padding: '15px 20px',
-                        backgroundColor: '#f8fafc',
-                        display: 'flex',
-                        gap: '15px',
-                        alignItems: 'flex-start'
-                      }}>
-                        {/* Like/Dislike Buttons */}
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            onClick={() => handleFeedbackClick(candidate.url, 'like')}
-                            style={{
-                              padding: '8px 16px',
-                              border: candidateFeedback[candidate.url]?.like ? '2px solid #10b981' : '2px solid #cbd5e1',
-                              borderRadius: '6px',
-                              backgroundColor: candidateFeedback[candidate.url]?.like ? '#d1fae5' : 'white',
-                              color: candidateFeedback[candidate.url]?.like ? '#059669' : '#64748b',
-                              cursor: 'pointer',
-                              fontWeight: '600',
-                              fontSize: '14px',
-                              transition: 'all 0.2s'
-                            }}
-                            title="Like this candidate"
-                          >
-                            👍 Like
-                          </button>
-                          <button
-                            onClick={() => handleFeedbackClick(candidate.url, 'dislike')}
-                            style={{
-                              padding: '8px 16px',
-                              border: candidateFeedback[candidate.url]?.dislike ? '2px solid #ef4444' : '2px solid #cbd5e1',
-                              borderRadius: '6px',
-                              backgroundColor: candidateFeedback[candidate.url]?.dislike ? '#fee2e2' : 'white',
-                              color: candidateFeedback[candidate.url]?.dislike ? '#dc2626' : '#64748b',
-                              cursor: 'pointer',
-                              fontWeight: '600',
-                              fontSize: '14px',
-                              transition: 'all 0.2s'
-                            }}
-                            title="Pass on this candidate"
-                          >
-                            👎 Pass
-                          </button>
+                      {candidate.checked_at && (
+                        <div style={{ marginTop: '8px', fontSize: '13px', color: '#64748b' }}>
+                          <span style={{ fontWeight: '500' }}>
+                            Profile Last Updated: {new Date(candidate.checked_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </span>
                         </div>
+                      )}
+                    </div>
+                  </div>
 
-                        {/* Notes Textarea */}
-                        <textarea
-                          value={candidateFeedback[candidate.url]?.note || ''}
-                          onChange={(e) => handleNoteChange(candidate.url, e.target.value)}
-                          placeholder={`Add ${selectedRecruiter}'s notes about this candidate... (auto-saves)`}
-                          style={{
-                            flex: 1,
-                            padding: '8px 12px',
-                            border: '2px solid #cbd5e1',
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                            fontFamily: 'inherit',
-                            resize: 'vertical',
-                            minHeight: '42px',
-                            outline: 'none'
-                          }}
-                          onFocus={(e) => e.target.style.borderColor = '#0073b1'}
-                          onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
-                        />
-                      </div>
-                    )}
-
-                    <div className="candidate-score">
+                  <div className="candidate-score">
                         {candidate.assessment && (
                         <div className="final-score">
                             {candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.weighted_score !== undefined ? (
@@ -1826,32 +2077,165 @@ function App() {
                         </div>
                       )}
                     </div>
-                  </div>
-                  
-                    {candidate.assessment && (
-                    <div className="candidate-details">
-                      <details className="assessment-details">
-                        <summary className="details-summary">View Detailed Assessment</summary>
-                        
-                        <div className="details-content">
 
-                          {/* Assessment Scores */}
-                          <div className="assessment-scores">
-                              {candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.weighted_score !== undefined ? (
-                              <div className="score-section">
-                                <h4>Weighted Final Score</h4>
-                                  {renderScoreBar(candidate.assessment.weighted_analysis.weighted_score)}
+                  <div className="candidate-details">
+                    <details
+                      className="assessment-details"
+                      open={openAccordionId === candidate.url}
+                    >
+                      <summary
+                        className="details-summary"
+                        onClick={(e) => {
+                          // Prevent summary click if clicking feedback drawer
+                          if (e.target.closest('.feedback-drawer')) {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            return;
+                          }
+                          // Prevent default browser toggle behavior
+                          e.preventDefault();
+                          // Use our controlled toggle instead
+                          toggleAccordion(candidate.url);
+                        }}
+                      >View Detailed Work Experience</summary>
+
+                      <div className="details-content">
+
+                          {/* Sliding Feedback Drawer - Inside Accordion */}
+                          {candidate.url && candidate.url !== 'Test Profile' && (
+                            <div className="feedback-drawer">
+                              {/* Collapsed Tab - Always Visible */}
+                              <div
+                                className="feedback-tab"
+                                onClick={() => toggleDrawer(candidate.url, candidate.name)}
+                                title={drawerOpen[candidate.url] ? "Close feedback panel" : "Open feedback panel"}
+                              >
+                                <div className="feedback-tab-content">
+                                  <div className={`feedback-status-dot ${(feedbackHistory[candidate.url] || []).length > 0 ? 'has-feedback' : ''}`}></div>
+                                  <span className="feedback-tab-label">Feedback</span>
+                                  {(feedbackHistory[candidate.url] || []).length > 0 && (
+                                    <span className="feedback-count">{(feedbackHistory[candidate.url] || []).length}</span>
+                                  )}
+                                  <span className="feedback-arrow">{drawerOpen[candidate.url] ? '▶' : '◀'}</span>
+                                </div>
                               </div>
-                              ) : candidate.assessment.overall_score ? (
-                              <div className="score-section">
-                                <h4>Overall Score</h4>
-                                  {renderScoreBar(candidate.assessment.overall_score)}
+
+                              {/* Expanded Panel */}
+                              <div className={`feedback-panel ${drawerOpen[candidate.url] ? 'expanded' : ''}`}>
+                                {/* Candidate Header - Sticky */}
+                                <div className="feedback-candidate-header">
+                                  <div className="feedback-candidate-name">{candidate.name}</div>
+                                  <div className="feedback-candidate-headline">{candidate.headline}</div>
+                                  <div className="feedback-context-reminder">Feedback for this candidate</div>
+                                </div>
+
+                                {/* Feedback History */}
+                                {(() => {
+                                  const history = feedbackHistory[candidate.url] || [];
+                                  return history.length > 0 ? (
+                                    <details open className="feedback-history-section">
+                                      <summary className="feedback-history-title">
+                                        💬 Previous Feedback ({history.length})
+                                      </summary>
+                                      <div className="feedback-history-list">
+                                        {history.map((fb, idx) => (
+                                          <div key={idx} className={`feedback-history-item ${fb.feedback_type}`}>
+                                            <div className="feedback-history-header">
+                                              <span>{fb.feedback_type === 'like' ? '👍' : fb.feedback_type === 'dislike' ? '👎' : '📝'} {fb.recruiter_name}</span>
+                                              <span className="feedback-history-date">{new Date(fb.created_at).toLocaleDateString()}</span>
+                                            </div>
+                                            {fb.feedback_text && <div className="feedback-history-text">{fb.feedback_text}</div>}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </details>
+                                  ) : null;
+                                })()}
+
+                                {/* Quick Feedback Buttons */}
+                                <div className="feedback-section">
+                                  <div className="feedback-section-title">👍 Why do you like this candidate?</div>
+                                  <div className="feedback-buttons">
+                                    {likeReasons.map((reason, idx) => (
+                                      <button
+                                        key={idx}
+                                        className="feedback-button like-button"
+                                        onClick={() => handleQuickFeedback(candidate.url, 'like', reason)}
+                                      >
+                                        {reason}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div className="feedback-section">
+                                  <div className="feedback-section-title dislike">👎 Why pass on this candidate?</div>
+                                  <div className="feedback-buttons">
+                                    {passReasons.map((reason, idx) => (
+                                      <button
+                                        key={idx}
+                                        className="feedback-button dislike-button"
+                                        onClick={() => handleQuickFeedback(candidate.url, 'dislike', reason)}
+                                      >
+                                        {reason}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Custom Notes */}
+                                <div className="feedback-section">
+                                  <div className="feedback-section-title">✍️ Custom Notes</div>
+                                  <div className="feedback-note-container">
+                                    <textarea
+                                      className="feedback-note-textarea"
+                                      value={candidateFeedback[candidate.url]?.note || ''}
+                                      onChange={(e) => handleNoteChange(candidate.url, e.target.value)}
+                                      onBlur={(e) => handleNoteBlur(candidate.url, e.target.value)}
+                                      placeholder="Type your feedback or click the microphone..."
+                                    />
+                                    <button
+                                      className={`feedback-mic-button ${isRecording[candidate.url] ? 'recording' : ''}`}
+                                      onClick={() => isRecording[candidate.url] ? stopVoiceRecording(candidate.url) : startVoiceRecording(candidate.url)}
+                                      title={isRecording[candidate.url] ? 'Stop recording' : 'Start voice input (Chrome only)'}
+                                    >
+                                      {isRecording[candidate.url] ? '⏹' : '🎤'}
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="feedback-actions">
+                                  <button
+                                    className="feedback-clear-button"
+                                    onClick={() => clearMyFeedback(candidate.url, candidate.name)}
+                                  >
+                                    Clear My Feedback
+                                  </button>
+                                </div>
                               </div>
-                            ) : null}
-                          </div>
+                            </div>
+                          )}
+
+                          {/* Assessment Scores - Only show if assessment exists */}
+                          {candidate.assessment && (
+                            <div className="assessment-scores">
+                                {candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.weighted_score !== undefined ? (
+                                <div className="score-section">
+                                  <h4>Weighted Final Score</h4>
+                                    {renderScoreBar(candidate.assessment.weighted_analysis.weighted_score)}
+                                </div>
+                                ) : candidate.assessment.overall_score ? (
+                                <div className="score-section">
+                                  <h4>Overall Score</h4>
+                                    {renderScoreBar(candidate.assessment.overall_score)}
+                                </div>
+                              ) : null}
+                            </div>
+                          )}
 
                           {/* Weighted Analysis */}
-                            {candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.requirements && candidate.assessment.weighted_analysis.requirements.length > 0 && (
+                            {candidate.assessment && candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.requirements && candidate.assessment.weighted_analysis.requirements.length > 0 && (
                             <div className="weighted-analysis-section">
                               <h4>Weighted Analysis</h4>
                               <div className="weighted-requirements">
@@ -1878,38 +2262,92 @@ function App() {
                             </div>
                           )}
 
-                          {/* Key Strengths and Weaknesses */}
-                          <div className="assessment-summary">
-                              {candidate.assessment.strengths && candidate.assessment.strengths.length > 0 && (
-                              <div className="strengths-section">
-                                <h4>Key Strengths</h4>
-                                <ul>
-                                    {candidate.assessment.strengths.map((strength, idx) => (
-                                    <li key={idx}>{strength}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            
-                              {candidate.assessment.weaknesses && candidate.assessment.weaknesses.length > 0 && (
-                              <div className="weaknesses-section">
-                                <h4>Key Weaknesses</h4>
-                                <ul>
-                                    {candidate.assessment.weaknesses.map((weakness, idx) => (
-                                    <li key={idx}>{weakness}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
+                          {/* AI Analysis Accordion - On-Demand */}
+                          <div className="ai-analysis-accordion">
+                            <details
+                              className="ai-analysis-details"
+                              onToggle={(e) => {
+                                // Only trigger if opening AND assessment doesn't exist yet
+                                if (e.target.open && !candidate.assessment && !aiAnalysisLoading[candidate.url]) {
+                                  // Pass the RAW profile_data, not the extracted summary
+                                  const rawProfileData = candidate.profile_data?.profile_data;
+                                  if (rawProfileData) {
+                                    handleGenerateAIAnalysis(candidate.url, rawProfileData);
+                                  }
+                                }
+                              }}
+                            >
+                              <summary className="ai-analysis-summary">
+                                <span className="ai-analysis-title">🤖 AI Analysis</span>
+                                <span className="ai-analysis-disclaimer">
+                                  {candidate.assessment
+                                    ? '(Click to expand)'
+                                    : '(Click to generate - may take 10-15 seconds)'
+                                  }
+                                </span>
+                              </summary>
 
-                          {/* Career Trajectory */}
-                            {candidate.assessment.career_trajectory && candidate.assessment.career_trajectory !== 'Profile not found in CoreSignal database' && (
-                            <div className="career-trajectory-section">
-                              <h4>Career Trajectory</h4>
-                                <p>{candidate.assessment.career_trajectory}</p>
-                            </div>
-                          )}
+                              <div className="ai-analysis-content">
+                                {/* Loading State */}
+                                {aiAnalysisLoading[candidate.url] && (
+                                  <div className="ai-loading">
+                                    <div className="spinner"></div>
+                                    <p>Generating AI analysis...</p>
+                                    <p className="loading-subtext">This may take 10-15 seconds</p>
+                                  </div>
+                                )}
+
+                                {/* Placeholder when no assessment */}
+                                {!candidate.assessment && !aiAnalysisLoading[candidate.url] && (
+                                  <div className="ai-placeholder">
+                                    <p>Click the accordion header to generate AI-powered analysis</p>
+                                  </div>
+                                )}
+
+                                {/* Show Results when loaded */}
+                                {candidate.assessment && !aiAnalysisLoading[candidate.url] && (
+                                  <>
+                                    <div className="ai-disclaimer-banner">
+                                      ⚠️ This AI analysis is experimental and still being refined. Please use your professional judgment and provide feedback to help us improve.
+                                    </div>
+
+                                    {/* Key Strengths and Weaknesses */}
+                                    <div className="assessment-summary">
+                                      {candidate.assessment.strengths && candidate.assessment.strengths.length > 0 && (
+                                        <div className="strengths-section">
+                                          <h4>Key Strengths</h4>
+                                          <ul>
+                                            {candidate.assessment.strengths.map((strength, idx) => (
+                                              <li key={idx}>{strength}</li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      )}
+
+                                      {candidate.assessment.weaknesses && candidate.assessment.weaknesses.length > 0 && (
+                                        <div className="weaknesses-section">
+                                          <h4>Key Weaknesses</h4>
+                                          <ul>
+                                            {candidate.assessment.weaknesses.map((weakness, idx) => (
+                                              <li key={idx}>{weakness}</li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Career Trajectory */}
+                                    {candidate.assessment.career_trajectory && candidate.assessment.career_trajectory !== 'Profile not found in CoreSignal database' && (
+                                      <div className="career-trajectory-section">
+                                        <h4>Career Trajectory</h4>
+                                        <p>{candidate.assessment.career_trajectory}</p>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </details>
+                          </div>
 
                           {/* Work Experience with Company Intelligence */}
                           <WorkExperienceSection
@@ -1928,7 +2366,6 @@ function App() {
                         </div>
                       </details>
                     </div>
-                  )}
                 </div>
               ))}
                 </div>

@@ -8,8 +8,10 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   border: 1px solid #e0e0e0;
   padding: 20px;
-  min-width: 320px;
-  max-width: 420px;
+  min-width: 400px;
+  max-width: 550px;
+  max-height: 400px;
+  overflow-y: auto;
   /* Removed width: 100% - was causing modal to be too wide */
   animation: tooltipFadeIn 0.2s ease-in;
   box-sizing: border-box;

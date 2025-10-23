@@ -28,7 +28,7 @@ const WorkExperienceCard = ({ experience, index }) => {
     const spaceBelow = viewportHeight - rect.bottom;
 
     // Constants for tooltip dimensions
-    const TOOLTIP_WIDTH = 420;
+    const TOOLTIP_WIDTH = 550;
 
     // Always show below for simplicity (tooltips grow downward from top position)
     // This avoids complex "show above" calculations
@@ -138,7 +138,20 @@ const WorkExperienceCard = ({ experience, index }) => {
   return (
     <div className="work-experience-card">
       <div className="experience-icon">
-        {hasEnrichedData ? getStageIcon(experience.company_enriched) : '🏢'}
+        {hasEnrichedData && experience.company_enriched.logo_url ? (
+          <img
+            src={experience.company_enriched.logo_url}
+            alt={`${experience.company_name} logo`}
+            className="company-logo"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        <div className="fallback-icon" style={{ display: hasEnrichedData && experience.company_enriched.logo_url ? 'none' : 'flex' }}>
+          {hasEnrichedData ? getStageIcon(experience.company_enriched) : '🏢'}
+        </div>
       </div>
 
       <div className="experience-content">

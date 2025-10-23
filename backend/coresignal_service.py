@@ -264,7 +264,7 @@ class CoreSignalService:
             get_headers = {k: v for k, v in self.headers.items() if k != "Content-Type"}
 
             response = requests.get(
-                f"https://api.coresignal.com/cdapi/v2/company_clean/collect/{company_id}",
+                f"https://api.coresignal.com/cdapi/v2/company_base/collect/{company_id}",
                 headers=get_headers,
                 timeout=10
             )
@@ -274,6 +274,19 @@ class CoreSignalService:
             if response.status_code == 200:
                 company_data = response.json()
                 print(f"✅ SUCCESS: Company data retrieved!")
+
+                # DEBUG: Check what logo fields are available
+                logo_fields = [k for k in company_data.keys() if 'logo' in k.lower()]
+                if logo_fields:
+                    print(f"   🖼️  Logo fields found: {logo_fields}")
+                    for field in logo_fields:
+                        value = company_data.get(field)
+                        if value:
+                            print(f"      {field}: {str(value)[:100]}...")
+                        else:
+                            print(f"      {field}: None/null")
+                else:
+                    print(f"   ⚠️  No logo fields found in company data")
 
                 result = {
                     'success': True,
@@ -356,11 +369,16 @@ class CoreSignalService:
 
             # OPTIMIZATION: Skip companies from jobs before min_year to save API credits
             start_year = exp.get('date_from_year')
-            if start_year and int(start_year) < min_year:
-                print(f"   ⏭️  Experience {i}/{total_companies}: {company_name} - Skipped (started {start_year}, before {min_year})")
-                companies_skipped_old += 1
-                exp['company_enriched'] = None
-                continue
+            if start_year:
+                try:
+                    if int(start_year) < min_year:
+                        print(f"   ⏭️  Experience {i}/{total_companies}: {company_name} - Skipped (started {start_year}, before {min_year})")
+                        companies_skipped_old += 1
+                        exp['company_enriched'] = None
+                        continue
+                except (ValueError, TypeError):
+                    print(f"   ⚠️  Experience {i}/{total_companies}: {company_name} - Invalid start_year: {start_year}")
+                    # Continue processing this experience even if year is invalid
 
             print(f"\n   📊 Experience {i}/{total_companies}: {company_name} (ID: {company_id}, started {start_year or 'unknown'})")
 
@@ -411,10 +429,17 @@ class CoreSignalService:
         Extract key intelligence signals from full company profile
 
         Returns structured company insights optimized for hiring decisions
+
+        IMPORTANT: We store BOTH the raw company data (all 45+ fields) AND
+        curated intelligence fields for easy frontend access.
         """
         intelligence = {}
 
-        # Basic info
+        # Store ALL raw company data for maximum flexibility
+        # This ensures we never lose data and can access any field later
+        intelligence['raw_data'] = company_data
+
+        # Basic info (curated for easy access)
         intelligence['name'] = company_data.get('name')
         intelligence['type'] = company_data.get('type')  # Public, Private, Non-Profit
         intelligence['founded'] = company_data.get('founded')
@@ -427,8 +452,8 @@ class CoreSignalService:
                 intelligence['company_age_years'] = None
 
         # Size and growth
-        intelligence['size_range'] = company_data.get('size_range')
-        intelligence['employees_count'] = company_data.get('size_employees_count')
+        intelligence['size_range'] = company_data.get('size_range') or company_data.get('size')
+        intelligence['employees_count'] = company_data.get('employees_count')
         intelligence['employees_count_inferred'] = company_data.get('size_employees_count_inferred')
 
         # Industry
@@ -443,8 +468,8 @@ class CoreSignalService:
         intelligence['hq_address'] = company_data.get('location_hq_raw_address')
 
         # Funding data (CRITICAL for startup assessment)
-        # CORRECTED: Use actual API field names from CoreSignal API
-        funding_rounds = company_data.get('funding_rounds', [])
+        # Using company_base endpoint: funding data in company_funding_rounds_collection
+        funding_rounds = company_data.get('company_funding_rounds_collection', [])
         if funding_rounds and len(funding_rounds) > 0:
             latest_round = funding_rounds[0]  # Assume sorted by date
             intelligence['last_funding_type'] = latest_round.get('last_round_type')  # FIXED: Correct field name
@@ -472,7 +497,34 @@ class CoreSignalService:
         # Extract ALL available company URLs for comprehensive linking
         intelligence['company_website'] = company_data.get('website')
         intelligence['linkedin_company_url'] = company_data.get('url')
-        intelligence['logo_url'] = company_data.get('logo_url')
+
+        # Get logo from company_base endpoint (direct URL)
+        # company_base provides logo_url as a direct LinkedIn CDN URL
+        logo_url = company_data.get('logo_url')
+
+        # Fallback: Use Clearbit Logo API if CoreSignal logo not available
+        if not logo_url and intelligence['company_website']:
+            try:
+                from urllib.parse import urlparse
+                domain = urlparse(intelligence['company_website']).netloc
+                if domain:
+                    # Remove 'www.' prefix if present
+                    domain = domain.replace('www.', '')
+                    # Clearbit Logo API - free service, no API key needed
+                    logo_url = f"https://logo.clearbit.com/{domain}"
+            except:
+                logo_url = None
+
+        intelligence['logo_url'] = logo_url
+
+        # DEBUG: Log final logo URL decision
+        if logo_url:
+            if 'linkedin.com' in logo_url or 'licdn.com' in logo_url:
+                print(f"   🖼️  Using CoreSignal logo_url (LinkedIn CDN)")
+            else:
+                print(f"   🖼️  Using Clearbit fallback logo: {logo_url}")
+        else:
+            print(f"   ⚠️  No logo available (logo_url: {bool(company_data.get('logo_url'))}, website: {bool(intelligence['company_website'])})")
 
         # Business model
         intelligence['is_b2b'] = company_data.get('is_b2b')
@@ -513,6 +565,15 @@ class CoreSignalService:
         """
         if not amount or amount == 0:
             return None
+
+        # If amount is already a formatted string, return it as-is
+        if isinstance(amount, str):
+            # Clean up common formatting issues
+            # Remove duplicate currency symbols like "$US$" or "US$$"
+            amount_str = str(amount).strip()
+            amount_str = amount_str.replace('$US$', 'US$')  # Fix $US$ -> US$
+            amount_str = amount_str.replace('US$$', 'US$')  # Fix US$$ -> US$
+            return amount_str
 
         try:
             amount = float(amount)
@@ -608,8 +669,11 @@ class CoreSignalService:
         # Young, well-funded company = hypergrowth potential
         age = intelligence.get('company_age_years')
         funding = intelligence.get('last_funding_amount')
-        if age and age < 5 and funding and funding > 10000000:
-            signals.append('hypergrowth_potential')
+        try:
+            if age and age < 5 and funding and float(funding) > 10000000:
+                signals.append('hypergrowth_potential')
+        except (ValueError, TypeError):
+            pass  # Skip if funding amount can't be converted to number
 
         # Recent funding = active growth
         funding_date = intelligence.get('last_funding_date')

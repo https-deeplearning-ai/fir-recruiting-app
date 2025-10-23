@@ -1,0 +1,41 @@
+{
+  "company_name": "Bexorg, Inc.",
+  "company_id": 92819342,
+  "test_timestamp": "20251022_210020",
+  "search_api": {
+    "returned_data": "Company ID only",
+    "data_type": "<class 'list'>",
+    "note": "Search API returns company IDs only (for es_dsl endpoint)"
+  },
+  "collect_api": {
+    "returned_data": "Full company profile",
+    "top_level_fields": 45,
+    "collections_count": 11,
+    "collections": {
+      "company_affiliated_collection": 0,
+      "company_also_viewed_collection": 0,
+      "company_crunchbase_info_collection": 1,
+      "company_featured_employees_collection": 17,
+      "company_featured_investors_collection": 1,
+      "company_funding_rounds_collection": 1,
+      "company_locations_collection": 1,
+      "company_similar_collection": 71,
+      "company_specialties_collection": 0,
+      "company_stock_info_collection": 0,
+      "company_updates_collection": 73
+    },
+    "sample_data": {
+      "name": "Bexorg, Inc.",
+      "industry": "Biotechnology Research",
+      "size": "11-50 employees",
+      "founded": 2021,
+      "employees_count": 29,
+      "description": "Bexorg is a privately held techbio company with the first-ever full tech stack platform to support CNS drug discovery and development in the human brain in a way that has not been possible before.\u202f\n\nO..."
+    }
+  },
+  "conclusion": {
+    "search_api_use_case": "Finding and filtering companies (returns IDs)",
+    "collect_api_use_case": "Retrieving full company data (returns complete profiles)",
+    "credit_difference": "Search credits are 2x cheaper because they return minimal data"
+  }
+}

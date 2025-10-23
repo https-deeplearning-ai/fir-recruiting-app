@@ -34,22 +34,11 @@ anthropic_client = Anthropic(
 coresignal_service = CoreSignalService()
 
 # CoreSignal API configuration
-CORESIGNAL_API_KEY = os.getenv("CORESIGNAL_API_KEY", "zGZEUYUw2Koty9kxPidzCHTce5Wl2vYL")
-
-# Load valid input values for intelligent search
-script_dir = os.path.dirname(os.path.abspath(__file__))
-input_values_path = os.path.join(script_dir, 'input_values.json')
-try:
-    with open(input_values_path, 'r') as f:
-        VALID_INPUT_VALUES = json.load(f)
-    print("✅ Loaded input values for intelligent search")
-except Exception as e:
-    print(f"⚠️ Warning: Could not load input_values.json: {e}")
-    VALID_INPUT_VALUES = {}
+CORESIGNAL_API_KEY = os.getenv("CORESIGNAL_API_KEY")
 
 # Database configuration - using Supabase REST API
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://pozqgltcwxobhiewhwsc.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvenFnbHRjd3hvYmhpZXdod3NjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MTEzNTIsImV4cCI6MjA3NjI4NzM1Mn0.zL_NTj1OglPGOeWgd_zWkEpSdtHIHfJeTvfT-c96JXk")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 # Import dynamic configuration based on deployment environment
 try:
@@ -634,18 +623,37 @@ def extract_profile_summary(profile_data):
         # Basic info
         full_name = profile_data.get('full_name', 'N/A')
         # Use generated_headline (fresh, auto-updated) over headline (stale, manually-set)
-        headline = profile_data.get('generated_headline') or profile_data.get('headline', 'N/A')
-        location = profile_data.get('location', 'N/A')
-        industry = profile_data.get('industry', 'N/A')
-        
+        headline = profile_data.get('generated_headline') or profile_data.get('headline')
+
         # Experience
         experiences = profile_data.get('experience', [])
+
+        # If no headline, fallback to most recent job title
+        if not headline:
+            if experiences and len(experiences) > 0:
+                most_recent = experiences[0]
+                title = most_recent.get('title', '')
+                company = most_recent.get('company_name', '')
+                if title and company:
+                    headline = f"{title} at {company}"
+                elif title:
+                    headline = title
+
+        # Final fallback
+        if not headline:
+            headline = 'N/A'
+
+        location = profile_data.get('location', 'N/A')
+        industry = profile_data.get('industry', 'N/A')
         current_roles = [exp for exp in experiences if exp.get('is_current', 0) == 1]
         
         # Calculate total experience years without double-counting overlaps
         def to_date(year: int, month: int, is_end: bool) -> datetime:
             """Create a datetime at start or end of given month/year."""
-            month = max(1, min(12, month)) if month else (12 if is_end else 1)
+            # Ensure year and month are integers
+            year = int(year) if year else datetime.now().year
+            month = int(month) if month else (12 if is_end else 1)
+            month = max(1, min(12, month))
             if is_end:
                 last_day = calendar.monthrange(year, month)[1]
                 return datetime(year, month, last_day)
@@ -655,27 +663,34 @@ def extract_profile_summary(profile_data):
         intervals = []
         now = datetime.now()
         for exp in experiences:
-            start_year = exp.get('date_from_year')
-            end_year = exp.get('date_to_year')
-            if not start_year:
-                continue  # cannot use this interval without a start year
+            try:
+                start_year = exp.get('date_from_year')
+                end_year = exp.get('date_to_year')
+                if not start_year:
+                    continue  # cannot use this interval without a start year
 
-            start_month = exp.get('date_from_month') or 1
-            # If current role, use 'now' as the end date
-            is_current = bool(exp.get('is_current')) or exp.get('is_current', 0) == 1
-            if is_current:
-                end_dt = now
-            elif end_year:
-                end_month = exp.get('date_to_month') or 12
-                end_dt = to_date(int(end_year), int(end_month), is_end=True)
-            else:
-                # No end given and not flagged current; assume ongoing
-                end_dt = now
+                start_month = exp.get('date_from_month')
+                start_month = int(start_month) if start_month else 1
 
-            start_dt = to_date(int(start_year), int(start_month), is_end=False)
-            if end_dt <= start_dt:
+                # If current role, use 'now' as the end date
+                is_current = bool(exp.get('is_current')) or exp.get('is_current', 0) == 1
+                if is_current:
+                    end_dt = now
+                elif end_year:
+                    end_month = exp.get('date_to_month')
+                    end_month = int(end_month) if end_month else 12
+                    end_dt = to_date(int(end_year), end_month, is_end=True)
+                else:
+                    # No end given and not flagged current; assume ongoing
+                    end_dt = now
+
+                start_dt = to_date(int(start_year), start_month, is_end=False)
+                if end_dt <= start_dt:
+                    continue
+                intervals.append((start_dt, end_dt))
+            except (ValueError, TypeError) as e:
+                print(f"⚠️ Skipping experience with invalid dates: {e}")
                 continue
-            intervals.append((start_dt, end_dt))
 
         # Merge overlapping intervals
         intervals.sort(key=lambda x: x[0])
@@ -705,6 +720,9 @@ def extract_profile_summary(profile_data):
         # Connections
         connections_count = profile_data.get('connections_count', 0)
         
+        # Map CoreSignal's last_updated to checked_at for frontend freshness badge
+        checked_at = profile_data.get('last_updated') or profile_data.get('checked_at')
+
         return {
             'full_name': full_name,
             'headline': headline,
@@ -716,7 +734,8 @@ def extract_profile_summary(profile_data):
             'recommendations_count': rec_count,
             'connections_count': connections_count,
             'total_experiences': len(experiences),
-            'experiences': experiences
+            'experiences': experiences,
+            'checked_at': checked_at  # CoreSignal's last scrape timestamp for freshness badge
         }
     except Exception as e:
         return {'error': f'Error processing profile: {str(e)}'}
@@ -764,11 +783,15 @@ def format_company_intelligence(experiences):
             if enriched.get('last_funding_type'):
                 funding_info.append(f"Last round: {enriched['last_funding_type']}")
             if enriched.get('last_funding_amount'):
-                amount = enriched['last_funding_amount']
-                if amount >= 1000000:
-                    funding_info.append(f"${amount/1000000:.1f}M raised")
-                else:
-                    funding_info.append(f"${amount:,} raised")
+                try:
+                    amount = float(enriched['last_funding_amount'])
+                    if amount >= 1000000:
+                        funding_info.append(f"${amount/1000000:.1f}M raised")
+                    else:
+                        funding_info.append(f"${amount:,} raised")
+                except (ValueError, TypeError):
+                    # If amount can't be converted to number, skip it
+                    pass
             if enriched.get('total_funding_rounds'):
                 funding_info.append(f"{enriched['total_funding_rounds']} total rounds")
 
@@ -981,6 +1004,14 @@ def fetch_profile():
             profile_data = stored_result['profile_data']
             storage_age_days = stored_result.get('storage_age_days', 0)
             checked_at = stored_result.get('checked_at')
+            # Build result dict for cached profile (for response building later)
+            result = {
+                'success': True,
+                'method': 'storage',
+                'data_source': 'storage',
+                'is_fresh': False,
+                'storage_age_days': storage_age_days
+            }
         else:
             # Not in storage or too old (>90 days) - fetch fresh from CoreSignal
             print("📦 Fetching fresh profile from CoreSignal...")
@@ -1019,9 +1050,13 @@ def fetch_profile():
             enrichment_summary = enrichment_result['enrichment_summary']
             print(f"✅ Company enrichment complete: {enrichment_summary['companies_enriched']} companies enriched, {enrichment_summary['api_calls_made']} API calls made")
 
+        # Extract profile summary for frontend display
+        profile_summary = extract_profile_summary(profile_data)
+
         response_data = {
             'success': True,
             'profile_data': profile_data,
+            'profile_summary': profile_summary,  # Add profile summary for frontend
             'data_source': result.get('method', result.get('data_source', 'coresignal')),
             'is_fresh': result.get('is_fresh', False)
         }
@@ -1037,6 +1072,8 @@ def fetch_profile():
         return jsonify(response_data)
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()  # Print full traceback to console
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/assess-profile', methods=['POST'])
@@ -1708,6 +1745,47 @@ def get_feedback(linkedin_url):
 
     except Exception as e:
         print(f"❌ Error getting feedback: {str(e)}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/clear-feedback', methods=['POST'])
+def clear_feedback():
+    """
+    Clear all feedback for a specific candidate from the current recruiter
+    Note: This deletes ALL feedback from ALL recruiters for this candidate
+    """
+    try:
+        data = request.get_json()
+        linkedin_url = data.get('linkedin_url')
+        recruiter_name = data.get('recruiter_name', 'Unknown')
+
+        if not linkedin_url:
+            return jsonify({'error': 'linkedin_url is required'}), 400
+
+        import urllib.parse
+        encoded_url = urllib.parse.quote(linkedin_url, safe='')
+
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json'
+        }
+
+        # Delete all feedback for this candidate from this recruiter
+        url = f"{SUPABASE_URL}/rest/v1/recruiter_feedback?candidate_linkedin_url=eq.{encoded_url}&recruiter_name=eq.{urllib.parse.quote(recruiter_name, safe='')}"
+        response = requests.delete(url, headers=headers)
+
+        if response.status_code in [200, 204]:
+            print(f"✅ Cleared all feedback from {recruiter_name} for {linkedin_url}")
+            return jsonify({
+                'success': True,
+                'message': 'All feedback cleared successfully'
+            })
+        else:
+            print(f"❌ Failed to clear feedback: {response.status_code} - {response.text}")
+            return jsonify({'error': 'Failed to clear feedback', 'details': response.text}), response.status_code
+
+    except Exception as e:
+        print(f"❌ Error clearing feedback: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/health', methods=['GET'])

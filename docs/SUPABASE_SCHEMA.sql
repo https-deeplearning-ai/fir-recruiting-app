@@ -68,7 +68,46 @@ COMMENT ON COLUMN stored_companies.last_fetched IS 'When we last fetched/updated
 COMMENT ON COLUMN stored_companies.keep_in_database IS 'If true, keep forever; if false, can be cleaned up';
 
 -- ============================================
--- TABLE 3: recruiter_feedback
+-- TABLE 3: candidate_assessments
+-- Purpose: Store AI assessment results
+-- Features: Weighted scoring, custom requirements
+-- ============================================
+CREATE TABLE IF NOT EXISTS candidate_assessments (
+    id SERIAL PRIMARY KEY,
+    linkedin_url TEXT NOT NULL,
+    full_name TEXT,
+    headline TEXT,
+    profile_data JSONB,
+    assessment_data JSONB NOT NULL,
+    weighted_score NUMERIC(4,2),
+    overall_score NUMERIC(4,2),
+    assessment_type TEXT CHECK (assessment_type IN ('single', 'batch')),
+    session_name TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for faster lookups
+CREATE INDEX IF NOT EXISTS idx_candidate_assessments_linkedin_url
+    ON candidate_assessments(linkedin_url);
+CREATE INDEX IF NOT EXISTS idx_candidate_assessments_weighted_score
+    ON candidate_assessments(weighted_score DESC);
+CREATE INDEX IF NOT EXISTS idx_candidate_assessments_created_at
+    ON candidate_assessments(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_candidate_assessments_session_name
+    ON candidate_assessments(session_name);
+
+COMMENT ON TABLE candidate_assessments IS 'Stores AI assessment results for candidates';
+COMMENT ON COLUMN candidate_assessments.linkedin_url IS 'LinkedIn URL of the assessed candidate';
+COMMENT ON COLUMN candidate_assessments.profile_data IS 'Full CoreSignal profile JSON';
+COMMENT ON COLUMN candidate_assessments.assessment_data IS 'Complete AI assessment JSON';
+COMMENT ON COLUMN candidate_assessments.weighted_score IS 'Final weighted score (0-10)';
+COMMENT ON COLUMN candidate_assessments.overall_score IS 'Overall score before weighting (0-10)';
+COMMENT ON COLUMN candidate_assessments.assessment_type IS 'Type: single or batch assessment';
+COMMENT ON COLUMN candidate_assessments.session_name IS 'Optional grouping identifier for batch assessments';
+
+-- ============================================
+-- TABLE 4: recruiter_feedback
 -- Purpose: Store recruiter notes, likes, dislikes
 -- Features: Multi-recruiter support, auto-save
 -- ============================================
@@ -119,6 +158,12 @@ CREATE TRIGGER update_stored_companies_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_candidate_assessments_updated_at ON candidate_assessments;
+CREATE TRIGGER update_candidate_assessments_updated_at
+    BEFORE UPDATE ON candidate_assessments
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 DROP TRIGGER IF EXISTS update_recruiter_feedback_updated_at ON recruiter_feedback;
 CREATE TRIGGER update_recruiter_feedback_updated_at
     BEFORE UPDATE ON recruiter_feedback
@@ -126,26 +171,41 @@ CREATE TRIGGER update_recruiter_feedback_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
--- ROW LEVEL SECURITY (RLS) - Recommended
+-- ROW LEVEL SECURITY (RLS) - CRITICAL!
 -- ============================================
+-- IMPORTANT: RLS policies control data access
+-- We're using ANON KEY for API calls, so policies must allow anon role
+-- ============================================
+
 ALTER TABLE stored_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stored_companies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE candidate_assessments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE recruiter_feedback ENABLE ROW LEVEL SECURITY;
 
--- Allow backend service key to do everything
-DROP POLICY IF EXISTS "Service role can do everything on stored_profiles" ON stored_profiles;
-CREATE POLICY "Service role can do everything on stored_profiles"
+-- Allow ANON role (API key) to do everything
+-- This is safe since this is a single-user recruiter tool
+DROP POLICY IF EXISTS "Allow anon access to stored_profiles" ON stored_profiles;
+CREATE POLICY "Allow anon access to stored_profiles"
     ON stored_profiles FOR ALL
+    TO anon
     USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Service role can do everything on stored_companies" ON stored_companies;
-CREATE POLICY "Service role can do everything on stored_companies"
+DROP POLICY IF EXISTS "Allow anon access to stored_companies" ON stored_companies;
+CREATE POLICY "Allow anon access to stored_companies"
     ON stored_companies FOR ALL
+    TO anon
     USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Service role can do everything on recruiter_feedback" ON recruiter_feedback;
-CREATE POLICY "Service role can do everything on recruiter_feedback"
+DROP POLICY IF EXISTS "Allow anon access to candidate_assessments" ON candidate_assessments;
+CREATE POLICY "Allow anon access to candidate_assessments"
+    ON candidate_assessments FOR ALL
+    TO anon
+    USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow anon access to recruiter_feedback" ON recruiter_feedback;
+CREATE POLICY "Allow anon access to recruiter_feedback"
     ON recruiter_feedback FOR ALL
+    TO anon
     USING (true) WITH CHECK (true);
 
 -- ============================================
@@ -174,9 +234,16 @@ COMMENT ON FUNCTION cleanup_temporary_data IS 'Deletes old temporary data. Run p
 -- VERIFICATION QUERIES
 -- Run these after creating tables to verify
 -- ============================================
+-- Check that all 4 tables were created
 SELECT table_name,
        (SELECT count(*) FROM information_schema.columns WHERE table_name = t.table_name) as column_count
 FROM information_schema.tables t
 WHERE table_schema = 'public'
-  AND table_name IN ('stored_profiles', 'stored_companies', 'recruiter_feedback')
+  AND table_name IN ('stored_profiles', 'stored_companies', 'candidate_assessments', 'recruiter_feedback')
 ORDER BY table_name;
+
+-- Verify RLS policies are set correctly (should show policies for anon role)
+SELECT schemaname, tablename, policyname, roles
+FROM pg_policies
+WHERE tablename IN ('stored_profiles', 'stored_companies', 'candidate_assessments', 'recruiter_feedback')
+ORDER BY tablename, policyname;
