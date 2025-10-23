@@ -1,300 +1,337 @@
 # LinkedIn Profile AI Assessor
 
-A full-stack web application that analyzes LinkedIn profiles using AI to provide comprehensive professional assessments. The system fetches LinkedIn profile data via CoreSignal API and uses Claude AI to generate detailed evaluations.
+A full-stack LinkedIn profile assessment application that combines CoreSignal API for profile data with Claude AI for intelligent candidate evaluation. The system supports single profile assessment, batch processing via CSV, intelligent profile search with natural language queries, and a comprehensive recruiter feedback system.
 
-## Features
+## 🎯 Features
 
-### Core Features
-- 🔍 **LinkedIn URL Input**: Simply paste a LinkedIn profile URL
-- 🤖 **AI-Powered Assessment**: Uses Claude Sonnet 4.5 for intelligent profile analysis (best for coding and complex agents)
-- 📊 **Comprehensive Scoring**: 1-10 scale with weighted requirements
-- ✅ **Binary Recommendation**: Clear recommend/not recommend decision
-- 🎯 **Custom Criteria**: Specify assessment criteria for targeted evaluation
-- 📱 **Modern UI**: Clean, responsive React frontend
+### Core Assessment Features
+- 🔍 **Single Profile Assessment**: Analyze individual LinkedIn profiles with AI-powered evaluation
+- 📦 **Batch Processing**: Upload CSV files for parallel candidate assessment (15-50 concurrent workers)
+- 🔎 **Intelligent Search**: Find profiles using natural language queries (e.g., "Find me a technical leader with AI/ML experience in the Bay Area")
+- 🎯 **Weighted Requirements**: Define up to 5 custom criteria with percentage weights for targeted scoring
+- 💾 **Database Storage**: Save and load assessments via Supabase with session grouping
 
-### NEW: Enhanced Recruiter UX (Phase 1)
-- 🏢 **Company Intelligence Tooltips**: Hover over company names to see funding data, stage, growth signals
-- 💼 **LinkedIn-Style Work Experience Cards**: Familiar interface with enriched company context
+### NEW: Recruiter Feedback System (Phase 2) ✅
+- 👍 **Quick Feedback Buttons**: Like, Dislike, and Pass reasons with pre-defined options
+- 📝 **Custom Notes**: Add detailed feedback with auto-save functionality
+- 🎤 **Voice-to-Text**: Record notes using Web Speech API for hands-free input
+- 📊 **Feedback History**: View all previous feedback from multiple recruiters with timestamps
+- 👥 **Multi-Recruiter Support**: Track which recruiter gave which feedback
+- 🎨 **Visual Indicators**: Pulsing green dots on candidates with existing feedback
+- 💫 **Sliding Drawer UI**: Clean, modern interface that stays visible while scrolling
+
+### NEW: Viewport-Aware Accordion Management ✅
+- 👁️ **Intersection Observer**: Automatically detects which candidate is most visible in viewport
+- 🎯 **Smart Auto-Collapse**: Opening feedback drawer collapses other accordions to prevent UI overlap
+- 📍 **Context-Aware**: Feedback opens for the candidate you're currently viewing, not just the one clicked
+- 🔄 **Race Condition Free**: Eliminated infinite toggle loops with controlled React state
+- ✨ **Visual Highlighting**: Active cards show purple border and gradient background
+
+### Company Intelligence (Phase 1) ✅
+- 🏢 **Company Tooltips**: Hover over company names to see funding, growth signals, employee count
+- 💼 **LinkedIn-Style Cards**: Familiar work experience display with enriched company context
 - 🎨 **Visual Indicators**: Color-coded funding stages (Seed, Series A/B, Growth, Public, Mature)
-- 💰 **One-Stop Research Hub**: No need to switch between LinkedIn and Crunchbase
-- 🚀 **Growth Signals**: Hypergrowth, Recently Funded, B2B, Modern Tech Stack indicators
+- 🖼️ **Company Logos**: Display company logos with fallback icons
+- 💰 **One-Stop Research**: No need to switch between LinkedIn and Crunchbase
 - 📊 **API Cost Optimization**: Only enriches companies from 2020+ (saves 60-80% API credits)
 
-### Additional Features
-- 📦 **Batch Processing**: Upload CSV with multiple LinkedIn URLs for parallel assessment
-- 🔎 **Natural Language Search**: Find candidates using conversational queries
-- 💾 **Database Storage**: Save and load assessments via Supabase
-- 📈 **Real-time Progress**: Loading overlays with progress tracking
-- 🎯 **Weighted Requirements**: Assign percentage weights to up to 5 custom criteria
-
-## Tech Stack
+## 🛠️ Tech Stack
 
 ### Backend
-- **Flask**: Python web framework
-- **CoreSignal API**: LinkedIn profile data extraction
-- **Anthropic Claude**: AI assessment engine
-- **CORS**: Cross-origin resource sharing
+- **Flask** + **Gunicorn**: Python web framework with WSGI server (120s timeout for batch processing)
+- **Anthropic Claude Sonnet 4.5**: AI assessment engine (claude-sonnet-4-5-20250929)
+- **CoreSignal API**: LinkedIn profile data extraction with company enrichment
+- **Supabase**: PostgreSQL database via REST API for storing assessments and feedback
+- **aiohttp**: Async HTTP requests for parallel profile fetching
+- **ThreadPoolExecutor**: Concurrent AI assessments (15-50 workers based on deployment)
 
 ### Frontend
-- **React**: Modern JavaScript framework
-- **CSS3**: Responsive styling
-- **Fetch API**: HTTP requests
+- **React 19**: Modern JavaScript framework with hooks
+- **CSS3**: Responsive styling with modern UI patterns
+- **Intersection Observer API**: Viewport detection for smart accordion management
+- **Web Speech API**: Voice-to-text for recruiter notes
+- **Fetch API**: HTTP requests with progress tracking
 
-## Setup Instructions
+### Deployment
+- **Render**: Cloud hosting platform with auto-deploy from GitHub
+- **Environment-based config**: Separate configs for development/production (config.py)
+
+## 🚀 Quick Start
 
 ### Prerequisites
 - Python 3.9+
 - Node.js 16+
-- CoreSignal API key
-- Anthropic API key
+- API Keys:
+  - CoreSignal API key
+  - Anthropic API key
+  - Supabase URL and Key
 
 ### Backend Setup
 
-1. **Navigate to backend directory:**
-   ```bash
-   cd backend
-   ```
+```bash
+cd backend
+pip install -r requirements.txt
 
-2. **Install Python dependencies:**
-   ```bash
-   pip3 install -r requirements.txt
-   ```
+# Set environment variables
+export ANTHROPIC_API_KEY="your_anthropic_key"
+export CORESIGNAL_API_KEY="your_coresignal_key"
+export SUPABASE_URL="your_supabase_url"
+export SUPABASE_KEY="your_supabase_anon_key"
 
-3. **Set environment variables:**
-   ```bash
-   export ANTHROPIC_API_KEY="your_anthropic_api_key_here"
-   ```
-
-4. **Start the Flask server:**
-   ```bash
-   python3 app.py
-   ```
-   Server will run on `http://localhost:5001`
+# Run Flask server (port 5001)
+python3 app.py
+```
 
 ### Frontend Setup
 
-1. **Navigate to frontend directory:**
-   ```bash
-   cd frontend
-   ```
+```bash
+cd frontend
+npm install
 
-2. **Install Node.js dependencies:**
-   ```bash
-   npm install
-   ```
+# Development server (port 3000)
+npm start
 
-3. **Start the React development server:**
-   ```bash
-   npm start
-   ```
-   App will run on `http://localhost:3000`
-
-## Usage
-
-1. **Open the application** in your browser at `http://localhost:3000`
-2. **Enter a LinkedIn URL** in the format: `https://www.linkedin.com/in/username`
-3. **Add assessment criteria** (optional) to focus the evaluation
-4. **Click "Assess Profile"** to get AI-powered analysis
-5. **Review the results** including score, strengths, weaknesses, and recommendation
-
-## API Endpoints
-
-### `POST /fetch-profile`
-Fetches LinkedIn profile data from CoreSignal API.
-
-**Request:**
-```json
-{
-  "linkedin_url": "https://www.linkedin.com/in/username"
-}
+# Production build
+npm run build
+# Then copy build/* to backend/ for deployment
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "profile_data": { ... },
-  "employee_id": "123456"
-}
+### Database Setup
+
+1. Create a Supabase project
+2. Run the SQL schema from `docs/SUPABASE_SCHEMA.sql`
+3. Tables created:
+   - `stored_profiles` - Profile caching
+   - `stored_companies` - Company data caching
+   - `candidate_assessments` - AI assessment results
+   - `recruiter_feedback` - Feedback notes and ratings
+
+## 📖 Usage
+
+### 1. Single Profile Assessment
+1. Select "Single Profile" mode
+2. Enter LinkedIn profile URL
+3. (Optional) Add assessment criteria and weighted requirements
+4. Click "Assess Profile"
+5. View detailed assessment with work experience and company intelligence
+6. Add feedback using the feedback drawer (purple tab on right)
+
+### 2. Batch Processing
+1. Select "Batch Processing" mode
+2. Upload CSV with column: "Profile URL" or "LinkedIn URL"
+3. (Optional) Add assessment criteria
+4. Click "Assess Candidates"
+5. View ranked results sorted by weighted score
+6. Save to database or export results
+
+### 3. Intelligent Search
+1. Select "Profile Search" mode
+2. Enter natural language query (e.g., "Find me a sales director in healthcare based in New York")
+3. Select number of profiles (20-100)
+4. Click "Search Profiles"
+5. Download CSV with matching profiles
+
+### 4. Recruiter Feedback
+1. Open any candidate accordion
+2. Click the purple feedback tab on the right edge
+3. Choose quick feedback (Like/Dislike/Pass) or add custom notes
+4. Use microphone icon for voice-to-text
+5. Feedback auto-saves to database
+6. View feedback history for all previous notes
+
+## 🔑 Key API Endpoints
+
+### Profile Assessment
+- `POST /fetch-profile` - Fetch LinkedIn profile data from CoreSignal
+- `POST /assess-profile` - Generate AI assessment with weighted scoring
+- `POST /batch-assess-profiles` - Process multiple candidates in parallel
+
+### Profile Search
+- `POST /search-profiles` - Natural language search → CoreSignal query → CSV export
+
+### Database Operations
+- `POST /save-assessment` - Store assessment in Supabase
+- `GET /load-assessments` - Retrieve all stored assessments
+
+### Feedback System
+- `POST /save-feedback` - Save recruiter feedback (likes/dislikes/notes)
+- `GET /get-feedback-history` - Load all feedback for a candidate
+
+## 📂 Project Structure
+
 ```
-
-### `POST /assess-profile`
-Generates AI assessment of the profile.
-
-**Request:**
-```json
-{
-  "profile_data": { ... },
-  "user_prompt": "Assessment criteria"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "profile_summary": { ... },
-  "assessment": {
-    "overall_score": 8,
-    "recommend": true,
-    "strengths": [...],
-    "weaknesses": [...],
-    "career_trajectory": "...",
-    "detailed_analysis": "..."
-  }
-}
-```
-
-### `GET /health`
-Health check endpoint.
-
-**Response:**
-```json
-{
-  "status": "healthy"
-}
-```
-
-## Project Structure
-
-```
-linkedin-assessor/
+linkedin_profile_ai_assessor/
 ├── backend/
-│   ├── app.py                      # Flask application (1470 lines)
+│   ├── app.py                      # Main Flask application (1317 lines)
 │   ├── coresignal_service.py       # CoreSignal API integration with enrichment
-│   ├── config.py                   # Deployment configuration
+│   ├── config.py                   # Deployment-specific configuration
 │   ├── requirements.txt            # Python dependencies
-│   └── input_values.json          # Valid search field values
+│   └── [frontend build files]      # Served by Flask in production
 ├── frontend/
 │   ├── src/
-│   │   ├── components/            # NEW: React components
-│   │   │   ├── CompanyTooltip.js       # Enriched company data tooltip
+│   │   ├── App.js                  # Main React component (2300+ lines)
+│   │   ├── App.css                 # Styling with feedback drawer, accordions
+│   │   ├── components/
+│   │   │   ├── CompanyTooltip.js          # Company intelligence tooltip
 │   │   │   ├── CompanyTooltip.css
-│   │   │   ├── WorkExperienceCard.js   # LinkedIn-style experience card
+│   │   │   ├── WorkExperienceCard.js      # LinkedIn-style experience card
 │   │   │   ├── WorkExperienceCard.css
-│   │   │   ├── WorkExperienceSection.js # Work history container
+│   │   │   ├── WorkExperienceSection.js   # Work history container
 │   │   │   └── WorkExperienceSection.css
-│   │   ├── App.js                 # Main React component (1700 lines)
-│   │   ├── App.css                # Styling
-│   │   └── index.js               # React entry point
-│   ├── package.json               # Node.js dependencies
-│   └── public/                    # Static assets
-├── docs/                          # Documentation
-│   ├── COMMUNICATION_LOG.md       # Change history and decisions
-│   ├── ENHANCED_UX_GUIDE.md       # User guide for new features
-│   ├── TESTING_GUIDE.md           # Testing instructions
-│   ├── API_OPTIMIZATION_SUMMARY.md # Cost optimization details
-│   ├── HEADLINE_FRESHNESS_FIX.md
-│   └── IMPLEMENTATION_SUMMARY.md
-├── .gitignore
-└── README.md                      # This file
+│   │   └── index.js                # React entry point
+│   ├── package.json                # Node.js dependencies
+│   ├── public/                     # Static assets
+│   └── build/                      # Production build
+├── docs/
+│   ├── SUPABASE_SCHEMA.sql         # Database schema
+│   ├── README.md                   # Documentation index
+│   ├── archived/                   # Historical documentation
+│   ├── investigations/             # Research and analysis
+│   └── technical-decisions/        # Architecture decisions
+├── render.yaml                     # Render deployment config
+├── requirements.txt                # Root dependencies
+├── runtime.txt                     # Python version for Render
+├── .gitignore                      # Git ignore rules
+└── README.md                       # This file
 ```
 
-## Configuration
+## 🎨 Key Implementation Details
 
-### CoreSignal API
-The CoreSignal API key is hardcoded in `coresignal_service.py`. For production, move this to environment variables.
+### Weighted Scoring System
+- Supports up to 5 custom requirements with percentage weights
+- Each requirement scored 1-10 with detailed analysis
+- General fit auto-calculated from remaining percentage (100% - custom weights)
+- Final weighted score = Σ(requirement_score × weight%)
 
-### Anthropic API
-Set your Anthropic API key as an environment variable:
+### CoreSignal Integration
+- **Profile Fetching**: Two-step process (search by URL → fetch full profile by ID)
+- **Company Enrichment**: Uses `/company_base/` endpoint for richer data (45+ fields)
+- **Smart Caching**: Session-based caching to avoid redundant API calls
+- **Freshness Tracking**: Uses CoreSignal's `checked_at` timestamp for data recency
+
+### AI Assessment
+- **Model**: Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
+- **Temperature**: 0.1 for consistency
+- **Prompt Engineering**: Structured rubric with weighted criteria
+- **Experience Calculation**: Handles overlapping roles with interval merging
+
+### Batch Processing
+- **Concurrency**: 15-50 workers based on deployment (Heroku: 15, Render: 50)
+- **Profile Fetching**: Async with aiohttp for parallel API calls
+- **AI Assessment**: ThreadPoolExecutor for concurrent evaluations
+- **Timeout Protection**: 25-60s timeouts based on environment
+- **Progress Tracking**: Real-time completion count updates
+
+### Feedback System Architecture
+- **Database**: Supabase `recruiter_feedback` table
+- **State Management**: React hooks with per-candidate tracking
+- **Auto-Save**: Triggers on blur, drawer close, or accordion collapse
+- **Voice Input**: Web Speech API with continuous recognition
+- **Viewport Detection**: Intersection Observer API for context awareness
+
+### Viewport-Aware Accordion Management
+- **Intersection Observer**: Tracks visibility ratio (0-1) for each candidate card
+- **Thresholds**: 11 levels (0, 0.1, 0.2, ..., 1.0) for precise detection
+- **Auto-Collapse**: When feedback drawer opens, other accordions collapse
+- **Controlled State**: Single source of truth via `openAccordionId` state
+- **Race Condition Prevention**: `e.preventDefault()` on summary clicks
+
+## 🔐 Security & Configuration
+
+### Environment Variables (Required)
 ```bash
-export ANTHROPIC_API_KEY="your_key_here"
+ANTHROPIC_API_KEY=sk-ant-...        # Anthropic API key
+CORESIGNAL_API_KEY=...              # CoreSignal API key
+SUPABASE_URL=https://...            # Supabase project URL
+SUPABASE_KEY=eyJ...                 # Supabase anon key
 ```
 
-## Scoring System
+### Important Notes
+- ⚠️ **No hardcoded API keys** - All credentials must be in environment variables
+- 🔒 **Row Level Security** - Supabase RLS policies enabled (anon role has full access)
+- 📁 **Git Security** - API keys removed from all files (see commit 1458b84)
 
-The AI assessment uses a rigorous 1-10 scoring system:
+## 📊 Performance & Optimization
 
-- **9-10**: Exceptional fit - meets all key requirements
-- **7-8**: Good fit - minor gaps but strong potential
-- **5-6**: Moderate fit - some significant gaps but potential
-- **3-4**: Poor fit - major gaps, better suited for different roles
-- **1-2**: Not recommended - fundamental mismatches
+### API Cost Optimization
+- **Company Enrichment**: Only fetches data for jobs starting 2020+
+- **Savings**: 60-80% reduction in API credits per profile
+- **Caching**: Session-based storage prevents duplicate fetches
+- **Smart Filtering**: Skips old/irrelevant companies automatically
 
----
+### Deployment Configuration
+**Render (Production):**
+- 50 concurrent workers
+- 60s timeout
+- 100 profiles per batch
+- Gunicorn with 120s timeout
 
-## Enhanced Recruiter UX (NEW)
+**Heroku (Alternative):**
+- 15 concurrent workers
+- 25s timeout
+- 50 profiles per batch
+- More conservative for smaller dynos
 
-### Company Intelligence Tooltips
+## 🗺️ Roadmap
 
-The app now displays enriched company data inline with work experience, eliminating the need to switch between LinkedIn and Crunchbase.
-
-**How to Use:**
-1. Enable "🏢 Deep Dive Company Research" checkbox when assessing a profile
-2. View the candidate's detailed assessment
-3. Scroll to the "Work Experience" section
-4. **Hover over company names** (blue text with ℹ️ icon) to see tooltips
-
-**Tooltip Data:**
-- 💰 Funding stage (Seed, Series A/B/C, Growth, Public)
-- 💵 Amount raised
-- 📊 Total funding rounds
-- 🏭 Company type (Public, Private, Non-Profit)
-- 📅 Company age
-- 📍 Headquarters location
-- 👥 Employee count
-- 💼 Business model (B2B/B2C)
-- 🚀 Growth signals (Hypergrowth, Recently Funded, Modern Tech, etc.)
-
-**Visual Indicators:**
-- 🌱 Seed stage (green)
-- 🚀 Series A (blue)
-- 📈 Series B (orange)
-- 📊 Growth/Late Stage (purple)
-- 🏛️ Public (gray)
-- 🏢 Mature (brown)
-
-**API Cost Optimization:**
-- Only enriches companies from jobs starting in 2020 or later
-- Saves 60-80% of API credits per profile
-- Focuses on recent, relevant experience
-- Session-based caching for repeated companies
-
-**For detailed information, see:**
-- [Enhanced UX Guide](ENHANCED_UX_GUIDE.md) - Complete user guide
-- [Testing Guide](TESTING_GUIDE.md) - How to test the features
-- [API Optimization Summary](API_OPTIMIZATION_SUMMARY.md) - Cost savings details
-
----
-
-## Documentation
-
-- **[COMMUNICATION_LOG.md](COMMUNICATION_LOG.md)** - Complete history of changes and decisions
-- **[ENHANCED_UX_GUIDE.md](ENHANCED_UX_GUIDE.md)** - User guide for company intelligence features
-- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Testing scenarios and debugging tips
-- **[API_OPTIMIZATION_SUMMARY.md](API_OPTIMIZATION_SUMMARY.md)** - API cost optimization strategies
-- **[CLAUDE.md](CLAUDE.md)** - Project instructions for Claude Code
-
----
-
-## Roadmap
-
-### Phase 1: Company Intelligence Tooltips ✅ COMPLETED
+### Phase 1: Company Intelligence ✅ COMPLETED
 - LinkedIn-style work experience cards
 - Interactive company tooltips with funding data
 - Visual indicators for company stage
 - API cost optimization (2020+ filter)
 
-### Phase 2: Recruiter Feedback System (PLANNED)
-- 👍 Like/Dislike buttons
-- 🚩 Custom red flags
-- ✅ Custom green flags
-- 📝 Notes on candidates
-- 🧠 Pattern learning from feedback
+### Phase 2: Recruiter Feedback System ✅ COMPLETED
+- Like/Dislike/Pass buttons with reasons
+- Custom notes with auto-save
+- Voice-to-text recording
+- Feedback history display
+- Multi-recruiter support
+- Viewport-aware accordion management
 
 ### Phase 3: Auto-Flagging & Intelligence (PLANNED)
 - Automatic flagging based on recruiter patterns
 - Smart candidate recommendations
-- Feedback dashboard
+- Feedback dashboard with analytics
 - Pattern visualization
+- ML-based scoring refinement
+
+## 📚 Documentation
+
+- **[CLAUDE.md](CLAUDE.md)** - Project instructions for Claude Code
+- **[docs/SUPABASE_SCHEMA.sql](docs/SUPABASE_SCHEMA.sql)** - Complete database schema
+- **[docs/](docs/)** - Comprehensive documentation folder
+  - `archived/` - Historical analysis and decisions
+  - `investigations/` - Research reports
+  - `technical-decisions/` - Architecture choices
+
+## 🤝 Contributing
+
+This is a proprietary recruiter tool. For feature requests or bug reports, please check the documentation first.
+
+## 📝 Recent Updates (Latest Commit)
+
+**Commit**: feat: Add feedback system, viewport detection, and security hardening
+
+**Major Changes:**
+- ✅ Implemented comprehensive recruiter feedback system with database persistence
+- ✅ Added Intersection Observer for viewport-aware accordion management
+- ✅ Fixed all race conditions in accordion state management
+- ✅ Removed all hardcoded API keys (security hardening)
+- ✅ Enhanced company data fetching with /company_base/ endpoint
+- ✅ Added company logo display with fallback icons
+- ✅ Fixed modal size constraints for better UX
+- ✅ Moved all documentation to docs/ folder
+
+**Technical Improvements:**
+- 859 lines changed in App.js (feedback system, viewport detection)
+- Controlled accordion components with React state
+- Fixed-position feedback drawer for better scroll behavior
+- Enhanced headline extraction with multi-level fallback
+- Improved date parsing with robust error handling
 
 ---
 
-## Contributing
-
-For feature requests or bug reports, please check the [Communication Log](COMMUNICATION_LOG.md) first to see if it's already been addressed.
-
----
+**Built with Claude Code** - [https://claude.com/claude-code](https://claude.com/claude-code)
 
 ## License
 
