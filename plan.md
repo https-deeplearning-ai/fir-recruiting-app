@@ -15,6 +15,37 @@ Transform the LinkedIn Profile AI Assessor into a comprehensive recruitment inte
 
 ## 📅 Phase 1: Chrome Extension Development (Week 1-2) ✅ COMPLETED
 
+### Implementation Notes & Deviations
+
+**✅ Implemented as Planned:**
+- Chrome extension with "Add to List" functionality
+- Profile data extraction from LinkedIn DOM
+- Complete backend API (11 endpoints total)
+- Database schema with new tables
+- List management and statistics
+
+**🔄 Changed from Original Plan:**
+1. **Removed:** `POST /extension/quick-assess` endpoint
+   - Original: Instant single-profile assessment from extension
+   - Changed to: Two-stage approach (bookmark now, assess later in batch)
+   - Reason: More efficient API usage, better UX for batch operations
+
+2. **Added:** `GET /lists/{id}/export-csv` endpoint
+   - Not in original plan
+   - Enables complete workflow → LinkedIn Recruiter integration
+   - User requested: "Have them directly pulled into LinkedIn recruiter project"
+
+3. **Deferred:** Batch operations from LinkedIn search results
+   - Marked as "Future enhancement"
+   - Focus on core workflow first
+
+**🎯 Phase 1 Deliverables:**
+- ✅ Chrome extension (complete and functional)
+- ✅ Backend API (11 endpoints)
+- ✅ Database schema (3 new tables)
+- ✅ Complete workflow: Browse → Bookmark → Assess → Export
+- ✅ Documentation (API reference, testing guide, quick start)
+
 ### Chrome Extension Features
 - [x] **"Add to Assessor" button** on LinkedIn profiles ✅
 - [x] **Quick Actions Menu**: ✅
