@@ -3,7 +3,7 @@
 /* Lists View Container */
 .lists-view {
   width: 100%;
-  max-width: 1200px;
+  max-width: 95vw; /* Use 95% of viewport width */
   margin: 0 auto;
   padding: 20px;
 }
@@ -259,7 +259,7 @@
 
 .list-detail {
   width: 100%;
-  max-width: 1200px;
+  max-width: 95vw; /* Use 95% of viewport width */
   margin: 0 auto;
   padding: 20px;
 }

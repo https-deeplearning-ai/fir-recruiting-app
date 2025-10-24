@@ -7,7 +7,7 @@
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 95vw; /* Use 95% of viewport width for wider layout */
   margin: 0 auto;
   background: white;
   border-radius: 12px;
