@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import JsonView from '@uiw/react-json-view';
 import WorkExperienceSection from './components/WorkExperienceSection';
+import ListsView from './components/ListsView';
 import './App.css';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
   const [searchMode, setSearchMode] = useState(false);
+  const [listsMode, setListsMode] = useState(false);
   const [searchPrompt, setSearchPrompt] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [profileCount, setProfileCount] = useState(20);
@@ -1459,7 +1461,9 @@ function App() {
           </div>
         </div>
         <p className="description">
-          {searchMode
+          {listsMode
+            ? 'View and manage candidate lists created from the Chrome extension'
+            : searchMode
             ? 'Search for LinkedIn profiles using natural language and download results as CSV'
             : batchMode
             ? 'Upload a CSV file with LinkedIn URLs for batch assessment'
@@ -1467,36 +1471,54 @@ function App() {
         </p>
 
         <div className="mode-toggle">
-          <button 
-            className={`mode-btn ${!batchMode && !searchMode ? 'active' : ''}`}
+          <button
+            className={`mode-btn ${!batchMode && !searchMode && !listsMode ? 'active' : ''}`}
             onClick={() => {
               setBatchMode(false);
               setSearchMode(false);
+              setListsMode(false);
             }}
           >
             Single Profile
           </button>
-          <button 
+          <button
             className={`mode-btn ${searchMode ? 'active' : ''}`}
             onClick={() => {
               setSearchMode(true);
               setBatchMode(false);
+              setListsMode(false);
             }}
           >
             Profile Search
           </button>
-          <button 
+          <button
             className={`mode-btn ${batchMode && !searchMode ? 'active' : ''}`}
             onClick={() => {
               setBatchMode(true);
               setSearchMode(false);
+              setListsMode(false);
             }}
           >
             Batch Processing
           </button>
+          <button
+            className={`mode-btn ${listsMode ? 'active' : ''}`}
+            onClick={() => {
+              setListsMode(true);
+              setBatchMode(false);
+              setSearchMode(false);
+            }}
+          >
+            Lists
+          </button>
         </div>
 
-        {searchMode ? (
+        {listsMode ? (
+          <ListsView
+            recruiterName={selectedRecruiter}
+            showNotification={showNotification}
+          />
+        ) : searchMode ? (
           <div className="search-form">
             <div className="form-group">
               <label htmlFor="searchPrompt">Describe the candidate you're looking for:</label>
