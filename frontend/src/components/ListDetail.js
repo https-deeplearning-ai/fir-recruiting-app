@@ -197,7 +197,7 @@ function ListDetail({ list, recruiterName, onBack, showNotification }) {
 
       {loading && (
         <div className="list-detail-loading">
-          <div className="loading-spinner"></div>
+          <div className="list-loading-spinner"></div>
           <p>Loading profiles...</p>
         </div>
       )}
