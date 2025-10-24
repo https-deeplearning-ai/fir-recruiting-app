@@ -202,19 +202,50 @@ function App() {
   };
 
   // Debounced note saver (2 second delay)
-  const debouncedSaveNote = React.useCallback(
-    (() => {
-      let timeout;
-      return (linkedinUrl, noteText) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-          saveFeedback(linkedinUrl, 'note', noteText);
-          showNotification('Feedback auto-saved');
-        }, 2000);
-      };
-    })(),
-    [selectedRecruiter]
-  );
+  // Use useRef to maintain debounce timeout across re-renders
+  const debounceTimeouts = React.useRef({});
+
+  // Handle note text change (with debounced auto-save)
+  const handleNoteChange = (linkedinUrl, noteText) => {
+    // Update local state immediately
+    setCandidateFeedback(prev => ({
+      ...prev,
+      [linkedinUrl]: {
+        ...prev[linkedinUrl],
+        note: noteText
+      }
+    }));
+
+    // Clear any existing timeout for this candidate
+    if (debounceTimeouts.current[linkedinUrl]) {
+      clearTimeout(debounceTimeouts.current[linkedinUrl]);
+    }
+
+    // Set new timeout for auto-save (2 seconds after typing stops)
+    debounceTimeouts.current[linkedinUrl] = setTimeout(async () => {
+      if (noteText && noteText.trim()) {
+        await saveFeedback(linkedinUrl, 'note', noteText);
+        showNotification('Feedback auto-saved');
+      }
+      // Clean up timeout reference
+      delete debounceTimeouts.current[linkedinUrl];
+    }, 2000);
+  };
+
+  // Handle note blur - cancel debounce and save immediately
+  const handleNoteBlur = async (linkedinUrl, noteText) => {
+    // Cancel any pending debounced save
+    if (debounceTimeouts.current[linkedinUrl]) {
+      clearTimeout(debounceTimeouts.current[linkedinUrl]);
+      delete debounceTimeouts.current[linkedinUrl];
+    }
+
+    // Save immediately on blur if there's text
+    if (noteText && noteText.trim()) {
+      await saveFeedback(linkedinUrl, 'note', noteText);
+      showNotification('Feedback saved');
+    }
+  };
 
   // Handle like/dislike button clicks
   const handleFeedbackClick = async (linkedinUrl, feedbackType) => {
@@ -228,28 +259,6 @@ function App() {
         [feedbackType]: true
       }
     }));
-  };
-
-  // Handle note text change (with debounced auto-save)
-  const handleNoteChange = (linkedinUrl, noteText) => {
-    // Update local state immediately
-    setCandidateFeedback(prev => ({
-      ...prev,
-      [linkedinUrl]: {
-        ...prev[linkedinUrl],
-        note: noteText
-      }
-    }));
-
-    // Debounced save to backend (2 seconds after typing stops)
-    debouncedSaveNote(linkedinUrl, noteText);
-  };
-
-  // Handle note blur - save immediately
-  const handleNoteBlur = async (linkedinUrl, noteText) => {
-    if (noteText && noteText.trim()) {
-      await saveFeedback(linkedinUrl, 'note', noteText);
-    }
   };
 
   // Voice-to-text recording
@@ -380,9 +389,17 @@ function App() {
 
   // Auto-save and collapse drawer
   const handleDrawerCollapse = async (linkedinUrl) => {
+    // Cancel any pending debounced save
+    if (debounceTimeouts.current[linkedinUrl]) {
+      clearTimeout(debounceTimeouts.current[linkedinUrl]);
+      delete debounceTimeouts.current[linkedinUrl];
+    }
+
+    // Save immediately if there's a note
     const note = candidateFeedback[linkedinUrl]?.note;
     if (note && note.trim()) {
       await saveFeedback(linkedinUrl, 'note', note);
+      showNotification('Feedback saved');
     }
     setDrawerOpen(prev => ({ ...prev, [linkedinUrl]: false }));
   };
