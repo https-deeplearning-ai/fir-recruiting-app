@@ -246,12 +246,13 @@ async function addToList() {
       updateListStats(listId);
 
       // Update tab icon to show profile was added
-      chrome.action.setBadgeText({ text: '✓', tabId: (await getCurrentTab()).id });
+      const currentTab = await getCurrentTab();
+      chrome.action.setBadgeText({ text: '✓', tabId: currentTab.id });
       chrome.action.setBadgeBackgroundColor({ color: '#10b981' });
 
       // Clear badge after 3 seconds
       setTimeout(() => {
-        chrome.action.setBadgeText({ text: '', tabId: (await getCurrentTab()).id });
+        chrome.action.setBadgeText({ text: '', tabId: currentTab.id });
       }, 3000);
     } else {
       const error = await response.json();

@@ -571,7 +571,7 @@ function showNotification(title, message, type = 'basic') {
   if (settings.enableNotifications !== false) {
     chrome.notifications.create({
       type: 'basic',
-      iconUrl: '../icons/icon128.png',
+      iconUrl: chrome.runtime.getURL('icons/icon128.png'),
       title: title,
       message: message,
       priority: 2
