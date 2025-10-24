@@ -33,6 +33,14 @@ anthropic_client = Anthropic(
 # Initialize services
 coresignal_service = CoreSignalService()
 
+# Import extension service (after defining constants)
+try:
+    from extension_service import ExtensionService
+    extension_service = ExtensionService()
+except ImportError as e:
+    print(f"Warning: Could not import ExtensionService: {e}")
+    extension_service = None
+
 # CoreSignal API configuration
 CORESIGNAL_API_KEY = os.getenv("CORESIGNAL_API_KEY")
 
@@ -1787,6 +1795,167 @@ def clear_feedback():
     except Exception as e:
         print(f"❌ Error clearing feedback: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+# ==================== CHROME EXTENSION API ENDPOINTS ====================
+
+@app.route('/extension/lists', methods=['GET'])
+def get_extension_lists():
+    """Get all lists for a recruiter"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    recruiter_name = request.args.get('recruiter_name', 'Unknown')
+
+    lists = extension_service.get_lists(recruiter_name)
+    return jsonify(lists)
+
+@app.route('/extension/create-list', methods=['POST'])
+def create_extension_list():
+    """Create a new list"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    data = request.json
+    recruiter_name = data.get('recruiter_name')
+    list_name = data.get('list_name')
+    job_template_id = data.get('job_template_id')
+    description = data.get('description')
+
+    if not recruiter_name or not list_name:
+        return jsonify({'error': 'recruiter_name and list_name are required'}), 400
+
+    result = extension_service.create_list(recruiter_name, list_name, job_template_id, description)
+
+    if result:
+        return jsonify(result), 201
+    else:
+        return jsonify({'error': 'Failed to create list'}), 500
+
+@app.route('/extension/lists/<list_id>', methods=['PUT'])
+def update_extension_list(list_id):
+    """Update a list"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    data = request.json
+    success = extension_service.update_list(list_id, data)
+
+    if success:
+        return jsonify({'message': 'List updated successfully'})
+    else:
+        return jsonify({'error': 'Failed to update list'}), 500
+
+@app.route('/extension/lists/<list_id>', methods=['DELETE'])
+def delete_extension_list(list_id):
+    """Delete (archive) a list"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    success = extension_service.delete_list(list_id)
+
+    if success:
+        return jsonify({'message': 'List deleted successfully'})
+    else:
+        return jsonify({'error': 'Failed to delete list'}), 500
+
+@app.route('/extension/lists/<list_id>/stats', methods=['GET'])
+def get_list_stats(list_id):
+    """Get statistics for a list"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    stats = extension_service.get_list_stats(list_id)
+
+    if stats:
+        return jsonify(stats)
+    else:
+        return jsonify({'error': 'List not found'}), 404
+
+@app.route('/extension/add-profile', methods=['POST'])
+def add_profile_to_list():
+    """Add a profile to a list (quick bookmark from extension)"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    data = request.json
+
+    # Validate required fields
+    if not data.get('linkedin_url'):
+        return jsonify({'error': 'linkedin_url is required'}), 400
+
+    if not data.get('list_id'):
+        return jsonify({'error': 'list_id is required'}), 400
+
+    result = extension_service.add_profile(data)
+
+    if result:
+        return jsonify({
+            'message': 'Profile added successfully',
+            'profile': result
+        }), 201
+    else:
+        return jsonify({'error': 'Failed to add profile'}), 500
+
+@app.route('/extension/profiles/<list_id>', methods=['GET'])
+def get_profiles_in_list(list_id):
+    """Get all profiles in a list"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    # Get filter parameters
+    filters = {}
+
+    if request.args.get('assessed'):
+        filters['assessed'] = request.args.get('assessed').lower() == 'true'
+
+    if request.args.get('min_score'):
+        try:
+            filters['min_score'] = float(request.args.get('min_score'))
+        except ValueError:
+            pass
+
+    if request.args.get('status'):
+        filters['status'] = request.args.get('status')
+
+    profiles = extension_service.get_profiles_in_list(list_id, filters if filters else None)
+    return jsonify(profiles)
+
+@app.route('/extension/profiles/<profile_id>/status', methods=['PUT'])
+def update_profile_status(profile_id):
+    """Update profile status"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    data = request.json
+    status = data.get('status')
+
+    if not status:
+        return jsonify({'error': 'status is required'}), 400
+
+    success = extension_service.update_profile_status(profile_id, status)
+
+    if success:
+        return jsonify({'message': 'Profile status updated'})
+    else:
+        return jsonify({'error': 'Failed to update profile status'}), 500
+
+@app.route('/extension/auth', methods=['GET'])
+def extension_auth():
+    """Simple authentication check for extension"""
+    # For now, just check if recruiter_name is provided
+    # In production, implement proper authentication
+    recruiter_name = request.args.get('recruiter_name')
+
+    if recruiter_name:
+        return jsonify({
+            'authenticated': True,
+            'recruiter_name': recruiter_name
+        })
+    else:
+        return jsonify({
+            'authenticated': False,
+            'error': 'recruiter_name required'
+        }), 401
 
 @app.route('/health', methods=['GET'])
 def health_check():
