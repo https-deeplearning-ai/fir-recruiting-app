@@ -84,44 +84,52 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true; // Keep message channel open for async response
 });
 
-// Create context menus
+// Create context menus (with permission check)
 function createContextMenus() {
+  // Check if contextMenus API is available
+  if (!chrome.contextMenus) {
+    console.log('[Service Worker] contextMenus API not available');
+    return;
+  }
+
   // Remove existing menus
-  chrome.contextMenus.removeAll();
+  chrome.contextMenus.removeAll(() => {
+    // Add to List context menu
+    chrome.contextMenus.create({
+      id: 'add-to-list',
+      title: 'Add to LinkedIn AI Assessor',
+      contexts: ['link'],
+      documentUrlPatterns: ['*://www.linkedin.com/*'],
+      targetUrlPatterns: ['*://www.linkedin.com/in/*']
+    });
 
-  // Add to List context menu
-  chrome.contextMenus.create({
-    id: 'add-to-list',
-    title: 'Add to LinkedIn AI Assessor',
-    contexts: ['link'],
-    documentUrlPatterns: ['*://www.linkedin.com/*'],
-    targetUrlPatterns: ['*://www.linkedin.com/in/*']
-  });
-
-  // Quick Assess context menu
-  chrome.contextMenus.create({
-    id: 'quick-assess',
-    title: 'Quick Assess Profile',
-    contexts: ['link'],
-    documentUrlPatterns: ['*://www.linkedin.com/*'],
-    targetUrlPatterns: ['*://www.linkedin.com/in/*']
+    // Quick Assess context menu
+    chrome.contextMenus.create({
+      id: 'quick-assess',
+      title: 'Quick Assess Profile',
+      contexts: ['link'],
+      documentUrlPatterns: ['*://www.linkedin.com/*'],
+      targetUrlPatterns: ['*://www.linkedin.com/in/*']
+    });
   });
 }
 
-// Handle context menu clicks
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  const profileUrl = info.linkUrl;
+// Handle context menu clicks (with permission check)
+if (chrome.contextMenus && chrome.contextMenus.onClicked) {
+  chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+    const profileUrl = info.linkUrl;
 
-  switch (info.menuItemId) {
-    case 'add-to-list':
-      await handleAddToListFromUrl(profileUrl, tab);
-      break;
+    switch (info.menuItemId) {
+      case 'add-to-list':
+        await handleAddToListFromUrl(profileUrl, tab);
+        break;
 
-    case 'quick-assess':
-      await handleQuickAssessFromUrl(profileUrl, tab);
-      break;
-  }
-});
+      case 'quick-assess':
+        await handleQuickAssessFromUrl(profileUrl, tab);
+        break;
+    }
+  });
+}
 
 // API Communication Functions
 
@@ -544,8 +552,14 @@ async function getRecruiterName() {
   return stored[config.STORAGE_KEYS.RECRUITER_NAME] || 'Unknown Recruiter';
 }
 
-// Show notification
+// Show notification (with permission check)
 function showNotification(title, message, type = 'basic') {
+  // Check if notifications API is available
+  if (!chrome.notifications) {
+    console.log('[Service Worker] Notifications API not available');
+    return;
+  }
+
   const settings = chrome.storage.local.get(config.STORAGE_KEYS.SETTINGS);
 
   if (settings.enableNotifications !== false) {
