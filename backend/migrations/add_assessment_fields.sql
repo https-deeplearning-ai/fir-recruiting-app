@@ -5,7 +5,7 @@
 -- Add assessment tracking fields to extension_profiles
 ALTER TABLE extension_profiles
 ADD COLUMN IF NOT EXISTS assessed BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS assessment_id UUID REFERENCES candidate_assessments(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS assessment_id INTEGER REFERENCES candidate_assessments(id) ON DELETE SET NULL,
 ADD COLUMN IF NOT EXISTS assessment_score FLOAT,
 ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending',
 ADD COLUMN IF NOT EXISTS exported_to_recruiter BOOLEAN DEFAULT false,
@@ -50,7 +50,7 @@ $$ LANGUAGE plpgsql;
 
 COMMENT ON TABLE recruiter_exports IS 'Tracks CSV exports to LinkedIn Recruiter';
 COMMENT ON COLUMN extension_profiles.assessed IS 'Whether full AI assessment has been run';
-COMMENT ON COLUMN extension_profiles.assessment_id IS 'Links to full assessment in candidate_assessments table';
+COMMENT ON COLUMN extension_profiles.assessment_id IS 'Links to full assessment in candidate_assessments table (INTEGER foreign key)';
 COMMENT ON COLUMN extension_profiles.assessment_score IS 'Cached score for quick filtering';
 COMMENT ON COLUMN extension_profiles.status IS 'Pipeline status: pending, assessed, exported, contacted, rejected';
 COMMENT ON COLUMN extension_profiles.exported_to_recruiter IS 'Whether exported to LinkedIn Recruiter';
