@@ -13,24 +13,30 @@ Transform the LinkedIn Profile AI Assessor into a comprehensive recruitment inte
 
 ---
 
-## 📅 Phase 1: Chrome Extension Development (Week 1-2)
+## 📅 Phase 1: Chrome Extension Development (Week 1-2) ✅ COMPLETED
 
 ### Chrome Extension Features
-- [ ] **"Add to Assessor" button** on LinkedIn profiles
-- [ ] **Quick Actions Menu**:
-  - [ ] Add to List
-  - [ ] Run Analysis
-  - [ ] Add to Job
-- [ ] **Profile Data Extraction** from DOM (saves API calls)
-- [ ] **Batch Operations** from LinkedIn search results
-- [ ] **List Management** - Create/select recruiter lists
+- [x] **"Add to Assessor" button** on LinkedIn profiles ✅
+- [x] **Quick Actions Menu**: ✅
+  - [x] Add to List ✅
+  - [x] Run Analysis ✅
+  - [ ] Add to Job (Phase 2)
+- [x] **Profile Data Extraction** from DOM (saves API calls) ✅
+- [ ] **Batch Operations** from LinkedIn search results (Future enhancement)
+- [x] **List Management** - Create/select recruiter lists ✅
 
 ### Backend API Extensions
-- [ ] `POST /extension/add-profile` - Quick add with minimal data
-- [ ] `POST /extension/quick-assess` - Instant assessment from extension
-- [ ] `GET /extension/lists` - Get recruiter's saved lists
-- [ ] `POST /extension/create-list` - Create new candidate list
-- [ ] `GET /extension/auth` - Validate extension user
+- [x] `POST /extension/add-profile` - Quick add with minimal data ✅
+- [x] `GET /extension/lists` - Get recruiter's saved lists ✅
+- [x] `POST /extension/create-list` - Create new candidate list ✅
+- [x] `PUT /extension/lists/{id}` - Update list details ✅
+- [x] `DELETE /extension/lists/{id}` - Archive list ✅
+- [x] `GET /extension/lists/{id}/stats` - List statistics ✅
+- [x] `GET /extension/profiles/{id}` - Get profiles with filters ✅
+- [x] `PUT /extension/profiles/{id}/status` - Update status ✅
+- [x] `GET /extension/auth` - Validate extension user ✅
+- [x] **NEW:** `POST /lists/{id}/assess` - Batch assess all profiles in list ✅
+- [x] **NEW:** `GET /lists/{id}/export-csv` - Export to LinkedIn Recruiter CSV ✅
 
 ### Database Schema Updates
 ```sql
@@ -665,6 +671,348 @@ const TemplateManager = () => {
 - [ ] Rollback plan ready
 - [ ] Monitoring in place
 - [ ] Legal review complete
+
+---
+
+## 🔄 Complete Workflow Diagrams
+
+### System Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          LinkedIn Profile AI Assessor                        │
+│                          Complete System Architecture                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────┐          ┌──────────────────┐         ┌─────────────────┐
+│  LinkedIn.com   │          │  Chrome Extension│         │   Web App       │
+│  (Profile Page) │◄────────►│  (User's Browser)│◄───────►│  (Render/Local) │
+└─────────────────┘          └──────────────────┘         └─────────────────┘
+                                      │                             │
+                                      │                             │
+                                      ▼                             ▼
+                             ┌─────────────────┐          ┌─────────────────┐
+                             │  Local Storage  │          │  Flask Backend  │
+                             │  (Settings)     │          │  (app.py)       │
+                             └─────────────────┘          └─────────────────┘
+                                                                    │
+                                    ┌───────────────────────────────┼────────────────────┐
+                                    │                               │                    │
+                                    ▼                               ▼                    ▼
+                          ┌──────────────────┐          ┌────────────────┐    ┌──────────────┐
+                          │  CoreSignal API  │          │  Claude AI     │    │  Supabase    │
+                          │  (Profile Data)  │          │  (Assessment)  │    │  (Database)  │
+                          └──────────────────┘          └────────────────┘    └──────────────┘
+                                    │                               │                    │
+                                    └───────────────────────────────┴────────────────────┘
+                                                        │
+                                                        ▼
+                                          ┌──────────────────────────┐
+                                          │  LinkedIn Recruiter      │
+                                          │  (CSV Import)            │
+                                          └──────────────────────────┘
+```
+
+### User Workflow: Browse → Assess → Export
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            USER WORKFLOW                                     │
+│                  Browse LinkedIn → Assess Candidates → Export                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+STAGE 1: BOOKMARKING (Chrome Extension)
+════════════════════════════════════════
+
+User on LinkedIn                Extension Popup               Backend API
+─────────────────                ───────────────               ───────────
+       │                                │                           │
+       │ 1. Browse profile               │                           │
+       │─────────────────►              │                           │
+       │                                │                           │
+       │ 2. Click extension icon         │                           │
+       │─────────────────►              │                           │
+       │                                │                           │
+       │                        3. Parse DOM (name, headline, etc) │
+       │                                │───────────►               │
+       │                                │                           │
+       │                        4. Select/Create List              │
+       │                                │                           │
+       │                        5. Click "Add to List"             │
+       │                                │──────────────────────────►│
+       │                                │   POST /extension/add-profile
+       │                                │                           │
+       │                                │   6. Store in database   │
+       │                                │      (extension_profiles) │
+       │                                │◄──────────────────────────│
+       │                                │   Success response        │
+       │◄───────────────────────────────│                           │
+       │ 7. Show success badge          │                           │
+       │                                │                           │
+
+STAGE 2: BATCH ASSESSMENT (Web Application)
+═══════════════════════════════════════════
+
+User on Web App                  Backend Processing          External APIs
+───────────────                  ──────────────────          ─────────────
+       │                                │                           │
+       │ 1. Open "Lists" view            │                           │
+       │─────────────────►              │                           │
+       │                                │                           │
+       │ 2. Select list "Senior Engineers"│                          │
+       │─────────────────►              │                           │
+       │                                │                           │
+       │ 3. Click "Assess All" button    │                           │
+       │─────────────────────────────►  │                           │
+       │    POST /lists/{id}/assess     │                           │
+       │                                │                           │
+       │                        4. Fetch unassessed profiles       │
+       │                                │  (assessed=false)         │
+       │                                │                           │
+       │                        5. For each profile:               │
+       │                                │──────────────────────────►│
+       │                                │   GET CoreSignal API      │
+       │                                │   (Full profile data)     │
+       │                                │◄──────────────────────────│
+       │                                │                           │
+       │                                │──────────────────────────►│
+       │                                │   POST Claude AI          │
+       │                                │   (Generate assessment)   │
+       │                                │◄──────────────────────────│
+       │                                │                           │
+       │                        6. Link assessment results         │
+       │                                │  (assessment_id,          │
+       │                                │   assessment_score,       │
+       │                                │   assessed=true)          │
+       │                                │                           │
+       │◄───────────────────────────────│                           │
+       │ 7. Display results             │                           │
+       │    (15 assessed, avg: 78.5)    │                           │
+       │                                │                           │
+
+STAGE 3: EXPORT TO RECRUITER (Web Application → LinkedIn Recruiter)
+═══════════════════════════════════════════════════════════════════
+
+User on Web App                  CSV Generation              LinkedIn Recruiter
+───────────────                  ──────────────              ──────────────────
+       │                                │                           │
+       │ 1. Click "Export to Recruiter" │                           │
+       │─────────────────────────────►  │                           │
+       │    GET /lists/{id}/export-csv  │                           │
+       │    ?min_score=75               │                           │
+       │                                │                           │
+       │                        2. Query assessed profiles         │
+       │                                │  (assessed=true,          │
+       │                                │   score >= 75)            │
+       │                                │                           │
+       │                        3. Build CSV file                  │
+       │                                │  first_name, last_name,   │
+       │                                │  email, note, tags        │
+       │                                │                           │
+       │                        4. Mark profiles exported          │
+       │                                │  (exported_to_recruiter=  │
+       │                                │   true, exported_at=NOW)  │
+       │                                │                           │
+       │◄───────────────────────────────│                           │
+       │ 5. Download CSV file           │                           │
+       │    "senior-engineers-2024-      │                           │
+       │     10-24.csv"                 │                           │
+       │                                │                           │
+       │ 6. Open LinkedIn Recruiter     │                           │
+       │─────────────────────────────────────────────────────────►│
+       │                                                            │
+       │ 7. Click "Add Candidates" → "Import from file"           │
+       │─────────────────────────────────────────────────────────►│
+       │                                                            │
+       │ 8. Select CSV file                                        │
+       │─────────────────────────────────────────────────────────►│
+       │                                                            │
+       │                                              9. Match candidates
+       │                                                 by name/LinkedIn
+       │                                                            │
+       │◄───────────────────────────────────────────────────────────│
+       │ 10. Candidates imported with notes & tags                │
+       │                                                            │
+```
+
+### Data Flow: Profile → Assessment → Export
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           DATA FLOW DIAGRAM                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Extension Bookmark              Full Assessment                CSV Export
+──────────────────              ───────────────                ──────────
+
+LinkedIn Profile                CoreSignal API                 LinkedIn Recruiter
+     │                               │                               │
+     │ Basic Data                    │ Full Profile Data             │ CSV Import
+     │ (DOM extraction)              │ (45+ fields)                  │ (Official feature)
+     │                               │                               │
+     ▼                               ▼                               ▼
+┌─────────────┐              ┌────────────────┐             ┌─────────────────┐
+│ Extension   │              │ Candidate      │             │ CSV File        │
+│ Profiles    │──────────────►│ Assessments    │─────────────►│ Download        │
+│ Table       │              │ Table          │             │                 │
+└─────────────┘              └────────────────┘             └─────────────────┘
+     │                               │                               │
+     │ Fields:                       │ Fields:                       │ Format:
+     │ - linkedin_url                │ - profile_data (JSONB)        │ - first_name
+     │ - name                        │ - assessment_data (JSONB)     │ - last_name
+     │ - headline                    │ - weighted_score              │ - email (blank)
+     │ - current_company             │ - requirements scores         │ - note (rich text)
+     │ - location                    │ - timestamp                   │ - tags
+     │ - assessed (false)            │                               │
+     │ - assessment_id (null)        │                               │ Note contains:
+     │ - assessment_score (null)     │                               │ - AI Score: X/100
+     │ - status (pending)            │                               │ - Top strengths
+     │                               │                               │ - LinkedIn URL
+     │                               │                               │ - Assessment date
+     ▼                               ▼                               ▼
+After Assessment:              After Export:                  LinkedIn Recruiter:
+- assessed = true              - exported_to_recruiter = true  - Creates project entry
+- assessment_id = UUID         - exported_at = timestamp       - Adds notes & tags
+- assessment_score = 87.5      - Tracked in recruiter_exports  - Links to profile
+- status = assessed            - CSV filename stored           - Ready for outreach
+```
+
+### Database Schema Relationships
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        DATABASE SCHEMA DIAGRAM                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────┐
+│  recruiter_lists     │
+│──────────────────────│
+│  id (PK)             │
+│  recruiter_name      │◄──────────┐
+│  list_name           │           │
+│  job_template_id (FK)│           │ Foreign Key
+│  profile_count       │           │ References
+│  assessed_count      │           │
+│  created_at          │           │
+└──────────────────────┘           │
+                                   │
+                                   │
+┌──────────────────────┐           │
+│ extension_profiles   │           │
+│──────────────────────│           │
+│  id (PK)             │           │
+│  list_id (FK)        │───────────┘
+│  linkedin_url        │
+│  name                │
+│  headline            │
+│  profile_data (JSONB)│
+│                      │           ┌────────────────────┐
+│  assessed            │           │ candidate_         │
+│  assessment_id (FK)  │──────────►│ assessments        │
+│  assessment_score    │           │────────────────────│
+│  status              │           │  id (PK)           │
+│                      │           │  linkedin_url      │
+│  exported_to_recruiter│          │  profile_data      │
+│  exported_at         │           │  assessment_data   │
+│                      │           │  weighted_score    │
+│  added_by            │           │  created_at        │
+│  added_at            │           └────────────────────┘
+└──────────────────────┘                    ▲
+                                            │
+                                            │ Foreign Key
+                                            │ References
+                                            │
+┌──────────────────────┐                   │
+│ recruiter_exports    │                   │
+│──────────────────────│                   │
+│  id (PK)             │                   │
+│  list_id (FK)        │───────────────────┘
+│  exported_by         │
+│  candidate_count     │
+│  min_score_filter    │
+│  csv_filename        │
+│  exported_at         │
+│  notes               │
+└──────────────────────┘
+
+Relationships:
+- extension_profiles.list_id → recruiter_lists.id (Many-to-One)
+- extension_profiles.assessment_id → candidate_assessments.id (One-to-One)
+- recruiter_exports.list_id → recruiter_lists.id (Many-to-One)
+```
+
+### API Endpoint Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         API ENDPOINT FLOW                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+CHROME EXTENSION ENDPOINTS
+═══════════════════════════
+
+POST /extension/add-profile
+────────────────────────────
+Input:  { list_id, linkedin_url, name, headline, profile_data, added_by }
+Action: 1. Check if profile exists in list
+        2. If exists: UPDATE extension_profiles
+        3. If new: INSERT INTO extension_profiles
+        4. Update list counts (profile_count)
+Output: { success: true, profile_id, is_duplicate: false }
+
+GET /extension/lists?recruiter_name=Jon
+───────────────────────────────────────
+Input:  recruiter_name query parameter
+Action: SELECT * FROM recruiter_lists WHERE recruiter_name = ? AND is_active = true
+Output: { lists: [{ id, name, profile_count, assessed_count, ... }] }
+
+POST /extension/create-list
+────────────────────────────
+Input:  { name, description, recruiter_name, job_template_id? }
+Action: INSERT INTO recruiter_lists
+Output: { success: true, list_id }
+
+GET /extension/lists/{id}/stats
+────────────────────────────────
+Input:  list_id path parameter
+Action: 1. COUNT profiles by status
+        2. GROUP BY score ranges
+        3. CALCULATE average score
+        4. SELECT top 5 profiles ORDER BY score DESC
+Output: { total_profiles, by_status: {...}, score_distribution: {...}, avg_score }
+
+ASSESSMENT ENDPOINTS
+════════════════════
+
+POST /lists/{list_id}/assess
+─────────────────────────────
+Input:  { requirements: [...], job_description? }
+Action: 1. SELECT * FROM extension_profiles WHERE list_id = ? AND assessed = false
+        2. For each profile:
+           a. Fetch from CoreSignal API
+           b. Generate Claude AI assessment
+           c. INSERT INTO candidate_assessments
+           d. Get assessment_id from insert
+           e. UPDATE extension_profiles SET assessed=true, assessment_id, score
+        3. Calculate summary stats
+Output: { success: true, total: 20, assessed: 18, failed: 2, avg_score: 78.5 }
+
+EXPORT ENDPOINTS
+════════════════
+
+GET /lists/{list_id}/export-csv?min_score=75
+─────────────────────────────────────────────
+Input:  list_id path parameter, min_score query parameter
+Action: 1. SELECT extension_profiles WHERE assessed=true AND score >= min_score
+        2. For each profile:
+           a. SELECT full assessment from candidate_assessments
+           b. Parse name into first_name, last_name
+           c. Build note field with score, strengths, LinkedIn URL
+        3. Generate CSV with proper format
+        4. UPDATE extension_profiles SET exported_to_recruiter=true, exported_at=NOW
+        5. INSERT INTO recruiter_exports for tracking
+Output: CSV file download "list-name-2024-10-24.csv"
+```
 
 ---
 
