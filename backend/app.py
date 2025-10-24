@@ -207,6 +207,7 @@ def get_stored_profile(linkedin_url):
                 return {
                     'profile_data': stored['profile_data'],
                     'checked_at': stored.get('checked_at'),
+                    'last_fetched': stored.get('last_fetched'),  # When WE cached this data
                     'storage_age_days': age_days,
                     'is_stale': age_days >= 3
                 }
@@ -272,7 +273,8 @@ def get_stored_company(company_id, freshness_days=30):
                     print(f"✅ Using stored company {company_id} (age: {age.days} days) - SAVED 1 Collect credit!")
                     return {
                         'company_data': cached['company_data'],
-                        'cache_age_days': age.days
+                        'cache_age_days': age.days,
+                        'last_fetched': cached['last_fetched']  # When WE cached company data
                     }
                 else:
                     print(f"⏰ Stored company too old ({age.days} days) - fetching fresh data")
@@ -1012,6 +1014,7 @@ def fetch_profile():
             profile_data = stored_result['profile_data']
             storage_age_days = stored_result.get('storage_age_days', 0)
             checked_at = stored_result.get('checked_at')
+            last_fetched = stored_result.get('last_fetched')  # When WE cached this
             # Build result dict for cached profile (for response building later)
             result = {
                 'success': True,
@@ -1033,6 +1036,7 @@ def fetch_profile():
 
             profile_data = result['profile_data']
             checked_at = profile_data.get('checked_at')
+            last_fetched = None  # Fresh from API, not from cache
             storage_age_days = 0  # Fresh from API
 
             # Save to storage for next time
@@ -1068,6 +1072,10 @@ def fetch_profile():
             'data_source': result.get('method', result.get('data_source', 'coresignal')),
             'is_fresh': result.get('is_fresh', False)
         }
+
+        # Add last_fetched timestamp if available (when loaded from cache)
+        if last_fetched:
+            response_data['last_fetched'] = last_fetched
 
         # Add employee_id if available (from CoreSignal)
         if 'employee_id' in result:

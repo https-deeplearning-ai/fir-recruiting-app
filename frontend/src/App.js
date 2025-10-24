@@ -879,7 +879,9 @@ function App() {
         assessment: null, // No assessment yet, will be loaded on-demand
         profileSummary: fetchData.profile_summary,
         profile_data: { profile_data: fetchData.profile_data }, // Store raw profile data for work experience
-        checked_at: fetchData.profile_summary?.checked_at,
+        checked_at: fetchData.profile_summary?.checked_at,  // CoreSignal's last scrape
+        last_fetched: fetchData.last_fetched,  // When WE cached this data (null if fresh from API)
+        is_cached: !!fetchData.last_fetched,  // Flag if from cache
         success: true,
         url: cleanedUrl,
         timestamp: new Date().toISOString()
@@ -949,6 +951,51 @@ function App() {
     } finally {
       // Clear loading state
       setAiAnalysisLoading(prev => ({ ...prev, [linkedinUrl]: false }));
+    }
+  };
+
+  // Force refresh a profile from CoreSignal (uses API credits)
+  const handleRefreshProfile = async (linkedinUrl) => {
+    try {
+      setShowLoadingOverlay(true);
+      setLoadingMessage('Refreshing profile data from CoreSignal...\n\n(This will use 1 API credit)');
+
+      const response = await fetch('/fetch-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          linkedin_url: linkedinUrl,
+          force_refresh: true,  // Force fresh fetch
+          enrich_companies: true
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the candidate in the results array
+        setSingleProfileResults(prev => prev.map(candidate =>
+          candidate.url === linkedinUrl
+            ? {
+                ...candidate,
+                profileSummary: data.profile_summary,
+                profile_data: { profile_data: data.profile_data },
+                checked_at: data.profile_summary?.checked_at,
+                last_fetched: null, // Fresh from API (not cached)
+                is_cached: false,
+                timestamp: new Date().toISOString()
+              }
+            : candidate
+        ));
+
+        showNotification('✅ Profile refreshed from CoreSignal!', 'success');
+      } else {
+        showNotification('❌ Failed to refresh profile', 'error');
+      }
+    } catch (error) {
+      showNotification('❌ Network error during refresh', 'error');
+    } finally {
+      setShowLoadingOverlay(false);
     }
   };
 
@@ -2080,17 +2127,90 @@ function App() {
                       <div className="candidate-meta">
                           <span className="candidate-headline">{candidate.headline}</span>
                       </div>
-                      {candidate.checked_at && (
-                        <div style={{ marginTop: '8px', fontSize: '13px', color: '#64748b' }}>
-                          <span style={{ fontWeight: '500' }}>
-                            Profile Last Updated: {new Date(candidate.checked_at).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </span>
+
+                      {/* Data Freshness Indicators */}
+                      <div style={{ marginTop: '12px', fontSize: '13px', color: '#64748b', background: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ fontWeight: '600', color: '#334155', marginBottom: '8px', fontSize: '14px' }}>
+                          📊 Data Freshness
                         </div>
-                      )}
+
+                        {candidate.checked_at && (
+                          <div style={{ marginBottom: '6px' }}>
+                            <span style={{ fontWeight: '500', color: '#475569' }}>
+                              CoreSignal scraped LinkedIn:
+                            </span>
+                            <span style={{ marginLeft: '8px', color: '#1e293b' }}>
+                              {new Date(candidate.checked_at).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                        )}
+
+                        {candidate.last_fetched ? (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                              <span style={{ fontWeight: '500', color: '#475569' }}>
+                                We cached this data:
+                              </span>
+                              <span style={{ marginLeft: '8px', color: '#1e293b' }}>
+                                {new Date(candidate.last_fetched).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </span>
+                              <span style={{ marginLeft: '6px', fontSize: '12px', color: '#64748b' }}>
+                                ({Math.floor((new Date() - new Date(candidate.last_fetched)) / (1000 * 60 * 60 * 24))} days ago)
+                              </span>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm(
+                                  `Refresh ${candidate.name}'s profile from CoreSignal?\n\n` +
+                                  `• This will fetch the latest data CoreSignal has\n` +
+                                  `• Uses 1 API credit\n` +
+                                  `• Takes 5-10 seconds`
+                                )) {
+                                  handleRefreshProfile(candidate.url);
+                                }
+                              }}
+                              className="refresh-profile-button"
+                              title="Fetch latest data from CoreSignal (1 API credit)"
+                            >
+                              🔄 Refresh
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                              <span style={{ color: '#10b981', fontWeight: '500' }}>
+                                ✨ Just fetched from CoreSignal
+                              </span>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm(
+                                  `Refresh ${candidate.name}'s profile from CoreSignal?\n\n` +
+                                  `• This will fetch the latest data CoreSignal has\n` +
+                                  `• Uses 1 API credit\n` +
+                                  `• Takes 5-10 seconds`
+                                )) {
+                                  handleRefreshProfile(candidate.url);
+                                }
+                              }}
+                              className="refresh-profile-button"
+                              title="Fetch latest data from CoreSignal (1 API credit)"
+                            >
+                              🔄 Refresh
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 

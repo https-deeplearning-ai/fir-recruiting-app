@@ -800,6 +800,39 @@ textarea:focus, input[type="text"]:focus {
   text-align: center;
 }
 
+/* Refresh Profile Button */
+.refresh-profile-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.refresh-profile-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.refresh-profile-button:active {
+  transform: translateY(0);
+}
+
+.refresh-profile-button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* Notification */
 .notification {
   position: fixed;
