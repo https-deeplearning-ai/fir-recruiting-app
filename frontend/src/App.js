@@ -1672,7 +1672,8 @@ function App() {
             </div>
           </div>
 
-          {/* Company Enrichment Toggle */}
+          {/* HIDDEN: Company Enrichment Toggle - Keep code for future use */}
+          {false && (
           <div className="form-group checkbox-group">
             <label className="checkbox-label">
               <input
@@ -1690,6 +1691,7 @@ function App() {
               </span>
             </label>
           </div>
+          )}
 
           {/* Force Refresh Toggle */}
           <div className="form-group checkbox-group">
@@ -1710,7 +1712,8 @@ function App() {
             </label>
           </div>
 
-          {/* Auto-Generate AI Analysis Toggle */}
+          {/* HIDDEN: Auto-Generate AI Analysis Toggle - Keep code for future use */}
+          {false && (
           <div className="form-group checkbox-group">
             <label className="checkbox-label">
               <input
@@ -1728,6 +1731,7 @@ function App() {
               </span>
             </label>
           </div>
+          )}
 
           <div className="button-group">
             <button
@@ -2191,7 +2195,9 @@ function App() {
                                   ) : null;
                                 })()}
 
-                                {/* Quick Feedback Buttons */}
+                                {/* HIDDEN: Quick Feedback Buttons - Keep code for future use */}
+                                {false && (
+                                <>
                                 <div className="feedback-section">
                                   <div className="feedback-section-title">👍 Why do you like this candidate?</div>
                                   <div className="feedback-buttons">
@@ -2221,6 +2227,8 @@ function App() {
                                     ))}
                                   </div>
                                 </div>
+                                </>
+                                )}
 
                                 {/* Custom Notes */}
                                 <div className="feedback-section">
@@ -2256,8 +2264,8 @@ function App() {
                             </div>
                           )}
 
-                          {/* Assessment Scores - Only show if assessment exists */}
-                          {candidate.assessment && (
+                          {/* HIDDEN: Assessment Scores - Keep code for future use */}
+                          {false && candidate.assessment && (
                             <div className="assessment-scores">
                                 {candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.weighted_score !== undefined ? (
                                 <div className="score-section">
@@ -2273,8 +2281,8 @@ function App() {
                             </div>
                           )}
 
-                          {/* Weighted Analysis */}
-                            {candidate.assessment && candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.requirements && candidate.assessment.weighted_analysis.requirements.length > 0 && (
+                          {/* HIDDEN: Weighted Analysis - Keep code for future use */}
+                            {false && candidate.assessment && candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.requirements && candidate.assessment.weighted_analysis.requirements.length > 0 && (
                             <div className="weighted-analysis-section">
                               <h4>Weighted Analysis</h4>
                               <div className="weighted-requirements">
@@ -2287,7 +2295,7 @@ function App() {
                                     <p className="requirement-analysis">{req.analysis}</p>
                                   </div>
                                 ))}
-                                
+
                                   {candidate.assessment.weighted_analysis.general_fit_weight > 0 && (
                                   <div className="requirement-item general-fit">
                                     <div className="requirement-header">
@@ -2301,7 +2309,8 @@ function App() {
                             </div>
                           )}
 
-                          {/* AI Analysis Accordion - On-Demand */}
+                          {/* HIDDEN: AI Analysis Accordion - Keep code for future use */}
+                          {false && (
                           <div className="ai-analysis-accordion">
                             <details
                               className="ai-analysis-details"
@@ -2387,6 +2396,7 @@ function App() {
                               </div>
                             </details>
                           </div>
+                          )}
 
                           {/* Work Experience with Company Intelligence */}
                           <WorkExperienceSection
