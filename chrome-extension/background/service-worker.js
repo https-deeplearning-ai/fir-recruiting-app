@@ -114,21 +114,27 @@ function createContextMenus() {
   });
 }
 
-// Handle context menu clicks (with permission check)
-if (chrome.contextMenus && chrome.contextMenus.onClicked) {
-  chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-    const profileUrl = info.linkUrl;
+// Handle context menu clicks (with safe permission check)
+try {
+  if (chrome.contextMenus?.onClicked) {
+    chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+      const profileUrl = info.linkUrl;
 
-    switch (info.menuItemId) {
-      case 'add-to-list':
-        await handleAddToListFromUrl(profileUrl, tab);
-        break;
+      switch (info.menuItemId) {
+        case 'add-to-list':
+          await handleAddToListFromUrl(profileUrl, tab);
+          break;
 
-      case 'quick-assess':
-        await handleQuickAssessFromUrl(profileUrl, tab);
-        break;
-    }
-  });
+        case 'quick-assess':
+          await handleQuickAssessFromUrl(profileUrl, tab);
+          break;
+      }
+    });
+  } else {
+    console.log('[Service Worker] contextMenus.onClicked not available');
+  }
+} catch (error) {
+  console.log('[Service Worker] Error setting up context menus:', error);
 }
 
 // API Communication Functions
