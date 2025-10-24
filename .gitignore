@@ -43,5 +43,5 @@ test.csv
 
 # Frontend build (uncomment if you want to rebuild on Render)
 # frontend/build/
-backend/static/*
+# backend/static/* # COMMENTED OUT - We need static files for deployment
 .cursor/rules/byterover-rules.mdc
