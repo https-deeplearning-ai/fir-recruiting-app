@@ -34,6 +34,11 @@ See [docs/HEADLINE_FRESHNESS_FIX.md](docs/HEADLINE_FRESHNESS_FIX.md) for full de
 - `company_clean` has limited fields and missing critical data
 - Store ALL raw company data in `intelligence['raw_data']` for future flexibility
 
+**Crunchbase URL Extraction:**
+- Priority 1: `company_crunchbase_info_collection[0].cb_url` (69.2% coverage, clean company URLs)
+- Priority 2: Parse from `company_funding_rounds_collection[0].cb_url` (fallback)
+- Store both `crunchbase_company_url` (company page) and `crunchbase_funding_round_url` (specific round)
+
 See [docs/technical-decisions/company-base-vs-clean/](docs/technical-decisions/company-base-vs-clean/) for evidence.
 
 ## Development Commands
