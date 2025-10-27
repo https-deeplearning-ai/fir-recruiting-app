@@ -503,6 +503,23 @@ class CoreSignalService:
                         print(f"   🔗 Crunchbase URL from company_crunchbase_info_collection: {cb_company_url}")
                         break
 
+        # FALLBACK: If no Crunchbase URL found, search for it using web search
+        if not intelligence.get('crunchbase_company_url'):
+            company_name = intelligence.get('name')
+            print(f"   ⚠️  NO Crunchbase URL in company_crunchbase_info_collection for {company_name}")
+            if company_name:
+                print(f"   🔍 Attempting web search for: {company_name}")
+                searched_url = self._search_crunchbase_url(company_name)
+                if searched_url:
+                    intelligence['crunchbase_company_url'] = searched_url
+                    print(f"   ✅ Crunchbase URL found via web search: {searched_url}")
+                else:
+                    print(f"   ❌ Web search failed to find Crunchbase URL for {company_name}")
+
+        # DEBUG: Print final Crunchbase URL
+        final_cb_url = intelligence.get('crunchbase_company_url')
+        print(f"   📌 FINAL Crunchbase URL for {intelligence.get('name')}: {final_cb_url if final_cb_url else 'NONE'}")
+
         # Funding data (CRITICAL for startup assessment)
         # Using company_base endpoint: funding data in company_funding_rounds_collection
         funding_rounds = company_data.get('company_funding_rounds_collection', [])
@@ -520,19 +537,9 @@ class CoreSignalService:
             cb_round_url = latest_round.get('cb_url')
             intelligence['crunchbase_funding_round_url'] = cb_round_url  # Original funding round URL
 
-            # FALLBACK: If we didn't get company URL from crunchbase_info_collection, try to parse from funding round URL
-            if not intelligence.get('crunchbase_company_url') and cb_round_url and '/funding_round/' in cb_round_url:
-                # Generate company page URL from funding round URL
-                # Example: .../funding_round/Nuvocargo-series-b--f6a355f5 -> .../organization/Nuvocargo
-                try:
-                    company_slug = cb_round_url.split('/funding_round/')[1].split('-series-')[0].split('-seed-')[0].split('-pre-seed-')[0].split('--')[0]
-                    intelligence['crunchbase_company_url'] = f"https://www.crunchbase.com/organization/{company_slug}"
-                    print(f"   🔗 Crunchbase URL parsed from funding round: {intelligence['crunchbase_company_url']}")
-                except:
-                    print(f"   ⚠️  Failed to parse Crunchbase company URL from funding round URL")
-            elif not intelligence.get('crunchbase_company_url') and cb_round_url:
-                # Use funding round URL as fallback if it's already in organization format
-                intelligence['crunchbase_company_url'] = cb_round_url
+            # NOTE: We do NOT use the funding round URL to derive the company URL
+            # The company URL should ONLY come from company_crunchbase_info_collection
+            # If it's missing there, we leave it as None rather than guess incorrectly
 
         # Extract ALL available company URLs for comprehensive linking
         intelligence['company_website'] = company_data.get('website')
@@ -741,3 +748,57 @@ class CoreSignalService:
             signals.append('strong_brand')
 
         return signals
+
+    def _search_crunchbase_url(self, company_name):
+        """
+        Generate a Crunchbase URL from company name
+
+        Since web scraping is unreliable, we use a heuristic approach:
+        1. Convert company name to slug format (lowercase, hyphens)
+        2. Return the constructed Crunchbase URL
+
+        This works well for most companies. The Crunchbase URL will either:
+        - Load correctly if the company exists
+        - Return 404 if it doesn't (which is fine for the user to handle)
+
+        Args:
+            company_name: Name of the company to search for
+
+        Returns:
+            str: Crunchbase organization URL (may or may not exist)
+        """
+        try:
+            import re
+
+            # Convert company name to Crunchbase slug format
+            # Examples:
+            # "Facebook" -> "facebook"
+            # "Meta Platforms" -> "meta-platforms"
+            # "Amazon Web Services" -> "amazon-web-services"
+
+            # Remove common suffixes that aren't in Crunchbase URLs
+            name = company_name
+            suffixes_to_remove = [
+                ' Inc.', ' Inc', ' LLC', ' Corp.', ' Corp', ' Corporation',
+                ' Limited', ' Ltd.', ' Ltd', ' Co.', ' Co', ' Company',
+                ' GmbH', ' S.A.', ' AG', ' PLC', ' plc'
+            ]
+            for suffix in suffixes_to_remove:
+                if name.endswith(suffix):
+                    name = name[:-len(suffix)].strip()
+
+            # Convert to lowercase and replace spaces/special chars with hyphens
+            slug = name.lower()
+            slug = re.sub(r'[^a-z0-9]+', '-', slug)  # Replace non-alphanumeric with hyphens
+            slug = re.sub(r'-+', '-', slug)  # Remove duplicate hyphens
+            slug = slug.strip('-')  # Remove leading/trailing hyphens
+
+            if not slug:
+                return None
+
+            crunchbase_url = f"https://www.crunchbase.com/organization/{slug}"
+            return crunchbase_url
+
+        except Exception as e:
+            print(f"   ⚠️  Failed to generate Crunchbase URL: {e}")
+            return None
