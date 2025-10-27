@@ -1,0 +1,94 @@
+{
+  "success": true,
+  "data": {
+    "id": 94656504,
+    "linkedin_source_id": "97764906",
+    "name": "Oura Health",
+    "created_at": "2023-12-18",
+    "last_updated": "2025-10-16",
+    "websites_main": "https://support.ouraring.com",
+    "websites_resolved": "https://support.ouraring.com/hc/en-us",
+    "websites_main_original": "https://support.ouraring.com",
+    "unique_website": true,
+    "unique_domain": false,
+    "expired_domain": false,
+    "websites_linkedin": "https://www.linkedin.com/company/oura-health",
+    "websites_linkedin_canonical": "https://fi.linkedin.com/company/oura-health",
+    "social_linkedin_urls": null,
+    "websites_facebook": null,
+    "social_facebook_urls": [
+      "https://www.facebook.com/ouraring/"
+    ],
+    "websites_twitter": null,
+    "social_twitter_urls": [
+      "https://twitter.com/ouraring"
+    ],
+    "social_x_urls": null,
+    "social_instagram_urls": [
+      "https://www.instagram.com/ouraring/"
+    ],
+    "social_youtube_urls": [
+      "https://www.youtube.com/c/Ouraring_%C5%8CURA"
+    ],
+    "social_github_urls": null,
+    "social_reddit_urls": null,
+    "social_discord_urls": null,
+    "social_pinterest_urls": [
+      "https://www.pinterest.com/ouraring/"
+    ],
+    "social_tiktok_urls": [
+      "https://www.tiktok.com/@ouraring"
+    ],
+    "logo": null,
+    "enriched_b2b": 1,
+    "ticker": null,
+    "exchange": null,
+    "description": null,
+    "enriched_summary": "Oura Help is a company that provides healthcare services for businesses. They offer a range of products and services including ring, battery, charging, and membership options. They also provide information on product safety and use, battery life, and social media. The company is B2B.",
+    "metadata_title": "Oura Help",
+    "metadata_description": null,
+    "industry": null,
+    "specialities": null,
+    "enriched_keywords": [
+      "healthcare",
+      "membership",
+      "battery",
+      "charging",
+      "ring"
+    ],
+    "enriched_category": "Healthcare",
+    "type": null,
+    "founded": null,
+    "size_range": null,
+    "size_employees_count": 1,
+    "size_employees_count_inferred": 1,
+    "followers": 1,
+    "location_hq_raw_address": "Oulu, Pohjoispohjanmaa, Finland",
+    "location_hq_country": "Finland",
+    "location_hq_regions": [
+      "Europe",
+      "Northern Europe",
+      "EMEA",
+      "European Union"
+    ],
+    "locations_full": [
+      {
+        "location_address": "Elektroniikkatie 10; Oulu, Pohjoispohjanmaa 90590, FI",
+        "is_primary": false
+      }
+    ],
+    "updates": null,
+    "funding_rounds": null,
+    "technologies": null,
+    "phone_numbers": [],
+    "emails": [],
+    "pricing_available": false,
+    "free_trial_available": false,
+    "demo_available": false,
+    "is_downloadable": false,
+    "mobile_apps_exist": false,
+    "online_reviews_exist": false,
+    "api_docs_exist": false
+  },
+  "status_code": 200
+}

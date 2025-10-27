@@ -1,0 +1,399 @@
+{
+  "success": true,
+  "data": {
+    "id": 94656504,
+    "url": "https://www.linkedin.com/company/oura-health",
+    "hash": "6ce1f418e6af627807ae16e8143a85da",
+    "name": "Oura Health",
+    "website": "https://support.ouraring.com",
+    "size": null,
+    "industry": null,
+    "description": null,
+    "followers": 1,
+    "founded": null,
+    "headquarters_city": null,
+    "headquarters_country": null,
+    "headquarters_state": null,
+    "headquarters_street1": null,
+    "headquarters_street2": null,
+    "headquarters_zip": null,
+    "logo_url": "https://static.licdn.com/aero-v1/sc/h/cs8pjfgyw96g44ln9r7tct85f",
+    "created": "2023-12-18 17:58:59",
+    "last_updated": "2025-10-16 02:24:37",
+    "last_response_code": 200,
+    "type": null,
+    "headquarters_new_address": "Oulu, Pohjoispohjanmaa",
+    "employees_count": 1,
+    "headquarters_country_restored": null,
+    "headquarters_country_parsed": "Finland",
+    "company_shorthand_name": "oura-health",
+    "company_shorthand_name_hash": "3dda863ccb732bb7926bedf010fbfbc5",
+    "canonical_url": "https://fi.linkedin.com/company/oura-health",
+    "canonical_hash": "d07d7210f11a6c42f14824493544e79b",
+    "canonical_shorthand_name": "oura-health",
+    "canonical_shorthand_name_hash": "3dda863ccb732bb7926bedf010fbfbc5",
+    "deleted": 0,
+    "last_updated_ux": 1760581477,
+    "source_id": 97764906,
+    "company_affiliated_collection": [],
+    "company_also_viewed_collection": [],
+    "company_crunchbase_info_collection": [],
+    "company_featured_employees_collection": [
+      {
+        "id": 226980129,
+        "company_id": 94656504,
+        "url": "https://cn.linkedin.com/in/%E5%85%B4%E5%8D%87-%E9%AD%8F-4180b5b9",
+        "created": "2025-06-08 03:51:25",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 0
+      }
+    ],
+    "company_featured_investors_collection": [],
+    "company_funding_rounds_collection": [],
+    "company_locations_collection": [
+      {
+        "id": 141119304,
+        "company_id": 94656504,
+        "location_address": "Elektroniikkatie 10; Oulu, Pohjoispohjanmaa 90590, FI",
+        "is_primary": 0,
+        "created": "2023-12-18 17:58:58",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 0
+      }
+    ],
+    "company_similar_collection": [
+      {
+        "id": 928829257,
+        "company_id": 94656504,
+        "url": "https://fi.linkedin.com/company/oura",
+        "created": "2023-12-18 17:58:58",
+        "last_updated": "2025-08-02 18:57:42",
+        "deleted": 1
+      },
+      {
+        "id": 928829258,
+        "company_id": 94656504,
+        "url": "https://www.linkedin.com/company/smartfeed",
+        "created": "2023-12-18 17:58:58",
+        "last_updated": "2025-10-03 07:20:26",
+        "deleted": 1
+      },
+      {
+        "id": 928829259,
+        "company_id": 94656504,
+        "url": "https://www.linkedin.com/company/molluska",
+        "created": "2023-12-18 17:58:58",
+        "last_updated": "2025-10-03 07:20:26",
+        "deleted": 1
+      },
+      {
+        "id": 928829260,
+        "company_id": 94656504,
+        "url": "https://www.linkedin.com/company/muufri-inc",
+        "created": "2023-12-18 17:58:58",
+        "last_updated": "2025-01-05 23:09:43",
+        "deleted": 1
+      },
+      {
+        "id": 928829261,
+        "company_id": 94656504,
+        "url": "https://cn.linkedin.com/company/pruvit-independent-promoter-and-distributor",
+        "created": "2023-12-18 17:58:58",
+        "last_updated": "2024-06-18 15:40:47",
+        "deleted": 1
+      },
+      {
+        "id": 928829262,
+        "company_id": 94656504,
+        "url": "https://uk.linkedin.com/company/spnfit",
+        "created": "2023-12-18 17:58:58",
+        "last_updated": "2024-06-18 15:40:47",
+        "deleted": 1
+      },
+      {
+        "id": 928829263,
+        "company_id": 94656504,
+        "url": "https://au.linkedin.com/company/livestock-labs",
+        "created": "2023-12-18 17:58:58",
+        "last_updated": "2024-06-18 15:40:47",
+        "deleted": 1
+      },
+      {
+        "id": 928829264,
+        "company_id": 94656504,
+        "url": "https://fi.linkedin.com/company/nuanic",
+        "created": "2023-12-18 17:58:58",
+        "last_updated": "2024-06-18 15:40:47",
+        "deleted": 1
+      },
+      {
+        "id": 928829265,
+        "company_id": 94656504,
+        "url": "https://www.linkedin.com/company/neurohacker-collective",
+        "created": "2023-12-18 17:58:58",
+        "last_updated": "2024-06-18 15:40:47",
+        "deleted": 1
+      },
+      {
+        "id": 928829266,
+        "company_id": 94656504,
+        "url": "https://www.linkedin.com/company/getneuro",
+        "created": "2023-12-18 17:58:58",
+        "last_updated": "2024-06-18 15:40:47",
+        "deleted": 1
+      },
+      {
+        "id": 1021494619,
+        "company_id": 94656504,
+        "url": "https://se.linkedin.com/company/engage-studios-gbg",
+        "created": "2024-06-18 15:40:47",
+        "last_updated": "2025-07-03 21:52:59",
+        "deleted": 1
+      },
+      {
+        "id": 1021494620,
+        "company_id": 94656504,
+        "url": "https://ch.linkedin.com/company/loewe-design-innovation-studio",
+        "created": "2024-06-18 15:40:47",
+        "last_updated": "2025-07-03 21:52:59",
+        "deleted": 1
+      },
+      {
+        "id": 1021494621,
+        "company_id": 94656504,
+        "url": "https://no.linkedin.com/company/designitoslo",
+        "created": "2024-06-18 15:40:47",
+        "last_updated": "2025-07-03 21:52:59",
+        "deleted": 1
+      },
+      {
+        "id": 1021494622,
+        "company_id": 94656504,
+        "url": "https://se.linkedin.com/company/technocreatives",
+        "created": "2024-06-18 15:40:47",
+        "last_updated": "2024-09-22 02:22:18",
+        "deleted": 1
+      },
+      {
+        "id": 1021494623,
+        "company_id": 94656504,
+        "url": "https://no.linkedin.com/company/noa-ignite-norway",
+        "created": "2024-06-18 15:40:47",
+        "last_updated": "2024-09-22 02:22:18",
+        "deleted": 1
+      },
+      {
+        "id": 1021494624,
+        "company_id": 94656504,
+        "url": "https://cn.linkedin.com/company/geelydesign",
+        "created": "2024-06-18 15:40:47",
+        "last_updated": "2024-09-22 02:22:18",
+        "deleted": 1
+      },
+      {
+        "id": 1073945875,
+        "company_id": 94656504,
+        "url": "https://cn.linkedin.com/company/pruvit-independent-promoter-and-distributor",
+        "created": "2024-09-22 02:22:18",
+        "last_updated": "2025-01-05 23:09:43",
+        "deleted": 1
+      },
+      {
+        "id": 1073945876,
+        "company_id": 94656504,
+        "url": "https://fi.linkedin.com/company/nuanic",
+        "created": "2024-09-22 02:22:18",
+        "last_updated": "2025-01-05 23:09:43",
+        "deleted": 1
+      },
+      {
+        "id": 1073945877,
+        "company_id": 94656504,
+        "url": "https://au.linkedin.com/company/livestock-labs",
+        "created": "2024-09-22 02:22:18",
+        "last_updated": "2025-01-05 23:09:43",
+        "deleted": 1
+      },
+      {
+        "id": 1128394984,
+        "company_id": 94656504,
+        "url": "https://se.linkedin.com/company/technocreatives",
+        "created": "2025-01-05 23:09:43",
+        "last_updated": "2025-07-03 21:52:59",
+        "deleted": 1
+      },
+      {
+        "id": 1128394985,
+        "company_id": 94656504,
+        "url": "https://no.linkedin.com/company/noa-ignite-norway",
+        "created": "2025-01-05 23:09:43",
+        "last_updated": "2025-07-03 21:52:59",
+        "deleted": 1
+      },
+      {
+        "id": 1128394986,
+        "company_id": 94656504,
+        "url": "https://cn.linkedin.com/company/geelydesign",
+        "created": "2025-01-05 23:09:43",
+        "last_updated": "2025-07-03 21:52:59",
+        "deleted": 1
+      },
+      {
+        "id": 1128394987,
+        "company_id": 94656504,
+        "url": "https://www.linkedin.com/company/true-wellness-live",
+        "created": "2025-01-05 23:09:43",
+        "last_updated": "2025-10-03 07:20:26",
+        "deleted": 1
+      },
+      {
+        "id": 1232797758,
+        "company_id": 94656504,
+        "url": "https://ch.linkedin.com/company/biovotion",
+        "created": "2025-07-03 21:52:59",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 0
+      },
+      {
+        "id": 1232797759,
+        "company_id": 94656504,
+        "url": "https://www.linkedin.com/company/fitbit",
+        "created": "2025-07-03 21:52:59",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 0
+      },
+      {
+        "id": 1232797760,
+        "company_id": 94656504,
+        "url": "https://www.linkedin.com/company/muufri-inc",
+        "created": "2025-07-03 21:52:59",
+        "last_updated": "2025-10-03 07:20:26",
+        "deleted": 1
+      },
+      {
+        "id": 1232797761,
+        "company_id": 94656504,
+        "url": "https://www.linkedin.com/company/velovitaofficial",
+        "created": "2025-07-03 21:52:59",
+        "last_updated": "2025-10-03 07:20:26",
+        "deleted": 1
+      },
+      {
+        "id": 1232797762,
+        "company_id": 94656504,
+        "url": "https://au.linkedin.com/company/livestock-labs",
+        "created": "2025-07-03 21:52:59",
+        "last_updated": "2025-10-03 07:20:26",
+        "deleted": 1
+      },
+      {
+        "id": 1232797763,
+        "company_id": 94656504,
+        "url": "https://fi.linkedin.com/company/nuanic",
+        "created": "2025-07-03 21:52:59",
+        "last_updated": "2025-08-02 18:57:42",
+        "deleted": 1
+      },
+      {
+        "id": 1256009820,
+        "company_id": 94656504,
+        "url": "https://www.linkedin.com/company/oura",
+        "created": "2025-08-02 18:57:42",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 0
+      },
+      {
+        "id": 1256009821,
+        "company_id": 94656504,
+        "url": "https://sg.linkedin.com/company/healthzilla",
+        "created": "2025-08-02 18:57:42",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 0
+      },
+      {
+        "id": 1285965150,
+        "company_id": 94656504,
+        "url": "https://uk.linkedin.com/company/sentient-search",
+        "created": "2025-10-03 07:20:26",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 0
+      },
+      {
+        "id": 1285965151,
+        "company_id": 94656504,
+        "url": "https://pt.linkedin.com/company/audax-renewables-portugal",
+        "created": "2025-10-03 07:20:26",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 0
+      },
+      {
+        "id": 1285965152,
+        "company_id": 94656504,
+        "url": "https://fi.linkedin.com/company/emmy-clothing-company",
+        "created": "2025-10-03 07:20:26",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 1
+      },
+      {
+        "id": 1285965153,
+        "company_id": 94656504,
+        "url": "https://de.linkedin.com/company/topi-eu",
+        "created": "2025-10-03 07:20:26",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 1
+      },
+      {
+        "id": 1285965154,
+        "company_id": 94656504,
+        "url": "https://uk.linkedin.com/company/hereweflo",
+        "created": "2025-10-03 07:20:26",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 1
+      },
+      {
+        "id": 1285965155,
+        "company_id": 94656504,
+        "url": "https://www.linkedin.com/company/women-we-admire",
+        "created": "2025-10-03 07:20:26",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 1
+      },
+      {
+        "id": 1303334310,
+        "company_id": 94656504,
+        "url": "https://pt.linkedin.com/company/territ%C3%B3rios-criativos",
+        "created": "2025-10-16 02:24:37",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 0
+      },
+      {
+        "id": 1303334311,
+        "company_id": 94656504,
+        "url": "https://pt.linkedin.com/company/link-to-leaders",
+        "created": "2025-10-16 02:24:37",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 0
+      },
+      {
+        "id": 1303334312,
+        "company_id": 94656504,
+        "url": "https://pt.linkedin.com/company/global-compact-network-portugal",
+        "created": "2025-10-16 02:24:37",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 0
+      },
+      {
+        "id": 1303334313,
+        "company_id": 94656504,
+        "url": "https://pt.linkedin.com/company/podcastbitalk",
+        "created": "2025-10-16 02:24:37",
+        "last_updated": "2025-10-16 02:24:37",
+        "deleted": 0
+      }
+    ],
+    "company_specialties_collection": [],
+    "company_stock_info_collection": [],
+    "company_updates_collection": []
+  },
+  "status_code": 200
+}

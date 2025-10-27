@@ -1,0 +1,1782 @@
+{
+  "success": true,
+  "data": {
+    "id": 96124914,
+    "source_id": "95747881",
+    "company_name": "OoNee Sea Urchin Ranch",
+    "company_name_alias": [
+      "oonee sea urchin ranch",
+      "oonee"
+    ],
+    "company_legal_name": null,
+    "created_at": "2024-07-24",
+    "last_updated_at": "2025-09-16",
+    "website": "https://www.oo-nee.com",
+    "website_alias": [
+      "https://www.oo-nee.com",
+      "https://www.oo-nee.com/"
+    ],
+    "unique_website": true,
+    "unique_domain": true,
+    "expired_domain": false,
+    "linkedin_url": "https://www.linkedin.com/company/oonee-sea-ranch",
+    "facebook_url": [
+      "https://www.facebook.com/ooneesearanch"
+    ],
+    "twitter_url": [],
+    "crunchbase_url": "https://www.crunchbase.com/organization/oonee-sea-urchin-ranch",
+    "instagram_url": [
+      "https://www.instagram.com/oonee_searanch"
+    ],
+    "youtube_url": [],
+    "github_url": [],
+    "reddit_url": [],
+    "discord_url": [],
+    "pinterest_url": [],
+    "tiktok_url": [],
+    "company_logo": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAyADIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9Ud6/3h+dG9f7w/Ovwm+Hv7Sv7U3xP8QR6L4U8deM/EeqlDL9k09Y5GCDGXb93hVGRycDkDvUvjD9qH9pz4c6zeaJ4q8deLvD+rW4DS2moGKOVAwypx5eMEcgjIIobsB+6m9f7w/Ojev94fnX4Dp+2z8fcHPxa8RYxwfMi/8AjdOtv22/j424v8V/EWR0Hmxf/G6AWp++29f7w/Ojev8AeH51+Bbftv8Ax5xgfFXxD9fMiz/6Lq5Yfts/HeVzu+KniEqo3MTJEQB/37pXKsfvRvX+8Pzor8Fz+2r8dCePiv4lx/10i/8AjdFO6K5GerfsDahLpHwq/ad1rTZZNN1iw8Fk217asY5YW2XTBkYcqQVU5H90HtX178X/AA/4YtPDGo/GTxJ4U0vx14g8NfDXS5ra016PzreSSSSdndwQcscD5iCQM46mvzl/ZP8A2htG+BN1400vxj4dvvEXg3xrojaPqVvp06xXKJ84DoWIH3ZJARkHkEHjB+v/AAd+094R/ay0X4u/DyO/sfhlZap4X0/RPDDeJrxUDxwGfzDLJnbv/eJ8oJO0Z5OcK1jJM8T/AG5P2W7iz+O+ut8MPBFynh6Pw7a69qFto0H+jaaZBOGbaMBFPkM2BxkNgCvqL/hj7wPaeH7fx3b+DtHn0m/+FEvnQmyRo4NUjhiljulXGFkdHk+Yc5j9TXzN+378dpdT+OGqx/D3xjdjR08PW2i6hdaLesltfFBMWQlDiVB5xXuMlh619XW/7UnhKw8N/wDCEzeKdIl8P3nwphaK6iv42jt9TjhljktWYHCyvGyYQ85jxjJrBVE29Sjj/GXww8L+G/DvwM0y2+B/hq+0DxHaaB/a/i46ciywXMk9vmNmA5MoyDnqHYd68V/4KEeFYfC/i1fDOj/CHRfAeh215JJp2v6XaLA+sRiFC4O0AFUaTn0IFe6ePtb0zxhpfwF1jSfjT4Z03wz4atdAbVvCMusoZbmeOe3beyBsBo15JbkbTnpXn/7b2myar8QB4v1H4q6R4p8D3WoH+z9Csr0zyadH5C7goGVXzGjPPTmnzruF7ao+CP8AhFdZb5l0y8ZTyCsDEEUV7NJ+0xeCRhFpcEMWTtjAUhR2GdvaijnfY3v5nz3Dd2/mBJpUdMg4Dg963Li6sktgEFo0xIAVcYUe/Yn86/ox/wCEU0Uf8wmx/wDAWP8Awo/4RXRh/wAwmx/8Bo/8KU6XOrXOKEZQVkz+duDSxrFq81xf2yRwAbleQIOuMDux9AK9E0Txk2vyRxanoPh93WNBALi13M5SIwgsxfCjad2McsoxX7xf8IxpH/QLsv8AwGT/AAobwzpDDB0uyI9DbJ/hXL9Vn/P+H/BL5T8PbD4jTwavFbyaJoF3ftJAsOpLYpMxjRGTEa5P3sgZ659hUnju9n1DwzGmsWFnp0MO6YKY445UJwMKCd20sDkDueOtft+vhvSkZSumWalehFugx+lOl8P6ZOcyadaSEd2gQ/0pLBv2nPKRpc/nGmt0lmd1HysxI+Uniiv6Nv8AhGtIH/MLsv8AwHT/AAoru5A5jTooorUkKKKKACiiigAooooA/9k=",
+    "company_logo_url": "https://media.licdn.com/dms/image/v2/D560BAQGDCdA87j8tbQ/company-logo_200_200/company-logo_200_200/0/1688079444845?e=2147483647&v=beta&t=gTp0w5G9sHXkKjjcu8nQpty2FMPozfXW-EhcyxnMoAU",
+    "stock_ticker": [],
+    "is_b2b": 0,
+    "is_public": false,
+    "description": "Oo-Nee Sea Ranch is on a mission to Build sustainable seafood supply chains and regenerate PNW coastal communities and ecosystems.\n\nWe invest in underserved coastal communities here in the Pacific Northwest by commercializing regenerative species like sea urchin, kelp, and sea cucumber - while improving the health of our coastal ecosystems with sustainable jobs at the same time. \n\nOoNee is building a vertically integrated sea ranch that includes harvesting, ranching, and processing purple urchin that are proliferating by the billions along our coastal marine waters. Through the vertical sea ranch, we will bring a steady, dependable source of local seafood to both local and international markets - bringing with it a revitalization of critical maritime expertise, equipment, and capital to ensure a scalable food supply chain and ecosystem that is resilient in the face of climate change and its impact on our Pacific Northwest coasts.",
+    "description_enriched": "OoNee Sea Urchin Ranch is dedicated to regenerating coastal communities and ecosystems through sustainable methods of harvesting and ranching sea urchin. They collect empty, overpopulated purple urchins from overgrazed reefs and bring them to their facility where they feed them a proprietary diet to 'fatten them up'.",
+    "description_metadata_raw": "OoNee Sea Urchin Ranch",
+    "sic_codes": [],
+    "naics_codes": [],
+    "industry": "Food and Beverage Manufacturing",
+    "categories_and_keywords": [
+      "food & beverage",
+      "industry: n/a",
+      "kelp forests",
+      "harvesting",
+      "sustainable methods",
+      "sea urchin",
+      "ranching",
+      "agriculture",
+      "fishery",
+      "aquaculture",
+      "food and beverage",
+      "food processing",
+      "manufacturing",
+      "seafood"
+    ],
+    "type": "Privately Held",
+    "status": {
+      "value": "active",
+      "comment": null
+    },
+    "founded_year": "2023",
+    "size_range": "1-10 employees",
+    "employees_count": 1,
+    "followers_count_linkedin": 263,
+    "followers_count_twitter": null,
+    "followers_count_owler": null,
+    "hq_region": [
+      "Americas",
+      "Northern America",
+      "AMER"
+    ],
+    "hq_country": "United States",
+    "hq_country_iso2": "US",
+    "hq_country_iso3": "USA",
+    "hq_location": "Toledo, Oregon, United States",
+    "hq_full_address": "761 NE Reservoir Lane, # 7; Toledo, Oregon 97391, US",
+    "hq_city": "Toledo",
+    "hq_state": "Oregon",
+    "hq_street": "761 NE Reservoir Lane, # 7",
+    "hq_zipcode": "97391",
+    "company_locations_full": [
+      {
+        "location_address": "761 NE Reservoir Lane, # 7; Toledo, Oregon 97391, US",
+        "is_primary": 1
+      },
+      {
+        "location_address": "761 NE Reservoir Ln #7; Toledo, OR, United States",
+        "is_primary": 0
+      },
+      {
+        "location_address": "Toledo, Oregon, United States",
+        "is_primary": 0
+      }
+    ],
+    "company_updates": [
+      {
+        "followers": 258,
+        "date": "2025-08-05",
+        "description": "This week, researchers identified the pathogen responsible for sea star wasting disease: Vibrio pectenicida. The disease has devastated sea star populations along the Pacific Coast since 2013, including over 90% of sunflower sea stars \u2014 a key predator of sea urchins.\n\nThe loss of these predators contributed to unchecked sea urchin grazing, accelerating the decline of kelp forests across the region.\n\nAt OoNee, our work centers on restoring balance to this system. By harvesting and fattening undernourished urchins, we reduce pressure on kelp beds while building a regenerative, high-value seafood product.\n\nThis discovery is an important step forward for marine science and ecosystem recovery. It opens the door for targeted sea star restoration \u2014 which, paired with efforts like ours, can help stabilize coastal food webs and support long-term kelp recovery.\n\nWe\u2019re encouraged by the progress and remain committed to regenerative aquaculture solutions that benefit both ocean ecosystems and coastal economies.\n\nhttps://lnkd.in/gnxey2BA\n\n#regenerativeaquaculture #marineecology #kelprestoration #bluefoods #oceanhealth",
+        "reactions_count": 3,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 258,
+        "date": "2025-03-14",
+        "description": "Why is workforce development so critical to the development of the Blue Economy? Restoring ecosystems and developing new skills is vital. Human capital is and always will be the foundation of a healthy, sustainable society. \n\nThanks to OPB radio for highlighting our work with NorthWest Oregon Works.\n\n#BlueEconomy\n#WorkforceDevelopment",
+        "reactions_count": 3,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 258,
+        "date": "2025-02-14",
+        "description": "Thanks Lourdes Gant \ud83e\udd8bfor highlighting us and spotlighting urchin ranching in the PNW!",
+        "reactions_count": 7,
+        "comments_count": 2,
+        "reshared_post_author": "Lourdes Gant \ud83e\udd8b",
+        "reshared_post_author_url": "https://ca.linkedin.com/in/lourdesegant",
+        "reshared_post_author_headline": "Sustainable Business | Regenerative Seafood | Impact Investment | Business Mentoring | Visionary\ud83e\uddd8\ud83c\udffd | Podcaster  |",
+        "reshared_post_description": "\ud83c\udf99\ufe0f\ud83d\udc1f New Podcast Episode is LIVE: The Future of Uni & Urchin Ranching! \ud83c\udf0a\u267b\ufe0f\n\nSea urchins are shaping the future of regenerative aquaculture. But how can we sustainably harvest and ranch them while restoring our oceans? \ud83c\udf31\ud83c\udf0e\nOn today\u2019s episode of The Business of Aquaculture Podcast, we sit down with Aaron Huang, CEO of OoNee.com, to explore how his team of divers, researchers, and technologists are redefining seafood production while combating climate change.\n\n\ud83d\udd39 What you\u2019ll learn in this episode:\n\u2705 How sustainable urchin ranching works\u2014from diving to processing\n\u2705 The climate impact on marine ecosystems and how innovation is protecting coastal waters\n\u2705 The challenges of scaling a niche seafood product while maintaining ocean health \ud83c\udf0a\n\n\ud83c\udf1f If you care about sustainability, seafood, and the future of regenerative aquaculture\u2014this episode is for you! \ud83c\udf1f\n\n\ud83c\udfa7 Tune in now & be part of the conversation! https://lnkd.in/d2WrW4gE\n\n\ud83d\udcac **What\u2019s your take on sustainable urchin ranching? Let\u2019s discuss in the comments!**\ud83d\udc47\n\n\ud83d\udd01 Tag a fellow ocean advocate & share this episode!\n\n#Podcast #Aquaculture #SustainableSeafood #UrchinRanching #ClimateAction #RegenerativeFarming #FutureOfFood",
+        "reshared_post_followers": null,
+        "reshared_post_date": "6mo"
+      },
+      {
+        "followers": 258,
+        "date": "2025-02-10",
+        "description": "Curious why urchin ranching can help the underwater ecosystem and restore kelp forests? Read our write up in The Fish Site!",
+        "reactions_count": 4,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 258,
+        "date": "2024-12-26",
+        "description": "Thanks to Oregon Business magazine for bringing our restorative efforts to light and highlighting the challenges and opportunities for our sea urchin ranch!",
+        "reactions_count": 5,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 258,
+        "date": "2024-12-01",
+        "description": "This 'blob' was one of the first anomalies that got mainstream media's attention over a decade ago. Since then things have only gotten weirder. Our ecosystem is changing, and we need to find ways to adapt and help it, and in the process help our own societies adapt. \n\n#kelpforestrestoration\n#restorativeaquaculture",
+        "reactions_count": 1,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 258,
+        "date": "2024-11-14",
+        "description": "Thanks to the Hatch Blue team for organizing such a great demo day last week. Great to meet the Singapore community of impact investors, funds, and partners to push restorative aquaculture forward!",
+        "reactions_count": 13,
+        "comments_count": 4,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 258,
+        "date": "2024-10-28",
+        "description": "Thanks for Koen van Seijen and the regen podcast for giving voice to restorative aquaculture within the regen community!",
+        "reactions_count": 2,
+        "comments_count": null,
+        "reshared_post_author": "Koen van Seijen",
+        "reshared_post_author_url": "https://it.linkedin.com/in/koenvanseijen",
+        "reshared_post_author_headline": "Manager at Toniic, host of the Podcast Investing in Regenerative Agriculture and Food",
+        "reshared_post_description": "A deep dive with Aaron Huang, founder of OoNee Sea Urchin Ranch, into the world of #seaurchin ranching and its connections to high-end fish #restaurants, many of which fly their sea urchins in from Japan. Over the past decade, a warm water blob off the U.S. West Coast has caused sea urchins to overgraze the #kelp forests, leading to a massive population boom of urchins, the collapse of kelp ecosystems, and the rise of countless \u201czombie\u201d sea urchins\u2014urchins that prevent the kelp from regrowing without dying themselves.\n\nWhy should we care? Because this phenomenon is happening everywhere\u2014whether it\u2019s invasive species or extreme #weather events, #ecosystems are collapsing, and without smart intervention, they won\u2019t recover. OoNee's solution is to harvest the sea urchins threatening the remaining kelp, fatten them up, and sell them to the growing market for high-end #seafood. What can we learn from this approach and apply to other ecosystems that are out of balance?\n\nThis is part of the Regenerative Aquaculture series supported by The Nest Family Office.\n\nhttps://lnkd.in/gQdGQYUv",
+        "reshared_post_followers": null,
+        "reshared_post_date": "10mo"
+      },
+      {
+        "followers": 258,
+        "date": "2024-10-24",
+        "description": "Why urchin ranching? Find out more with co-founder and CEO Aaron Huang.",
+        "reactions_count": 6,
+        "comments_count": null,
+        "reshared_post_author": "Seaze",
+        "reshared_post_author_url": "https://www.linkedin.com/company/seazeco",
+        "reshared_post_author_headline": null,
+        "reshared_post_description": "Read about our latest conversation with OoNee Sea Urchin Ranch here \n\u2b07\ufe0f\ud83d\udcda",
+        "reshared_post_followers": null,
+        "reshared_post_date": "10mo"
+      },
+      {
+        "followers": 258,
+        "date": "2024-10-23",
+        "description": "This is a huge step in the right direction for monitoring kelp forests worldwide.",
+        "reactions_count": 5,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 263,
+        "date": "2025-08-05",
+        "description": "This week, researchers identified the pathogen responsible for sea star wasting disease: Vibrio pectenicida. The disease has devastated sea star populations along the Pacific Coast since 2013, including over 90% of sunflower sea stars \u2014 a key predator of sea urchins.\n\nThe loss of these predators contributed to unchecked sea urchin grazing, accelerating the decline of kelp forests across the region.\n\nAt OoNee, our work centers on restoring balance to this system. By harvesting and fattening undernourished urchins, we reduce pressure on kelp beds while building a regenerative, high-value seafood product.\n\nThis discovery is an important step forward for marine science and ecosystem recovery. It opens the door for targeted sea star restoration \u2014 which, paired with efforts like ours, can help stabilize coastal food webs and support long-term kelp recovery.\n\nWe\u2019re encouraged by the progress and remain committed to regenerative aquaculture solutions that benefit both ocean ecosystems and coastal economies.\n\nhttps://lnkd.in/gnxey2BA\n\n#regenerativeaquaculture #marineecology #kelprestoration #bluefoods #oceanhealth",
+        "reactions_count": 3,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 263,
+        "date": "2025-03-14",
+        "description": "Why is workforce development so critical to the development of the Blue Economy? Restoring ecosystems and developing new skills is vital. Human capital is and always will be the foundation of a healthy, sustainable society. \n\nThanks to OPB radio for highlighting our work with NorthWest Oregon Works.\n\n#BlueEconomy\n#WorkforceDevelopment",
+        "reactions_count": 3,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 263,
+        "date": "2025-02-14",
+        "description": "Thanks Lourdes Gant \ud83e\udd8bfor highlighting us and spotlighting urchin ranching in the PNW!",
+        "reactions_count": 7,
+        "comments_count": 2,
+        "reshared_post_author": "Lourdes Gant \ud83e\udd8b",
+        "reshared_post_author_url": "https://ca.linkedin.com/in/lourdesegant",
+        "reshared_post_author_headline": "Sustainable Business | Regenerative Seafood | Impact Investment | Business Mentoring | Visionary\ud83e\uddd8\ud83c\udffd | Podcaster  |",
+        "reshared_post_description": "\ud83c\udf99\ufe0f\ud83d\udc1f New Podcast Episode is LIVE: The Future of Uni & Urchin Ranching! \ud83c\udf0a\u267b\ufe0f\n\nSea urchins are shaping the future of regenerative aquaculture. But how can we sustainably harvest and ranch them while restoring our oceans? \ud83c\udf31\ud83c\udf0e\nOn today\u2019s episode of The Business of Aquaculture Podcast, we sit down with Aaron Huang, CEO of OoNee.com, to explore how his team of divers, researchers, and technologists are redefining seafood production while combating climate change.\n\n\ud83d\udd39 What you\u2019ll learn in this episode:\n\u2705 How sustainable urchin ranching works\u2014from diving to processing\n\u2705 The climate impact on marine ecosystems and how innovation is protecting coastal waters\n\u2705 The challenges of scaling a niche seafood product while maintaining ocean health \ud83c\udf0a\n\n\ud83c\udf1f If you care about sustainability, seafood, and the future of regenerative aquaculture\u2014this episode is for you! \ud83c\udf1f\n\n\ud83c\udfa7 Tune in now & be part of the conversation! https://lnkd.in/d2WrW4gE\n\n\ud83d\udcac **What\u2019s your take on sustainable urchin ranching? Let\u2019s discuss in the comments!**\ud83d\udc47\n\n\ud83d\udd01 Tag a fellow ocean advocate & share this episode!\n\n#Podcast #Aquaculture #SustainableSeafood #UrchinRanching #ClimateAction #RegenerativeFarming #FutureOfFood",
+        "reshared_post_followers": null,
+        "reshared_post_date": "6mo"
+      },
+      {
+        "followers": 263,
+        "date": "2025-02-10",
+        "description": "Curious why urchin ranching can help the underwater ecosystem and restore kelp forests? Read our write up in The Fish Site!",
+        "reactions_count": 4,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 263,
+        "date": "2024-12-26",
+        "description": "Thanks to Oregon Business magazine for bringing our restorative efforts to light and highlighting the challenges and opportunities for our sea urchin ranch!",
+        "reactions_count": 5,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 263,
+        "date": "2024-12-01",
+        "description": "This 'blob' was one of the first anomalies that got mainstream media's attention over a decade ago. Since then things have only gotten weirder. Our ecosystem is changing, and we need to find ways to adapt and help it, and in the process help our own societies adapt. \n\n#kelpforestrestoration\n#restorativeaquaculture",
+        "reactions_count": 1,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 263,
+        "date": "2024-11-14",
+        "description": "Thanks to the Hatch Blue team for organizing such a great demo day last week. Great to meet the Singapore community of impact investors, funds, and partners to push restorative aquaculture forward!",
+        "reactions_count": 13,
+        "comments_count": 4,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 263,
+        "date": "2024-10-28",
+        "description": "Thanks for Koen van Seijen and the regen podcast for giving voice to restorative aquaculture within the regen community!",
+        "reactions_count": 2,
+        "comments_count": null,
+        "reshared_post_author": "Koen van Seijen",
+        "reshared_post_author_url": "https://it.linkedin.com/in/koenvanseijen",
+        "reshared_post_author_headline": "Manager at Toniic, host of the Podcast Investing in Regenerative Agriculture and Food",
+        "reshared_post_description": "A deep dive with Aaron Huang, founder of OoNee Sea Urchin Ranch, into the world of #seaurchin ranching and its connections to high-end fish #restaurants, many of which fly their sea urchins in from Japan. Over the past decade, a warm water blob off the U.S. West Coast has caused sea urchins to overgraze the #kelp forests, leading to a massive population boom of urchins, the collapse of kelp ecosystems, and the rise of countless \u201czombie\u201d sea urchins\u2014urchins that prevent the kelp from regrowing without dying themselves.\n\nWhy should we care? Because this phenomenon is happening everywhere\u2014whether it\u2019s invasive species or extreme #weather events, #ecosystems are collapsing, and without smart intervention, they won\u2019t recover. OoNee's solution is to harvest the sea urchins threatening the remaining kelp, fatten them up, and sell them to the growing market for high-end #seafood. What can we learn from this approach and apply to other ecosystems that are out of balance?\n\nThis is part of the Regenerative Aquaculture series supported by The Nest Family Office.\n\nhttps://lnkd.in/gQdGQYUv",
+        "reshared_post_followers": null,
+        "reshared_post_date": "10mo"
+      },
+      {
+        "followers": 263,
+        "date": "2024-10-24",
+        "description": "Why urchin ranching? Find out more with co-founder and CEO Aaron Huang.",
+        "reactions_count": 6,
+        "comments_count": null,
+        "reshared_post_author": "Seaze",
+        "reshared_post_author_url": "https://www.linkedin.com/company/seazeco",
+        "reshared_post_author_headline": null,
+        "reshared_post_description": "Read about our latest conversation with OoNee Sea Urchin Ranch here \n\u2b07\ufe0f\ud83d\udcda",
+        "reshared_post_followers": null,
+        "reshared_post_date": "10mo"
+      },
+      {
+        "followers": 263,
+        "date": "2024-10-23",
+        "description": "This is a huge step in the right direction for monitoring kelp forests worldwide.",
+        "reactions_count": 5,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 252,
+        "date": "2025-08-05",
+        "description": "This week, researchers identified the pathogen responsible for sea star wasting disease: Vibrio pectenicida. The disease has devastated sea star populations along the Pacific Coast since 2013, including over 90% of sunflower sea stars \u2014 a key predator of sea urchins.\n\nThe loss of these predators contributed to unchecked sea urchin grazing, accelerating the decline of kelp forests across the region.\n\nAt OoNee, our work centers on restoring balance to this system. By harvesting and fattening undernourished urchins, we reduce pressure on kelp beds while building a regenerative, high-value seafood product.\n\nThis discovery is an important step forward for marine science and ecosystem recovery. It opens the door for targeted sea star restoration \u2014 which, paired with efforts like ours, can help stabilize coastal food webs and support long-term kelp recovery.\n\nWe\u2019re encouraged by the progress and remain committed to regenerative aquaculture solutions that benefit both ocean ecosystems and coastal economies.\n\nhttps://lnkd.in/gnxey2BA\n\n#regenerativeaquaculture #marineecology #kelprestoration #bluefoods #oceanhealth",
+        "reactions_count": 3,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 252,
+        "date": "2025-03-14",
+        "description": "Why is workforce development so critical to the development of the Blue Economy? Restoring ecosystems and developing new skills is vital. Human capital is and always will be the foundation of a healthy, sustainable society. \n\nThanks to OPB radio for highlighting our work with NorthWest Oregon Works.\n\n#BlueEconomy\n#WorkforceDevelopment",
+        "reactions_count": 3,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 252,
+        "date": "2025-02-14",
+        "description": "Thanks Lourdes Gant \ud83e\udd8bfor highlighting us and spotlighting urchin ranching in the PNW!",
+        "reactions_count": 7,
+        "comments_count": 2,
+        "reshared_post_author": "Lourdes Gant \ud83e\udd8b",
+        "reshared_post_author_url": "https://ca.linkedin.com/in/lourdesegant",
+        "reshared_post_author_headline": "Sustainable Business | Regenerative Seafood | Impact Investment | Business Mentoring | Visionary\ud83e\uddd8\ud83c\udffd | Podcaster  |",
+        "reshared_post_description": "\ud83c\udf99\ufe0f\ud83d\udc1f New Podcast Episode is LIVE: The Future of Uni & Urchin Ranching! \ud83c\udf0a\u267b\ufe0f\n\nSea urchins are shaping the future of regenerative aquaculture. But how can we sustainably harvest and ranch them while restoring our oceans? \ud83c\udf31\ud83c\udf0e\nOn today\u2019s episode of The Business of Aquaculture Podcast, we sit down with Aaron Huang, CEO of OoNee.com, to explore how his team of divers, researchers, and technologists are redefining seafood production while combating climate change.\n\n\ud83d\udd39 What you\u2019ll learn in this episode:\n\u2705 How sustainable urchin ranching works\u2014from diving to processing\n\u2705 The climate impact on marine ecosystems and how innovation is protecting coastal waters\n\u2705 The challenges of scaling a niche seafood product while maintaining ocean health \ud83c\udf0a\n\n\ud83c\udf1f If you care about sustainability, seafood, and the future of regenerative aquaculture\u2014this episode is for you! \ud83c\udf1f\n\n\ud83c\udfa7 Tune in now & be part of the conversation! https://lnkd.in/d2WrW4gE\n\n\ud83d\udcac **What\u2019s your take on sustainable urchin ranching? Let\u2019s discuss in the comments!**\ud83d\udc47\n\n\ud83d\udd01 Tag a fellow ocean advocate & share this episode!\n\n#Podcast #Aquaculture #SustainableSeafood #UrchinRanching #ClimateAction #RegenerativeFarming #FutureOfFood",
+        "reshared_post_followers": null,
+        "reshared_post_date": "5mo"
+      },
+      {
+        "followers": 252,
+        "date": "2025-02-10",
+        "description": "Curious why urchin ranching can help the underwater ecosystem and restore kelp forests? Read our write up in The Fish Site!",
+        "reactions_count": 4,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 252,
+        "date": "2024-12-26",
+        "description": "Thanks to Oregon Business magazine for bringing our restorative efforts to light and highlighting the challenges and opportunities for our sea urchin ranch!",
+        "reactions_count": 5,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 252,
+        "date": "2024-12-01",
+        "description": "This 'blob' was one of the first anomalies that got mainstream media's attention over a decade ago. Since then things have only gotten weirder. Our ecosystem is changing, and we need to find ways to adapt and help it, and in the process help our own societies adapt. \n\n#kelpforestrestoration\n#restorativeaquaculture",
+        "reactions_count": 1,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 252,
+        "date": "2024-11-14",
+        "description": "Thanks to the Hatch Blue team for organizing such a great demo day last week. Great to meet the Singapore community of impact investors, funds, and partners to push restorative aquaculture forward!",
+        "reactions_count": 13,
+        "comments_count": 4,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 252,
+        "date": "2024-10-28",
+        "description": "Thanks for Koen van Seijen and the regen podcast for giving voice to restorative aquaculture within the regen community!",
+        "reactions_count": 2,
+        "comments_count": null,
+        "reshared_post_author": "Koen van Seijen",
+        "reshared_post_author_url": "https://it.linkedin.com/in/koenvanseijen",
+        "reshared_post_author_headline": "Manager at Toniic, host of the Podcast Investing in Regenerative Agriculture and Food",
+        "reshared_post_description": "A deep dive with Aaron Huang, founder of OoNee Sea Urchin Ranch, into the world of #seaurchin ranching and its connections to high-end fish #restaurants, many of which fly their sea urchins in from Japan. Over the past decade, a warm water blob off the U.S. West Coast has caused sea urchins to overgraze the #kelp forests, leading to a massive population boom of urchins, the collapse of kelp ecosystems, and the rise of countless \u201czombie\u201d sea urchins\u2014urchins that prevent the kelp from regrowing without dying themselves.\n\nWhy should we care? Because this phenomenon is happening everywhere\u2014whether it\u2019s invasive species or extreme #weather events, #ecosystems are collapsing, and without smart intervention, they won\u2019t recover. OoNee's solution is to harvest the sea urchins threatening the remaining kelp, fatten them up, and sell them to the growing market for high-end #seafood. What can we learn from this approach and apply to other ecosystems that are out of balance?\n\nThis is part of the Regenerative Aquaculture series supported by The Nest Family Office.\n\nhttps://lnkd.in/gQdGQYUv",
+        "reshared_post_followers": null,
+        "reshared_post_date": "9mo"
+      },
+      {
+        "followers": 252,
+        "date": "2024-10-24",
+        "description": "Why urchin ranching? Find out more with co-founder and CEO Aaron Huang.",
+        "reactions_count": 6,
+        "comments_count": null,
+        "reshared_post_author": "Seaze",
+        "reshared_post_author_url": "https://www.linkedin.com/company/seazeco",
+        "reshared_post_author_headline": null,
+        "reshared_post_description": "Read about our latest conversation with OoNee Sea Urchin Ranch here \n\u2b07\ufe0f\ud83d\udcda",
+        "reshared_post_followers": null,
+        "reshared_post_date": "9mo"
+      },
+      {
+        "followers": 252,
+        "date": "2024-10-23",
+        "description": "This is a huge step in the right direction for monitoring kelp forests worldwide.",
+        "reactions_count": 5,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 248,
+        "date": "2025-08-05",
+        "description": "This week, researchers identified the pathogen responsible for sea star wasting disease: Vibrio pectenicida. The disease has devastated sea star populations along the Pacific Coast since 2013, including over 90% of sunflower sea stars \u2014 a key predator of sea urchins.\n\nThe loss of these predators contributed to unchecked sea urchin grazing, accelerating the decline of kelp forests across the region.\n\nAt OoNee, our work centers on restoring balance to this system. By harvesting and fattening undernourished urchins, we reduce pressure on kelp beds while building a regenerative, high-value seafood product.\n\nThis discovery is an important step forward for marine science and ecosystem recovery. It opens the door for targeted sea star restoration \u2014 which, paired with efforts like ours, can help stabilize coastal food webs and support long-term kelp recovery.\n\nWe\u2019re encouraged by the progress and remain committed to regenerative aquaculture solutions that benefit both ocean ecosystems and coastal economies.\n\nhttps://lnkd.in/gnxey2BA\n\n#regenerativeaquaculture #marineecology #kelprestoration #bluefoods #oceanhealth",
+        "reactions_count": 2,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 248,
+        "date": "2025-03-14",
+        "description": "Why is workforce development so critical to the development of the Blue Economy? Restoring ecosystems and developing new skills is vital. Human capital is and always will be the foundation of a healthy, sustainable society. \n\nThanks to OPB radio for highlighting our work with NorthWest Oregon Works.\n\n#BlueEconomy\n#WorkforceDevelopment",
+        "reactions_count": 3,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 248,
+        "date": "2025-02-14",
+        "description": "Thanks Lourdes Gant \ud83e\udd8bfor highlighting us and spotlighting urchin ranching in the PNW!",
+        "reactions_count": 7,
+        "comments_count": 2,
+        "reshared_post_author": "Lourdes Gant \ud83e\udd8b",
+        "reshared_post_author_url": "https://ca.linkedin.com/in/lourdesegant",
+        "reshared_post_author_headline": "Sustainable Business | Regenerative Seafood | Impact Investment | Business Mentoring | Visionary\ud83e\uddd8\ud83c\udffd | Podcaster  |",
+        "reshared_post_description": "\ud83c\udf99\ufe0f\ud83d\udc1f New Podcast Episode is LIVE: The Future of Uni & Urchin Ranching! \ud83c\udf0a\u267b\ufe0f\n\nSea urchins are shaping the future of regenerative aquaculture. But how can we sustainably harvest and ranch them while restoring our oceans? \ud83c\udf31\ud83c\udf0e\nOn today\u2019s episode of The Business of Aquaculture Podcast, we sit down with Aaron Huang, CEO of OoNee.com, to explore how his team of divers, researchers, and technologists are redefining seafood production while combating climate change.\n\n\ud83d\udd39 What you\u2019ll learn in this episode:\n\u2705 How sustainable urchin ranching works\u2014from diving to processing\n\u2705 The climate impact on marine ecosystems and how innovation is protecting coastal waters\n\u2705 The challenges of scaling a niche seafood product while maintaining ocean health \ud83c\udf0a\n\n\ud83c\udf1f If you care about sustainability, seafood, and the future of regenerative aquaculture\u2014this episode is for you! \ud83c\udf1f\n\n\ud83c\udfa7 Tune in now & be part of the conversation! https://lnkd.in/d2WrW4gE\n\n\ud83d\udcac **What\u2019s your take on sustainable urchin ranching? Let\u2019s discuss in the comments!**\ud83d\udc47\n\n\ud83d\udd01 Tag a fellow ocean advocate & share this episode!\n\n#Podcast #Aquaculture #SustainableSeafood #UrchinRanching #ClimateAction #RegenerativeFarming #FutureOfFood",
+        "reshared_post_followers": null,
+        "reshared_post_date": "5mo"
+      },
+      {
+        "followers": 248,
+        "date": "2025-02-10",
+        "description": "Curious why urchin ranching can help the underwater ecosystem and restore kelp forests? Read our write up in The Fish Site!",
+        "reactions_count": 4,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 248,
+        "date": "2024-12-26",
+        "description": "Thanks to Oregon Business magazine for bringing our restorative efforts to light and highlighting the challenges and opportunities for our sea urchin ranch!",
+        "reactions_count": 5,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 248,
+        "date": "2024-12-01",
+        "description": "This 'blob' was one of the first anomalies that got mainstream media's attention over a decade ago. Since then things have only gotten weirder. Our ecosystem is changing, and we need to find ways to adapt and help it, and in the process help our own societies adapt. \n\n#kelpforestrestoration\n#restorativeaquaculture",
+        "reactions_count": 1,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 248,
+        "date": "2024-11-14",
+        "description": "Thanks to the Hatch Blue team for organizing such a great demo day last week. Great to meet the Singapore community of impact investors, funds, and partners to push restorative aquaculture forward!",
+        "reactions_count": 13,
+        "comments_count": 4,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 248,
+        "date": "2024-10-28",
+        "description": "Thanks for Koen van Seijen and the regen podcast for giving voice to restorative aquaculture within the regen community!",
+        "reactions_count": 2,
+        "comments_count": null,
+        "reshared_post_author": "Koen van Seijen",
+        "reshared_post_author_url": "https://it.linkedin.com/in/koenvanseijen",
+        "reshared_post_author_headline": "Manager at Toniic, host of the Podcast Investing in Regenerative Agriculture and Food",
+        "reshared_post_description": "A deep dive with Aaron Huang, founder of OoNee Sea Urchin Ranch, into the world of #seaurchin ranching and its connections to high-end fish #restaurants, many of which fly their sea urchins in from Japan. Over the past decade, a warm water blob off the U.S. West Coast has caused sea urchins to overgraze the #kelp forests, leading to a massive population boom of urchins, the collapse of kelp ecosystems, and the rise of countless \u201czombie\u201d sea urchins\u2014urchins that prevent the kelp from regrowing without dying themselves.\n\nWhy should we care? Because this phenomenon is happening everywhere\u2014whether it\u2019s invasive species or extreme #weather events, #ecosystems are collapsing, and without smart intervention, they won\u2019t recover. OoNee's solution is to harvest the sea urchins threatening the remaining kelp, fatten them up, and sell them to the growing market for high-end #seafood. What can we learn from this approach and apply to other ecosystems that are out of balance?\n\nThis is part of the Regenerative Aquaculture series supported by The Nest Family Office.\n\nhttps://lnkd.in/gQdGQYUv",
+        "reshared_post_followers": null,
+        "reshared_post_date": "9mo"
+      },
+      {
+        "followers": 248,
+        "date": "2024-10-24",
+        "description": "Why urchin ranching? Find out more with co-founder and CEO Aaron Huang.",
+        "reactions_count": 6,
+        "comments_count": null,
+        "reshared_post_author": "Seaze",
+        "reshared_post_author_url": "https://www.linkedin.com/company/seazeco",
+        "reshared_post_author_headline": null,
+        "reshared_post_description": "Read about our latest conversation with OoNee Sea Urchin Ranch here \n\u2b07\ufe0f\ud83d\udcda",
+        "reshared_post_followers": null,
+        "reshared_post_date": "9mo"
+      },
+      {
+        "followers": 248,
+        "date": "2024-10-23",
+        "description": "This is a huge step in the right direction for monitoring kelp forests worldwide.",
+        "reactions_count": 5,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 245,
+        "date": "2025-03-14",
+        "description": "Why is workforce development so critical to the development of the Blue Economy? Restoring ecosystems and developing new skills is vital. Human capital is and always will be the foundation of a healthy, sustainable society. \n\nThanks to OPB radio for highlighting our work with NorthWest Oregon Works.\n\n#BlueEconomy\n#WorkforceDevelopment",
+        "reactions_count": 3,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 245,
+        "date": "2025-02-14",
+        "description": "Thanks Lourdes Gant \ud83e\udd8bfor highlighting us and spotlighting urchin ranching in the PNW!",
+        "reactions_count": 7,
+        "comments_count": 2,
+        "reshared_post_author": "Lourdes Gant \ud83e\udd8b",
+        "reshared_post_author_url": "https://ca.linkedin.com/in/lourdesegant",
+        "reshared_post_author_headline": "Sustainable Business | Regenerative Seafood | Impact Investment | Business Mentoring | Visionary\ud83e\uddd8\ud83c\udffd | Podcaster  |",
+        "reshared_post_description": "\ud83c\udf99\ufe0f\ud83d\udc1f New Podcast Episode is LIVE: The Future of Uni & Urchin Ranching! \ud83c\udf0a\u267b\ufe0f\n\nSea urchins are shaping the future of regenerative aquaculture. But how can we sustainably harvest and ranch them while restoring our oceans? \ud83c\udf31\ud83c\udf0e\nOn today\u2019s episode of The Business of Aquaculture Podcast, we sit down with Aaron Huang, CEO of OoNee.com, to explore how his team of divers, researchers, and technologists are redefining seafood production while combating climate change.\n\n\ud83d\udd39 What you\u2019ll learn in this episode:\n\u2705 How sustainable urchin ranching works\u2014from diving to processing\n\u2705 The climate impact on marine ecosystems and how innovation is protecting coastal waters\n\u2705 The challenges of scaling a niche seafood product while maintaining ocean health \ud83c\udf0a\n\n\ud83c\udf1f If you care about sustainability, seafood, and the future of regenerative aquaculture\u2014this episode is for you! \ud83c\udf1f\n\n\ud83c\udfa7 Tune in now & be part of the conversation! https://lnkd.in/d2WrW4gE\n\n\ud83d\udcac **What\u2019s your take on sustainable urchin ranching? Let\u2019s discuss in the comments!**\ud83d\udc47\n\n\ud83d\udd01 Tag a fellow ocean advocate & share this episode!\n\n#Podcast #Aquaculture #SustainableSeafood #UrchinRanching #ClimateAction #RegenerativeFarming #FutureOfFood",
+        "reshared_post_followers": null,
+        "reshared_post_date": "5mo"
+      },
+      {
+        "followers": 245,
+        "date": "2025-02-10",
+        "description": "Curious why urchin ranching can help the underwater ecosystem and restore kelp forests? Read our write up in The Fish Site!",
+        "reactions_count": 4,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 245,
+        "date": "2024-12-26",
+        "description": "Thanks to Oregon Business magazine for bringing our restorative efforts to light and highlighting the challenges and opportunities for our sea urchin ranch!",
+        "reactions_count": 5,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 245,
+        "date": "2024-12-01",
+        "description": "This 'blob' was one of the first anomalies that got mainstream media's attention over a decade ago. Since then things have only gotten weirder. Our ecosystem is changing, and we need to find ways to adapt and help it, and in the process help our own societies adapt. \n\n#kelpforestrestoration\n#restorativeaquaculture",
+        "reactions_count": 1,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 245,
+        "date": "2024-11-14",
+        "description": "Thanks to the Hatch Blue team for organizing such a great demo day last week. Great to meet the Singapore community of impact investors, funds, and partners to push restorative aquaculture forward!",
+        "reactions_count": 13,
+        "comments_count": 4,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 245,
+        "date": "2024-10-28",
+        "description": "Thanks for Koen van Seijen and the regen podcast for giving voice to restorative aquaculture within the regen community!",
+        "reactions_count": 2,
+        "comments_count": null,
+        "reshared_post_author": "Koen van Seijen",
+        "reshared_post_author_url": "https://it.linkedin.com/in/koenvanseijen",
+        "reshared_post_author_headline": "Manager at Toniic, host of the Podcast Investing in Regenerative Agriculture and Food",
+        "reshared_post_description": "A deep dive with Aaron Huang, founder of OoNee Sea Urchin Ranch, into the world of #seaurchin ranching and its connections to high-end fish #restaurants, many of which fly their sea urchins in from Japan. Over the past decade, a warm water blob off the U.S. West Coast has caused sea urchins to overgraze the #kelp forests, leading to a massive population boom of urchins, the collapse of kelp ecosystems, and the rise of countless \u201czombie\u201d sea urchins\u2014urchins that prevent the kelp from regrowing without dying themselves.\n\nWhy should we care? Because this phenomenon is happening everywhere\u2014whether it\u2019s invasive species or extreme #weather events, #ecosystems are collapsing, and without smart intervention, they won\u2019t recover. OoNee's solution is to harvest the sea urchins threatening the remaining kelp, fatten them up, and sell them to the growing market for high-end #seafood. What can we learn from this approach and apply to other ecosystems that are out of balance?\n\nThis is part of the Regenerative Aquaculture series supported by The Nest Family Office.\n\nhttps://lnkd.in/gQdGQYUv",
+        "reshared_post_followers": null,
+        "reshared_post_date": "8mo"
+      },
+      {
+        "followers": 245,
+        "date": "2024-10-24",
+        "description": "Why urchin ranching? Find out more with co-founder and CEO Aaron Huang.",
+        "reactions_count": 6,
+        "comments_count": null,
+        "reshared_post_author": "Seaze",
+        "reshared_post_author_url": "https://www.linkedin.com/company/seazeco",
+        "reshared_post_author_headline": null,
+        "reshared_post_description": "Read about our latest conversation with OoNee Sea Urchin Ranch here \n\u2b07\ufe0f\ud83d\udcda",
+        "reshared_post_followers": null,
+        "reshared_post_date": "9mo"
+      },
+      {
+        "followers": 245,
+        "date": "2024-10-23",
+        "description": "This is a huge step in the right direction for monitoring kelp forests worldwide.",
+        "reactions_count": 5,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 245,
+        "date": "2024-08-01",
+        "description": "Sharing harvest with our friends at Washington Maritime Blue Joshua M Berger. \n\n#RestorativeAquaculture #Saveourkelp",
+        "reactions_count": 10,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 244,
+        "date": "2025-03-14",
+        "description": "Why is workforce development so critical to the development of the Blue Economy? Restoring ecosystems and developing new skills is vital. Human capital is and always will be the foundation of a healthy, sustainable society. \n\nThanks to OPB radio for highlighting our work with NorthWest Oregon Works.\n\n#BlueEconomy\n#WorkforceDevelopment",
+        "reactions_count": 3,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 244,
+        "date": "2025-02-14",
+        "description": "Thanks Lourdes Gant \ud83e\udd8bfor highlighting us and spotlighting urchin ranching in the PNW!",
+        "reactions_count": 7,
+        "comments_count": 2,
+        "reshared_post_author": "Lourdes Gant \ud83e\udd8b",
+        "reshared_post_author_url": "https://ca.linkedin.com/in/lourdesegant",
+        "reshared_post_author_headline": "Sustainable Business | Regenerative Seafood | Impact Investment | Business Mentoring | Visionary\ud83e\uddd8\ud83c\udffd | Podcaster  |",
+        "reshared_post_description": "\ud83c\udf99\ufe0f\ud83d\udc1f New Podcast Episode is LIVE: The Future of Uni & Urchin Ranching! \ud83c\udf0a\u267b\ufe0f\n\nSea urchins are shaping the future of regenerative aquaculture. But how can we sustainably harvest and ranch them while restoring our oceans? \ud83c\udf31\ud83c\udf0e\nOn today\u2019s episode of The Business of Aquaculture Podcast, we sit down with Aaron Huang, CEO of OoNee.com, to explore how his team of divers, researchers, and technologists are redefining seafood production while combating climate change.\n\n\ud83d\udd39 What you\u2019ll learn in this episode:\n\u2705 How sustainable urchin ranching works\u2014from diving to processing\n\u2705 The climate impact on marine ecosystems and how innovation is protecting coastal waters\n\u2705 The challenges of scaling a niche seafood product while maintaining ocean health \ud83c\udf0a\n\n\ud83c\udf1f If you care about sustainability, seafood, and the future of regenerative aquaculture\u2014this episode is for you! \ud83c\udf1f\n\n\ud83c\udfa7 Tune in now & be part of the conversation! https://lnkd.in/d2WrW4gE\n\n\ud83d\udcac **What\u2019s your take on sustainable urchin ranching? Let\u2019s discuss in the comments!**\ud83d\udc47\n\n\ud83d\udd01 Tag a fellow ocean advocate & share this episode!\n\n#Podcast #Aquaculture #SustainableSeafood #UrchinRanching #ClimateAction #RegenerativeFarming #FutureOfFood",
+        "reshared_post_followers": null,
+        "reshared_post_date": "4mo"
+      },
+      {
+        "followers": 244,
+        "date": "2025-02-10",
+        "description": "Curious why urchin ranching can help the underwater ecosystem and restore kelp forests? Read our write up in The Fish Site!",
+        "reactions_count": 4,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 244,
+        "date": "2024-12-26",
+        "description": "Thanks to Oregon Business magazine for bringing our restorative efforts to light and highlighting the challenges and opportunities for our sea urchin ranch!",
+        "reactions_count": 5,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 244,
+        "date": "2024-12-01",
+        "description": "This 'blob' was one of the first anomalies that got mainstream media's attention over a decade ago. Since then things have only gotten weirder. Our ecosystem is changing, and we need to find ways to adapt and help it, and in the process help our own societies adapt. \n\n#kelpforestrestoration\n#restorativeaquaculture",
+        "reactions_count": 1,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 244,
+        "date": "2024-11-14",
+        "description": "Thanks to the Hatch Blue team for organizing such a great demo day last week. Great to meet the Singapore community of impact investors, funds, and partners to push restorative aquaculture forward!",
+        "reactions_count": 13,
+        "comments_count": 4,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 244,
+        "date": "2024-10-28",
+        "description": "Thanks for Koen van Seijen and the regen podcast for giving voice to restorative aquaculture within the regen community!",
+        "reactions_count": 2,
+        "comments_count": null,
+        "reshared_post_author": "Koen van Seijen",
+        "reshared_post_author_url": "https://it.linkedin.com/in/koenvanseijen",
+        "reshared_post_author_headline": "Manager at Toniic, host of the Podcast Investing in Regenerative Agriculture and Food",
+        "reshared_post_description": "A deep dive with Aaron Huang, founder of OoNee Sea Urchin Ranch, into the world of #seaurchin ranching and its connections to high-end fish #restaurants, many of which fly their sea urchins in from Japan. Over the past decade, a warm water blob off the U.S. West Coast has caused sea urchins to overgraze the #kelp forests, leading to a massive population boom of urchins, the collapse of kelp ecosystems, and the rise of countless \u201czombie\u201d sea urchins\u2014urchins that prevent the kelp from regrowing without dying themselves.\n\nWhy should we care? Because this phenomenon is happening everywhere\u2014whether it\u2019s invasive species or extreme #weather events, #ecosystems are collapsing, and without smart intervention, they won\u2019t recover. OoNee's solution is to harvest the sea urchins threatening the remaining kelp, fatten them up, and sell them to the growing market for high-end #seafood. What can we learn from this approach and apply to other ecosystems that are out of balance?\n\nThis is part of the Regenerative Aquaculture series supported by The Nest Family Office.\n\nhttps://lnkd.in/gQdGQYUv",
+        "reshared_post_followers": null,
+        "reshared_post_date": "8mo"
+      },
+      {
+        "followers": 244,
+        "date": "2024-10-24",
+        "description": "Why urchin ranching? Find out more with co-founder and CEO Aaron Huang.",
+        "reactions_count": 6,
+        "comments_count": null,
+        "reshared_post_author": "Seaze",
+        "reshared_post_author_url": "https://www.linkedin.com/company/seazeco",
+        "reshared_post_author_headline": null,
+        "reshared_post_description": "Read about our latest conversation with OoNee Sea Urchin Ranch here \n\u2b07\ufe0f\ud83d\udcda",
+        "reshared_post_followers": null,
+        "reshared_post_date": "8mo"
+      },
+      {
+        "followers": 244,
+        "date": "2024-10-23",
+        "description": "This is a huge step in the right direction for monitoring kelp forests worldwide.",
+        "reactions_count": 5,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 244,
+        "date": "2024-08-01",
+        "description": "Sharing harvest with our friends at Washington Maritime Blue Joshua M Berger. \n\n#RestorativeAquaculture #Saveourkelp",
+        "reactions_count": 10,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 239,
+        "date": "2025-03-14",
+        "description": "Why is workforce development so critical to the development of the Blue Economy? Restoring ecosystems and developing new skills is vital. Human capital is and always will be the foundation of a healthy, sustainable society. \n\nThanks to OPB radio for highlighting our work with NorthWest Oregon Works.\n\n#BlueEconomy\n#WorkforceDevelopment",
+        "reactions_count": 3,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 239,
+        "date": "2025-02-14",
+        "description": "Thanks Lourdes Gant \ud83e\udd8bfor highlighting us and spotlighting urchin ranching in the PNW!",
+        "reactions_count": 7,
+        "comments_count": 2,
+        "reshared_post_author": "Lourdes Gant \ud83e\udd8b",
+        "reshared_post_author_url": "https://ca.linkedin.com/in/lourdesegant",
+        "reshared_post_author_headline": "Sustainable Business | Regenerative Seafood | Impact Investment | Business Mentoring | Visionary\ud83e\uddd8\ud83c\udffd | Podcaster  |",
+        "reshared_post_description": "\ud83c\udf99\ufe0f\ud83d\udc1f New Podcast Episode is LIVE: The Future of Uni & Urchin Ranching! \ud83c\udf0a\u267b\ufe0f\n\nSea urchins are shaping the future of regenerative aquaculture. But how can we sustainably harvest and ranch them while restoring our oceans? \ud83c\udf31\ud83c\udf0e\nOn today\u2019s episode of The Business of Aquaculture Podcast, we sit down with Aaron Huang, CEO of OoNee.com, to explore how his team of divers, researchers, and technologists are redefining seafood production while combating climate change.\n\n\ud83d\udd39 What you\u2019ll learn in this episode:\n\u2705 How sustainable urchin ranching works\u2014from diving to processing\n\u2705 The climate impact on marine ecosystems and how innovation is protecting coastal waters\n\u2705 The challenges of scaling a niche seafood product while maintaining ocean health \ud83c\udf0a\n\n\ud83c\udf1f If you care about sustainability, seafood, and the future of regenerative aquaculture\u2014this episode is for you! \ud83c\udf1f\n\n\ud83c\udfa7 Tune in now & be part of the conversation! https://lnkd.in/d2WrW4gE\n\n\ud83d\udcac **What\u2019s your take on sustainable urchin ranching? Let\u2019s discuss in the comments!**\ud83d\udc47\n\n\ud83d\udd01 Tag a fellow ocean advocate & share this episode!\n\n#Podcast #Aquaculture #SustainableSeafood #UrchinRanching #ClimateAction #RegenerativeFarming #FutureOfFood",
+        "reshared_post_followers": null,
+        "reshared_post_date": "3mo"
+      },
+      {
+        "followers": 239,
+        "date": "2025-02-10",
+        "description": "Curious why urchin ranching can help the underwater ecosystem and restore kelp forests? Read our write up in The Fish Site!",
+        "reactions_count": 4,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 239,
+        "date": "2024-12-26",
+        "description": "Thanks to Oregon Business magazine for bringing our restorative efforts to light and highlighting the challenges and opportunities for our sea urchin ranch!",
+        "reactions_count": 5,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 239,
+        "date": "2024-12-01",
+        "description": "This 'blob' was one of the first anomalies that got mainstream media's attention over a decade ago. Since then things have only gotten weirder. Our ecosystem is changing, and we need to find ways to adapt and help it, and in the process help our own societies adapt. \n\n#kelpforestrestoration\n#restorativeaquaculture",
+        "reactions_count": 1,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 239,
+        "date": "2024-11-14",
+        "description": "Thanks to the Hatch Blue team for organizing such a great demo day last week. Great to meet the Singapore community of impact investors, funds, and partners to push restorative aquaculture forward!",
+        "reactions_count": 13,
+        "comments_count": 4,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 239,
+        "date": "2024-10-28",
+        "description": "Thanks for Koen van Seijen and the regen podcast for giving voice to restorative aquaculture within the regen community!",
+        "reactions_count": 2,
+        "comments_count": null,
+        "reshared_post_author": "Koen van Seijen",
+        "reshared_post_author_url": "https://it.linkedin.com/in/koenvanseijen",
+        "reshared_post_author_headline": "Manager at Toniic, host of the Podcast Investing in Regenerative Agriculture and Food",
+        "reshared_post_description": "A deep dive with Aaron Huang, founder of OoNee Sea Urchin Ranch, into the world of #seaurchin ranching and its connections to high-end fish #restaurants, many of which fly their sea urchins in from Japan. Over the past decade, a warm water blob off the U.S. West Coast has caused sea urchins to overgraze the #kelp forests, leading to a massive population boom of urchins, the collapse of kelp ecosystems, and the rise of countless \u201czombie\u201d sea urchins\u2014urchins that prevent the kelp from regrowing without dying themselves.\n\nWhy should we care? Because this phenomenon is happening everywhere\u2014whether it\u2019s invasive species or extreme #weather events, #ecosystems are collapsing, and without smart intervention, they won\u2019t recover. OoNee's solution is to harvest the sea urchins threatening the remaining kelp, fatten them up, and sell them to the growing market for high-end #seafood. What can we learn from this approach and apply to other ecosystems that are out of balance?\n\nThis is part of the Regenerative Aquaculture series supported by The Nest Family Office.\n\nhttps://lnkd.in/gQdGQYUv",
+        "reshared_post_followers": null,
+        "reshared_post_date": "7mo"
+      },
+      {
+        "followers": 239,
+        "date": "2024-10-24",
+        "description": "Why urchin ranching? Find out more with co-founder and CEO Aaron Huang.",
+        "reactions_count": 6,
+        "comments_count": null,
+        "reshared_post_author": "Seaze",
+        "reshared_post_author_url": "https://www.linkedin.com/company/seazeco",
+        "reshared_post_author_headline": null,
+        "reshared_post_description": "Read about our latest conversation with OoNee Sea Urchin Ranch here \n\u2b07\ufe0f\ud83d\udcda",
+        "reshared_post_followers": null,
+        "reshared_post_date": "7mo"
+      },
+      {
+        "followers": 239,
+        "date": "2024-10-23",
+        "description": "This is a huge step in the right direction for monitoring kelp forests worldwide.",
+        "reactions_count": 5,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 239,
+        "date": "2024-08-01",
+        "description": "Sharing harvest with our friends at Washington Maritime Blue Joshua M Berger. \n\n#RestorativeAquaculture #Saveourkelp",
+        "reactions_count": 10,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 220,
+        "date": "2025-03-14",
+        "description": "Why is workforce development so critical to the development of the Blue Economy? Restoring ecosystems and developing new skills is vital. Human capital is and always will be the foundation of a healthy, sustainable society. \n\nThanks to OPB radio for highlighting our work with NorthWest Oregon Works.\n\n#BlueEconomy\n#WorkforceDevelopment",
+        "reactions_count": 3,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 220,
+        "date": "2025-02-14",
+        "description": "Thanks Lourdes Gant \ud83e\udd8bfor highlighting us and spotlighting urchin ranching in the PNW!",
+        "reactions_count": 7,
+        "comments_count": 2,
+        "reshared_post_author": "Lourdes Gant \ud83e\udd8b",
+        "reshared_post_author_url": "https://ca.linkedin.com/in/lourdesegant",
+        "reshared_post_author_headline": "Sustainable Business | Regenerative Seafood | Impact Investment | Business Mentoring | Visionary\ud83e\uddd8\ud83c\udffd | Podcaster  |",
+        "reshared_post_description": "\ud83c\udf99\ufe0f\ud83d\udc1f New Podcast Episode is LIVE: The Future of Uni & Urchin Ranching! \ud83c\udf0a\u267b\ufe0f\n\nSea urchins are shaping the future of regenerative aquaculture. But how can we sustainably harvest and ranch them while restoring our oceans? \ud83c\udf31\ud83c\udf0e\nOn today\u2019s episode of The Business of Aquaculture Podcast, we sit down with Aaron Huang, CEO of OoNee.com, to explore how his team of divers, researchers, and technologists are redefining seafood production while combating climate change.\n\n\ud83d\udd39 What you\u2019ll learn in this episode:\n\u2705 How sustainable urchin ranching works\u2014from diving to processing\n\u2705 The climate impact on marine ecosystems and how innovation is protecting coastal waters\n\u2705 The challenges of scaling a niche seafood product while maintaining ocean health \ud83c\udf0a\n\n\ud83c\udf1f If you care about sustainability, seafood, and the future of regenerative aquaculture\u2014this episode is for you! \ud83c\udf1f\n\n\ud83c\udfa7 Tune in now & be part of the conversation! https://lnkd.in/d2WrW4gE\n\n\ud83d\udcac **What\u2019s your take on sustainable urchin ranching? Let\u2019s discuss in the comments!**\ud83d\udc47\n\n\ud83d\udd01 Tag a fellow ocean advocate & share this episode!\n\n#Podcast #Aquaculture #SustainableSeafood #UrchinRanching #ClimateAction #RegenerativeFarming #FutureOfFood",
+        "reshared_post_followers": null,
+        "reshared_post_date": "2mo"
+      },
+      {
+        "followers": 220,
+        "date": "2025-02-10",
+        "description": "Curious why urchin ranching can help the underwater ecosystem and restore kelp forests? Read our write up in The Fish Site!",
+        "reactions_count": 4,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 220,
+        "date": "2024-12-26",
+        "description": "Thanks to Oregon Business magazine for bringing our restorative efforts to light and highlighting the challenges and opportunities for our sea urchin ranch!",
+        "reactions_count": 5,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 220,
+        "date": "2024-12-01",
+        "description": "This 'blob' was one of the first anomalies that got mainstream media's attention over a decade ago. Since then things have only gotten weirder. Our ecosystem is changing, and we need to find ways to adapt and help it, and in the process help our own societies adapt. \n\n#kelpforestrestoration\n#restorativeaquaculture",
+        "reactions_count": 1,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 220,
+        "date": "2024-11-14",
+        "description": "Thanks to the Hatch Blue team for organizing such a great demo day last week. Great to meet the Singapore community of impact investors, funds, and partners to push restorative aquaculture forward!",
+        "reactions_count": 13,
+        "comments_count": 4,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 220,
+        "date": "2024-10-28",
+        "description": "Thanks for Koen van Seijen and the regen podcast for giving voice to restorative aquaculture within the regen community!",
+        "reactions_count": 2,
+        "comments_count": null,
+        "reshared_post_author": "Koen van Seijen",
+        "reshared_post_author_url": "https://it.linkedin.com/in/koenvanseijen",
+        "reshared_post_author_headline": "Manager at Toniic, host of the Podcast Investing in Regenerative Agriculture and Food",
+        "reshared_post_description": "A deep dive with Aaron Huang, founder of OoNee Sea Urchin Ranch, into the world of #seaurchin ranching and its connections to high-end fish #restaurants, many of which fly their sea urchins in from Japan. Over the past decade, a warm water blob off the U.S. West Coast has caused sea urchins to overgraze the #kelp forests, leading to a massive population boom of urchins, the collapse of kelp ecosystems, and the rise of countless \u201czombie\u201d sea urchins\u2014urchins that prevent the kelp from regrowing without dying themselves.\n\nWhy should we care? Because this phenomenon is happening everywhere\u2014whether it\u2019s invasive species or extreme #weather events, #ecosystems are collapsing, and without smart intervention, they won\u2019t recover. OoNee's solution is to harvest the sea urchins threatening the remaining kelp, fatten them up, and sell them to the growing market for high-end #seafood. What can we learn from this approach and apply to other ecosystems that are out of balance?\n\nThis is part of the Regenerative Aquaculture series supported by The Nest Family Office.\n\nhttps://lnkd.in/gQdGQYUv",
+        "reshared_post_followers": null,
+        "reshared_post_date": "6mo"
+      },
+      {
+        "followers": 220,
+        "date": "2024-10-24",
+        "description": "Why urchin ranching? Find out more with co-founder and CEO Aaron Huang.",
+        "reactions_count": 6,
+        "comments_count": null,
+        "reshared_post_author": "Seaze",
+        "reshared_post_author_url": "https://www.linkedin.com/company/seazeco",
+        "reshared_post_author_headline": null,
+        "reshared_post_description": "Read about our latest conversation with OoNee Sea Urchin Ranch here \n\u2b07\ufe0f\ud83d\udcda",
+        "reshared_post_followers": null,
+        "reshared_post_date": "6mo"
+      },
+      {
+        "followers": 220,
+        "date": "2024-10-23",
+        "description": "This is a huge step in the right direction for monitoring kelp forests worldwide.",
+        "reactions_count": 5,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 220,
+        "date": "2024-08-01",
+        "description": "Sharing harvest with our friends at Washington Maritime Blue Joshua M Berger. \n\n#RestorativeAquaculture #Saveourkelp",
+        "reactions_count": 10,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 214,
+        "date": "2025-03-14",
+        "description": "Why is workforce development so critical to the development of the Blue Economy? Restoring ecosystems and developing new skills is vital. Human capital is and always will be the foundation of a healthy, sustainable society. \n\nThanks to OPB radio for highlighting our work with NorthWest Oregon Works.\n\n#BlueEconomy\n#WorkforceDevelopment",
+        "reactions_count": 3,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 214,
+        "date": "2025-02-14",
+        "description": "Thanks Lourdes Gant \ud83e\udd8bfor highlighting us and spotlighting urchin ranching in the PNW!",
+        "reactions_count": 7,
+        "comments_count": 2,
+        "reshared_post_author": "Lourdes Gant \ud83e\udd8b",
+        "reshared_post_author_url": "https://ca.linkedin.com/in/lourdesegant",
+        "reshared_post_author_headline": "Sustainable Business | Regenerative Seafood | Impact Investment | Business Mentoring | Visionary\ud83e\uddd8\ud83c\udffd | Podcaster  |",
+        "reshared_post_description": "\ud83c\udf99\ufe0f\ud83d\udc1f New Podcast Episode is LIVE: The Future of Uni & Urchin Ranching! \ud83c\udf0a\u267b\ufe0f\n\nSea urchins are shaping the future of regenerative aquaculture. But how can we sustainably harvest and ranch them while restoring our oceans? \ud83c\udf31\ud83c\udf0e\nOn today\u2019s episode of The Business of Aquaculture Podcast, we sit down with Aaron Huang, CEO of OoNee.com, to explore how his team of divers, researchers, and technologists are redefining seafood production while combating climate change.\n\n\ud83d\udd39 What you\u2019ll learn in this episode:\n\u2705 How sustainable urchin ranching works\u2014from diving to processing\n\u2705 The climate impact on marine ecosystems and how innovation is protecting coastal waters\n\u2705 The challenges of scaling a niche seafood product while maintaining ocean health \ud83c\udf0a\n\n\ud83c\udf1f If you care about sustainability, seafood, and the future of regenerative aquaculture\u2014this episode is for you! \ud83c\udf1f\n\n\ud83c\udfa7 Tune in now & be part of the conversation! https://lnkd.in/d2WrW4gE\n\n\ud83d\udcac **What\u2019s your take on sustainable urchin ranching? Let\u2019s discuss in the comments!**\ud83d\udc47\n\n\ud83d\udd01 Tag a fellow ocean advocate & share this episode!\n\n#Podcast #Aquaculture #SustainableSeafood #UrchinRanching #ClimateAction #RegenerativeFarming #FutureOfFood",
+        "reshared_post_followers": null,
+        "reshared_post_date": "2mo"
+      },
+      {
+        "followers": 214,
+        "date": "2025-02-10",
+        "description": "Curious why urchin ranching can help the underwater ecosystem and restore kelp forests? Read our write up in The Fish Site!",
+        "reactions_count": 4,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 214,
+        "date": "2024-12-26",
+        "description": "Thanks to Oregon Business magazine for bringing our restorative efforts to light and highlighting the challenges and opportunities for our sea urchin ranch!",
+        "reactions_count": 5,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 214,
+        "date": "2024-12-01",
+        "description": "This 'blob' was one of the first anomalies that got mainstream media's attention over a decade ago. Since then things have only gotten weirder. Our ecosystem is changing, and we need to find ways to adapt and help it, and in the process help our own societies adapt. \n\n#kelpforestrestoration\n#restorativeaquaculture",
+        "reactions_count": 1,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 214,
+        "date": "2024-11-14",
+        "description": "Thanks to the Hatch Blue team for organizing such a great demo day last week. Great to meet the Singapore community of impact investors, funds, and partners to push restorative aquaculture forward!",
+        "reactions_count": 13,
+        "comments_count": 4,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 214,
+        "date": "2024-10-28",
+        "description": "Thanks for Koen van Seijen and the regen podcast for giving voice to restorative aquaculture within the regen community!",
+        "reactions_count": 2,
+        "comments_count": null,
+        "reshared_post_author": "Koen van Seijen",
+        "reshared_post_author_url": "https://it.linkedin.com/in/koenvanseijen",
+        "reshared_post_author_headline": "Manager at Toniic, host of the Podcast Investing in Regenerative Agriculture and Food",
+        "reshared_post_description": "A deep dive with Aaron Huang, founder of OoNee Sea Urchin Ranch, into the world of #seaurchin ranching and its connections to high-end fish #restaurants, many of which fly their sea urchins in from Japan. Over the past decade, a warm water blob off the U.S. West Coast has caused sea urchins to overgraze the #kelp forests, leading to a massive population boom of urchins, the collapse of kelp ecosystems, and the rise of countless \u201czombie\u201d sea urchins\u2014urchins that prevent the kelp from regrowing without dying themselves.\n\nWhy should we care? Because this phenomenon is happening everywhere\u2014whether it\u2019s invasive species or extreme #weather events, #ecosystems are collapsing, and without smart intervention, they won\u2019t recover. OoNee's solution is to harvest the sea urchins threatening the remaining kelp, fatten them up, and sell them to the growing market for high-end #seafood. What can we learn from this approach and apply to other ecosystems that are out of balance?\n\nThis is part of the Regenerative Aquaculture series supported by The Nest Family Office.\n\nhttps://lnkd.in/gQdGQYUv",
+        "reshared_post_followers": null,
+        "reshared_post_date": "5mo"
+      },
+      {
+        "followers": 214,
+        "date": "2024-10-24",
+        "description": "Why urchin ranching? Find out more with co-founder and CEO Aaron Huang.",
+        "reactions_count": 6,
+        "comments_count": null,
+        "reshared_post_author": "Seaze",
+        "reshared_post_author_url": "https://www.linkedin.com/company/seazeco",
+        "reshared_post_author_headline": null,
+        "reshared_post_description": "Read about our latest conversation with OoNee Sea Urchin Ranch here \n\u2b07\ufe0f\ud83d\udcda",
+        "reshared_post_followers": null,
+        "reshared_post_date": "6mo"
+      },
+      {
+        "followers": 214,
+        "date": "2024-10-23",
+        "description": "This is a huge step in the right direction for monitoring kelp forests worldwide.",
+        "reactions_count": 5,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": 214,
+        "date": "2024-08-01",
+        "description": "Sharing harvest with our friends at Washington Maritime Blue Joshua M Berger. \n\n#RestorativeAquaculture #Saveourkelp",
+        "reactions_count": 10,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": null,
+        "date": "2025-02-14",
+        "description": "Thanks Lourdes Gant \ud83e\udd8bfor highlighting us and spotlighting urchin ranching in the PNW!",
+        "reactions_count": 3,
+        "comments_count": 2,
+        "reshared_post_author": "Lourdes Gant \ud83e\udd8b",
+        "reshared_post_author_url": "https://ca.linkedin.com/in/lourdesegant",
+        "reshared_post_author_headline": "Sustainable Business | Regenerative Seafood | Impact Investment | Business Mentoring | Visionary\ud83e\uddd8\ud83c\udffd | Podcaster  |",
+        "reshared_post_description": "\ud83c\udf99\ufe0f\ud83d\udc1f New Podcast Episode is LIVE: The Future of Uni & Urchin Ranching! \ud83c\udf0a\u267b\ufe0f\n\nSea urchins are shaping the future of regenerative aquaculture. But how can we sustainably harvest and ranch them while restoring our oceans? \ud83c\udf31\ud83c\udf0e\nOn today\u2019s episode of The Business of Aquaculture Podcast, we sit down with Aaron Huang, CEO of OoNee.com, to explore how his team of divers, researchers, and technologists are redefining seafood production while combating climate change.\n\n\ud83d\udd39 What you\u2019ll learn in this episode:\n\u2705 How sustainable urchin ranching works\u2014from diving to processing\n\u2705 The climate impact on marine ecosystems and how innovation is protecting coastal waters\n\u2705 The challenges of scaling a niche seafood product while maintaining ocean health \ud83c\udf0a\n\n\ud83c\udf1f If you care about sustainability, seafood, and the future of regenerative aquaculture\u2014this episode is for you! \ud83c\udf1f\n\n\ud83c\udfa7 Tune in now & be part of the conversation! https://lnkd.in/d2WrW4gE\n\n\ud83d\udcac **What\u2019s your take on sustainable urchin ranching? Let\u2019s discuss in the comments!**\ud83d\udc47\n\n\ud83d\udd01 Tag a fellow ocean advocate & share this episode!\n\n#Podcast #Aquaculture #SustainableSeafood #UrchinRanching #ClimateAction #RegenerativeFarming #FutureOfFood",
+        "reshared_post_followers": null,
+        "reshared_post_date": "1w"
+      },
+      {
+        "followers": null,
+        "date": "2025-02-10",
+        "description": "Curious why urchin ranching can help the underwater ecosystem and restore kelp forests? Read our write up in The Fish Site!",
+        "reactions_count": 4,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": null,
+        "date": "2024-12-26",
+        "description": "Thanks to Oregon Business magazine for bringing our restorative efforts to light and highlighting the challenges and opportunities for our sea urchin ranch!",
+        "reactions_count": 5,
+        "comments_count": 1,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": null,
+        "date": "2024-10-24",
+        "description": "Why urchin ranching? Find out more with co-founder and CEO Aaron Huang.",
+        "reactions_count": 6,
+        "comments_count": null,
+        "reshared_post_author": "Seaze | Ocean Innovation Podcast",
+        "reshared_post_author_url": "https://www.linkedin.com/company/seazeco",
+        "reshared_post_author_headline": null,
+        "reshared_post_description": "Read about our latest conversation with OoNee Sea Urchin Ranch here \n\u2b07\ufe0f\ud83d\udcda",
+        "reshared_post_followers": null,
+        "reshared_post_date": "4mo"
+      },
+      {
+        "followers": null,
+        "date": "2024-10-23",
+        "description": "This is a huge step in the right direction for monitoring kelp forests worldwide.",
+        "reactions_count": 4,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": null,
+        "date": "2024-12-01",
+        "description": "This 'blob' was one of the first anomalies that got mainstream media's attention over a decade ago. Since then things have only gotten weirder. Our ecosystem is changing, and we need to find ways to adapt and help it, and in the process help our own societies adapt. \n\n#kelpforestrestoration\n#restorativeaquaculture",
+        "reactions_count": 1,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": null,
+        "date": "2024-11-14",
+        "description": "Thanks to the Hatch Blue team for organizing such a great demo day last week. Great to meet the Singapore community of impact investors, funds, and partners to push restorative aquaculture forward!",
+        "reactions_count": 13,
+        "comments_count": 4,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": null,
+        "date": "2024-10-28",
+        "description": "Thanks for Koen van Seijen and the regen podcast for giving voice to restorative aquaculture within the regen community!",
+        "reactions_count": 2,
+        "comments_count": null,
+        "reshared_post_author": "Koen van Seijen",
+        "reshared_post_author_url": "https://it.linkedin.com/in/koenvanseijen",
+        "reshared_post_author_headline": "Manager at Toniic, host of the Podcast Investing in Regenerative Agriculture and Food",
+        "reshared_post_description": "A deep dive with Aaron Huang, founder of OoNee Sea Urchin Ranch, into the world of #seaurchin ranching and its connections to high-end fish #restaurants, many of which fly their sea urchins in from Japan. Over the past decade, a warm water blob off the U.S. West Coast has caused sea urchins to overgraze the #kelp forests, leading to a massive population boom of urchins, the collapse of kelp ecosystems, and the rise of countless \u201czombie\u201d sea urchins\u2014urchins that prevent the kelp from regrowing without dying themselves.\n\nWhy should we care? Because this phenomenon is happening everywhere\u2014whether it\u2019s invasive species or extreme #weather events, #ecosystems are collapsing, and without smart intervention, they won\u2019t recover. OoNee's solution is to harvest the sea urchins threatening the remaining kelp, fatten them up, and sell them to the growing market for high-end #seafood. What can we learn from this approach and apply to other ecosystems that are out of balance?\n\nThis is part of the Regenerative Aquaculture series supported by The Nest Family Office.\n\nhttps://lnkd.in/gQdGQYUv",
+        "reshared_post_followers": null,
+        "reshared_post_date": "3mo"
+      },
+      {
+        "followers": null,
+        "date": "2024-08-01",
+        "description": "Sharing harvest with our friends at Washington Maritime Blue Joshua M Berger. \n\n#RestorativeAquaculture #Saveourkelp",
+        "reactions_count": 10,
+        "comments_count": null,
+        "reshared_post_author": null,
+        "reshared_post_author_url": null,
+        "reshared_post_author_headline": null,
+        "reshared_post_description": null,
+        "reshared_post_followers": null,
+        "reshared_post_date": null
+      },
+      {
+        "followers": null,
+        "date": "2024-07-10",
+        "description": "Excited to kick off with the Hatch Blue and Hatch Innovation Services teams in Kona. #AquacultureNerdsUnite",
+        "reactions_count": 4,
+        "comments_count": null,
+        "reshared_post_author": "Hatch Blue",
+        "reshared_post_author_url": "https://ie.linkedin.com/company/hatch-aquaculture-accelerator",
+        "reshared_post_author_headline": null,
+        "reshared_post_description": "\u2757 Announcement\u2757\nWe would like to give our warmest E Komo Mai (welcome) to the following companies who have been selected to join the Hatch Blue portfolio:\n\nb.fab GmbH: b.fab uses CO2 to produce a protein feed ingredient that can replace fishmeal in aquafeeds. \n\nAquasend: Aquasend is a PME company developing real-time water quality monitoring (DO & temperature) improving overall fish health and reducing costs.\n\nAQUIT: AQUIT is commercializing a platform technology that identifies and produces antimicrobial peptides (AMPs) that improve the immune system of salmon.\n\nAi Control Technologies: AI Control Technologies Inc. (AiCT) specializes in air and water managed depth control systems with extensive applications across multiple verticals including aquaculture, and marine construction.\n\nTransparentSea Farm: TransparentSea specializes in land-based production systems for shrimp using proprietary, clearwater technology.\n\nOoNee Sea Ranch Sea Ranch: Oo-Nee is a company focused on transforming ecologically destructive sea urchins into a high-value culinary delicacy.\n\nMarineSitu: MarineSitu provides underwater monitoring technologies that enable multi-year field deployments, software for data acquisition and real time processing, and cloud based data management services.\n\nCultimar Technologies: Cultimar Technologies develops cutting edge technologies that allow for scalable cultivation of valuable finfish absent in aquaculture production beginning with Red Snapper (Lutjanus campechanus).\n\nKnipBio: produces a single-cell protein from a methylotrophic bacteria, with functional properties increasing stress resilience in juvenile fish and shrimp.\n\n\ud83c\udf3a These selected participants were initiated into the new CREST accelerator in Hawai\u02bbi on July 8th. Read on about their innovative companies looking to make a difference in the world of aquaculture at The Fish Site: https://lnkd.in/gXrth46Y\n\nApplications will continue to be open throughout the year with the next chance to get started on your journey in Hawai\u02bbi next February, 2025! \n\n\ud83d\udc49 Join this esteemed group of changemakers: https://lnkd.in/gNykfzpd\n\nHawaii Technology Development Corporation, Aqua-Spark, NELHA, Hatch Innovation Services, The Fish Site, Benedict Tan \u9648\u52c7\u5b89, Wayne Murphy, Tanja Knabenschuh Hoel, Moritz Mueller, Anandi Etsebeth, Claude Kaplan, Carsten Krome, Gon\u00e7alo Abreu Santos, Caitriona Kelleher\n#aquaculture #aquafeed #marinebiotechnology #bluefood #blueeconomy",
+        "reshared_post_followers": null,
+        "reshared_post_date": "7mo"
+      }
+    ],
+    "num_technologies_used": null,
+    "technologies_used": [],
+    "ipo_date": null,
+    "ipo_share_price": null,
+    "ipo_share_price_currency": null,
+    "stock_information": [],
+    "revenue_annual_range": null,
+    "revenue_annual": null,
+    "revenue_quarterly": null,
+    "income_statements": [],
+    "last_funding_round_name": "Venture Round - OoNee Sea Urchin Ranch",
+    "last_funding_round_announced_date": "2025-08-21",
+    "last_funding_round_lead_investors": [
+      "Builders Vision"
+    ],
+    "last_funding_round_amount_raised": null,
+    "last_funding_round_amount_raised_currency": null,
+    "last_funding_round_num_investors": 1,
+    "funding_rounds": [
+      {
+        "name": "Venture Round - OoNee Sea Urchin Ranch",
+        "announced_date": "2025-08-21",
+        "lead_investors": [
+          "Builders Vision"
+        ],
+        "amount_raised": null,
+        "amount_raised_currency": null,
+        "num_investors": 1
+      }
+    ],
+    "ownership_status": null,
+    "parent_company_information": null,
+    "acquired_by_summary": {
+      "acquirer_name": null,
+      "announced_date": null,
+      "price": null,
+      "currency": "USD"
+    },
+    "num_acquisitions_source_1": null,
+    "acquisition_list_source_1": [],
+    "num_acquisitions_source_2": 0,
+    "acquisition_list_source_2": [],
+    "num_acquisitions_source_5": null,
+    "acquisition_list_source_5": [],
+    "competitors": [
+      {
+        "company_name": "avanti feeds",
+        "similarity_score": null
+      },
+      {
+        "company_name": "ocean peace",
+        "similarity_score": null
+      },
+      {
+        "company_name": "fishermen's finest",
+        "similarity_score": null
+      },
+      {
+        "company_name": "a.i.s. observers",
+        "similarity_score": null
+      }
+    ],
+    "competitors_websites": [
+      {
+        "website": "oonee.us",
+        "similarity_score": 100,
+        "total_website_visits_monthly": 3200,
+        "category": "N/A",
+        "rank_category": 0
+      }
+    ],
+    "company_phone_numbers": [],
+    "company_emails": [
+      "info@oo-nee.com"
+    ],
+    "pricing_available": false,
+    "free_trial_available": false,
+    "demo_available": false,
+    "is_downloadable": false,
+    "mobile_apps_exist": false,
+    "online_reviews_exist": false,
+    "documentation_exist": false,
+    "product_reviews_count": null,
+    "product_reviews_aggregate_score": null,
+    "product_reviews_score_distribution": null,
+    "product_pricing_summary": [],
+    "num_news_articles": 0,
+    "news_articles": [],
+    "total_website_visits_monthly": 3700,
+    "visits_change_monthly": 259.6,
+    "rank_global": 5562544,
+    "rank_country": 1792371,
+    "rank_category": 0,
+    "visits_breakdown_by_country": [
+      {
+        "country": "United States",
+        "percentage": 100.0,
+        "percentage_monthly_change": 27.59
+      }
+    ],
+    "visits_breakdown_by_gender": {
+      "male_percentage": 0.0,
+      "female_percentage": 0.0
+    },
+    "visits_breakdown_by_age": {
+      "age_18_24_percentage": 0.0,
+      "age_25_34_percentage": 0.0,
+      "age_35_44_percentage": 0.0,
+      "age_45_54_percentage": 0.0,
+      "age_55_64_percentage": 0.0,
+      "age_65_plus_percentage": 0.0
+    },
+    "bounce_rate": 87.3,
+    "pages_per_visit": 1.38,
+    "average_visit_duration_seconds": 15.0,
+    "similarly_ranked_websites": [
+      "classicflowers.net",
+      "popsikleshop.com",
+      "oo-nee.com",
+      "gilmerlegal.com",
+      "everywhere.game",
+      "oo-nee.com",
+      "oonee.us"
+    ],
+    "top_topics": [],
+    "company_employee_reviews_count": null,
+    "company_employee_reviews_aggregate_score": null,
+    "employee_reviews_score_breakdown": null,
+    "employee_reviews_score_distribution": null,
+    "active_job_postings_count": null,
+    "active_job_postings": [],
+    "active_job_postings_count_change": null,
+    "active_job_postings_count_by_month": [],
+    "linkedin_followers_count_change": {
+      "current": 263,
+      "change_monthly": 5,
+      "change_monthly_percentage": 1.937984496124031,
+      "change_quarterly": 24,
+      "change_quarterly_percentage": 10.0418410041841,
+      "change_yearly": 205,
+      "change_yearly_percentage": 353.44827586206895
+    },
+    "linkedin_followers_count_by_month": [
+      {
+        "follower_count": 263,
+        "date": "2025-10"
+      },
+      {
+        "follower_count": 258,
+        "date": "2025-09"
+      },
+      {
+        "follower_count": 245,
+        "date": "2025-08"
+      },
+      {
+        "follower_count": 239,
+        "date": "2025-07"
+      },
+      {
+        "follower_count": 220,
+        "date": "2025-06"
+      },
+      {
+        "follower_count": 214,
+        "date": "2025-05"
+      },
+      {
+        "follower_count": 191,
+        "date": "2025-04"
+      },
+      {
+        "follower_count": 191,
+        "date": "2025-03"
+      },
+      {
+        "follower_count": 158,
+        "date": "2025-02"
+      },
+      {
+        "follower_count": 124,
+        "date": "2025-01"
+      },
+      {
+        "follower_count": 86,
+        "date": "2024-12"
+      },
+      {
+        "follower_count": 60,
+        "date": "2024-11"
+      },
+      {
+        "follower_count": 58,
+        "date": "2024-10"
+      },
+      {
+        "follower_count": 53,
+        "date": "2024-09"
+      },
+      {
+        "follower_count": 32,
+        "date": "2024-08"
+      }
+    ],
+    "base_salary": [],
+    "additional_pay": [],
+    "total_salary": [],
+    "employees_count_inferred": null,
+    "employees_count_inferred_by_month": [],
+    "top_previous_companies": [
+      {
+        "company_id": 92882666,
+        "company_name": "Vero Learning",
+        "count": 1
+      }
+    ],
+    "top_next_companies": [
+      {
+        "company_id": 34067512,
+        "company_name": null,
+        "count": 1
+      }
+    ],
+    "key_executives": [],
+    "key_employee_change_events": [],
+    "key_executive_arrivals": [],
+    "key_executive_departures": [],
+    "employees_count_change": {
+      "current": 1,
+      "change_monthly": 0,
+      "change_monthly_percentage": 0.0,
+      "change_quarterly": 0,
+      "change_quarterly_percentage": 0.0,
+      "change_yearly": 1,
+      "change_yearly_percentage": null
+    },
+    "employees_count_by_month": [
+      {
+        "employees_count": 1,
+        "date": "2025-10"
+      },
+      {
+        "employees_count": 1,
+        "date": "2025-09"
+      },
+      {
+        "employees_count": 1,
+        "date": "2025-08"
+      },
+      {
+        "employees_count": 1,
+        "date": "2025-07"
+      },
+      {
+        "employees_count": 1,
+        "date": "2025-06"
+      },
+      {
+        "employees_count": 1,
+        "date": "2025-05"
+      },
+      {
+        "employees_count": 1,
+        "date": "2025-04"
+      },
+      {
+        "employees_count": 1,
+        "date": "2025-03"
+      },
+      {
+        "employees_count": 1,
+        "date": "2025-02"
+      },
+      {
+        "employees_count": 1,
+        "date": "2025-01"
+      },
+      {
+        "employees_count": 0,
+        "date": "2024-12"
+      },
+      {
+        "employees_count": 0,
+        "date": "2024-11"
+      },
+      {
+        "employees_count": 0,
+        "date": "2024-10"
+      },
+      {
+        "employees_count": 0,
+        "date": "2024-09"
+      },
+      {
+        "employees_count": 0,
+        "date": "2024-08"
+      }
+    ],
+    "employees_count_breakdown_by_seniority": null,
+    "employees_count_breakdown_by_seniority_by_month": [],
+    "employees_count_breakdown_by_department": null,
+    "employees_count_breakdown_by_department_by_month": [],
+    "employees_count_breakdown_by_region": null,
+    "employees_count_breakdown_by_region_by_month": [],
+    "employees_count_by_country": [],
+    "employees_count_by_country_by_month": [],
+    "product_reviews_score_change": null,
+    "product_reviews_score_by_month": [],
+    "total_website_visits_change": {
+      "current": 3700,
+      "change_monthly": 0,
+      "change_monthly_percentage": 0.0,
+      "change_quarterly": 2705,
+      "change_quarterly_percentage": 271.85929648241205,
+      "change_yearly": null,
+      "change_yearly_percentage": null
+    },
+    "total_website_visits_by_month": [
+      {
+        "total_website_visits": 3700,
+        "date": "2025-09"
+      },
+      {
+        "total_website_visits": 3700,
+        "date": "2025-08"
+      },
+      {
+        "total_website_visits": 1300,
+        "date": "2025-07"
+      },
+      {
+        "total_website_visits": 995,
+        "date": "2025-06"
+      },
+      {
+        "total_website_visits": 0,
+        "date": "2025-03"
+      },
+      {
+        "total_website_visits": 0,
+        "date": "2025-02"
+      },
+      {
+        "total_website_visits": 331,
+        "date": "2025-01"
+      },
+      {
+        "total_website_visits": 331,
+        "date": "2024-12"
+      },
+      {
+        "total_website_visits": 694,
+        "date": "2024-11"
+      }
+    ],
+    "employee_reviews_score_aggregated_change": null,
+    "employee_reviews_score_aggregated_by_month": [],
+    "employee_reviews_score_business_outlook_change": null,
+    "employee_reviews_score_business_outlook_by_month": [],
+    "employee_reviews_score_career_opportunities_change": null,
+    "employee_reviews_score_career_opportunities_by_month": [],
+    "employee_reviews_score_ceo_approval_change": null,
+    "employee_reviews_score_ceo_approval_by_month": [],
+    "employee_reviews_score_compensation_benefits_change": null,
+    "employee_reviews_score_compensation_benefits_by_month": [],
+    "employee_reviews_score_culture_values_change": null,
+    "employee_reviews_score_culture_values_by_month": [],
+    "employee_reviews_score_diversity_inclusion_change": null,
+    "employee_reviews_score_diversity_inclusion_by_month": [],
+    "employee_reviews_score_recommend_change": null,
+    "employee_reviews_score_recommend_by_month": [],
+    "employee_reviews_score_senior_management_change": null,
+    "employee_reviews_score_senior_management_by_month": [],
+    "employee_reviews_score_work_life_balance_change": null,
+    "employee_reviews_score_work_life_balance_by_month": []
+  },
+  "status_code": 200
+}
