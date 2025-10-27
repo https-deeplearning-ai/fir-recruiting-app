@@ -833,6 +833,55 @@ textarea:focus, input[type="text"]:focus {
   transform: none;
 }
 
+/* Data Freshness - Compact Layout */
+.data-freshness-box {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+}
+
+.freshness-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.freshness-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.freshness-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.freshness-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.freshness-date {
+  color: #1e293b;
+  font-weight: 400;
+}
+
+.freshness-age {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.freshness-fresh {
+  color: #10b981;
+  font-weight: 500;
+}
+
 /* Notification */
 .notification {
   position: fixed;

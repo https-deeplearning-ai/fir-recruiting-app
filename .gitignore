@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 
+# MCP Configuration (contains API keys)
+.mcp.json
+
 # Python
 __pycache__/
 *.py[cod]
@@ -45,3 +48,10 @@ test.csv
 # frontend/build/
 # backend/static/* # COMMENTED OUT - We need static files for deployment
 .cursor/rules/byterover-rules.mdc
+.clinerules/byterover-rules.md
+.kilocode/rules/byterover-rules.md
+.roo/rules/byterover-rules.md
+.windsurf/rules/byterover-rules.md
+.kiro/steering/byterover-rules.md
+.qoder/rules/byterover-rules.md
+.augment/rules/byterover-rules.md

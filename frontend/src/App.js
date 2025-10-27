@@ -2128,88 +2128,50 @@ function App() {
                           <span className="candidate-headline">{candidate.headline}</span>
                       </div>
 
-                      {/* Data Freshness Indicators */}
-                      <div style={{ marginTop: '12px', fontSize: '13px', color: '#64748b', background: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontWeight: '600', color: '#334155', marginBottom: '8px', fontSize: '14px' }}>
-                          📊 Data Freshness
+                      {/* Data Freshness - Compact Design */}
+                      <div className="data-freshness-box">
+                        <div className="freshness-row">
+                          <div className="freshness-info">
+                            {candidate.checked_at && (
+                              <div className="freshness-item">
+                                <span className="freshness-label">LinkedIn scraped:</span>
+                                <span className="freshness-date">
+                                  {new Date(candidate.checked_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                              </div>
+                            )}
+                            {candidate.last_fetched ? (
+                              <div className="freshness-item">
+                                <span className="freshness-label">Cached:</span>
+                                <span className="freshness-date">
+                                  {new Date(candidate.last_fetched).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                                <span className="freshness-age">
+                                  ({Math.floor((new Date() - new Date(candidate.last_fetched)) / (1000 * 60 * 60 * 24))}d ago)
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="freshness-item">
+                                <span className="freshness-fresh">✨ Fresh from API</span>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm(
+                                `Refresh ${candidate.name}'s profile?\n\n` +
+                                `This will use 1 CoreSignal API credit.`
+                              )) {
+                                handleRefreshProfile(candidate.url);
+                              }
+                            }}
+                            className="refresh-profile-button"
+                            title="Refresh from CoreSignal (1 API credit)"
+                          >
+                            🔄
+                          </button>
                         </div>
-
-                        {candidate.checked_at && (
-                          <div style={{ marginBottom: '6px' }}>
-                            <span style={{ fontWeight: '500', color: '#475569' }}>
-                              CoreSignal scraped LinkedIn:
-                            </span>
-                            <span style={{ marginLeft: '8px', color: '#1e293b' }}>
-                              {new Date(candidate.checked_at).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })}
-                            </span>
-                          </div>
-                        )}
-
-                        {candidate.last_fetched ? (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div>
-                              <span style={{ fontWeight: '500', color: '#475569' }}>
-                                We cached this data:
-                              </span>
-                              <span style={{ marginLeft: '8px', color: '#1e293b' }}>
-                                {new Date(candidate.last_fetched).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                })}
-                              </span>
-                              <span style={{ marginLeft: '6px', fontSize: '12px', color: '#64748b' }}>
-                                ({Math.floor((new Date() - new Date(candidate.last_fetched)) / (1000 * 60 * 60 * 24))} days ago)
-                              </span>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (window.confirm(
-                                  `Refresh ${candidate.name}'s profile from CoreSignal?\n\n` +
-                                  `• This will fetch the latest data CoreSignal has\n` +
-                                  `• Uses 1 API credit\n` +
-                                  `• Takes 5-10 seconds`
-                                )) {
-                                  handleRefreshProfile(candidate.url);
-                                }
-                              }}
-                              className="refresh-profile-button"
-                              title="Fetch latest data from CoreSignal (1 API credit)"
-                            >
-                              🔄 Refresh
-                            </button>
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div>
-                              <span style={{ color: '#10b981', fontWeight: '500' }}>
-                                ✨ Just fetched from CoreSignal
-                              </span>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (window.confirm(
-                                  `Refresh ${candidate.name}'s profile from CoreSignal?\n\n` +
-                                  `• This will fetch the latest data CoreSignal has\n` +
-                                  `• Uses 1 API credit\n` +
-                                  `• Takes 5-10 seconds`
-                                )) {
-                                  handleRefreshProfile(candidate.url);
-                                }
-                              }}
-                              className="refresh-profile-button"
-                              title="Fetch latest data from CoreSignal (1 API credit)"
-                            >
-                              🔄 Refresh
-                            </button>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
