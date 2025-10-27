@@ -213,19 +213,26 @@ class CoreSignalService:
 
     def fetch_company_data(self, company_id, storage_functions=None):
         """
-        Fetch full company profile data from CoreSignal company_clean API
+        Fetch full company profile data from CoreSignal company_base API
+
+        Uses company_base endpoint (NOT company_clean) based on comprehensive testing:
+        - 100% data availability vs 50% for company_multi_source
+        - 69.2% Crunchbase URL coverage via company_crunchbase_info_collection
+        - Reliable funding data in company_funding_rounds_collection
+        - See docs/technical-decisions/company-api-comparison-2024/ for full analysis
 
         This provides detailed company intelligence including:
         - Company type (Public/Private/Non-Profit)
         - Founded year and company age
         - Funding rounds with dates and amounts
+        - Crunchbase URLs (company-level + funding round-level)
+        - Featured investors collection
         - Revenue and growth metrics
         - Employee count changes (growth rate)
         - HQ location details
         - Industry classifications
         - Social media presence
         - Technology stack
-        - B2B/B2C indicator
 
         Args:
             company_id (int/str): CoreSignal company ID from employee experience
@@ -467,6 +474,20 @@ class CoreSignalService:
         intelligence['hq_state'] = company_data.get('location_hq_state')
         intelligence['hq_address'] = company_data.get('location_hq_raw_address')
 
+        # Crunchbase URL extraction (PRIORITY: company_crunchbase_info_collection)
+        # Extract from the authoritative source first: company_crunchbase_info_collection
+        # This field contains the clean Crunchbase company page URL (69.2% coverage)
+        crunchbase_info = company_data.get('company_crunchbase_info_collection', [])
+        if crunchbase_info and len(crunchbase_info) > 0:
+            # Get the most recent non-deleted entry
+            for entry in crunchbase_info:
+                if entry.get('deleted') == 0:  # Only use active entries
+                    cb_company_url = entry.get('cb_url')
+                    if cb_company_url:
+                        intelligence['crunchbase_company_url'] = cb_company_url
+                        print(f"   🔗 Crunchbase URL from company_crunchbase_info_collection: {cb_company_url}")
+                        break
+
         # Funding data (CRITICAL for startup assessment)
         # Using company_base endpoint: funding data in company_funding_rounds_collection
         funding_rounds = company_data.get('company_funding_rounds_collection', [])
@@ -480,19 +501,23 @@ class CoreSignalService:
             intelligence['total_funding_rounds'] = latest_round.get('total_rounds_count')  # FIXED: Correct field name
             intelligence['investor_count'] = latest_round.get('last_round_investors_count')  # FIXED: Correct field name
 
-            # Crunchbase URLs (for sourcing credibility)
-            # FIXED: Extract from funding_rounds, not company_crunchbase_info_collection
-            # Keep BOTH the funding round URL AND generate the company page URL
-            cb_url = latest_round.get('cb_url')
-            intelligence['crunchbase_funding_round_url'] = cb_url  # Original funding round URL
+            # Crunchbase funding round URL (for specific round details)
+            cb_round_url = latest_round.get('cb_url')
+            intelligence['crunchbase_funding_round_url'] = cb_round_url  # Original funding round URL
 
-            if cb_url and '/funding_round/' in cb_url:
-                # Also generate company page URL for easy navigation
+            # FALLBACK: If we didn't get company URL from crunchbase_info_collection, try to parse from funding round URL
+            if not intelligence.get('crunchbase_company_url') and cb_round_url and '/funding_round/' in cb_round_url:
+                # Generate company page URL from funding round URL
                 # Example: .../funding_round/Nuvocargo-series-b--f6a355f5 -> .../organization/Nuvocargo
-                company_slug = cb_url.split('/funding_round/')[1].split('-series-')[0].split('-seed-')[0].split('-pre-seed-')[0].split('--')[0]
-                intelligence['crunchbase_company_url'] = f"https://www.crunchbase.com/organization/{company_slug}"
-            else:
-                intelligence['crunchbase_company_url'] = cb_url  # Use as-is if already in correct format or None
+                try:
+                    company_slug = cb_round_url.split('/funding_round/')[1].split('-series-')[0].split('-seed-')[0].split('-pre-seed-')[0].split('--')[0]
+                    intelligence['crunchbase_company_url'] = f"https://www.crunchbase.com/organization/{company_slug}"
+                    print(f"   🔗 Crunchbase URL parsed from funding round: {intelligence['crunchbase_company_url']}")
+                except:
+                    print(f"   ⚠️  Failed to parse Crunchbase company URL from funding round URL")
+            elif not intelligence.get('crunchbase_company_url') and cb_round_url:
+                # Use funding round URL as fallback if it's already in organization format
+                intelligence['crunchbase_company_url'] = cb_round_url
 
         # Extract ALL available company URLs for comprehensive linking
         intelligence['company_website'] = company_data.get('website')
