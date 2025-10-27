@@ -1,0 +1,82 @@
+{
+  "success": true,
+  "data": {
+    "id": 99588549,
+    "url": "https://www.linkedin.com/company/mantracomply",
+    "hash": "435a81fd70c0486480e38276a431c997",
+    "name": "MantraComply",
+    "website": "https://mantracomply.com",
+    "size": "51-200 employees",
+    "industry": "Hospitals and Health Care",
+    "description": "MantraComply is a provider credentialing and enrolment platform. We deliver comprehensive services in provider credentialing, payer enrollment solutions, license verification, hospital privileging, and healthcare compliance management. Trusted by thousands of providers, health plans, payers, group practices, and digital health companies, MantraComply ensures faster provider onboarding, reduced denials, and improved regulatory compliance. Our model integrates AI-driven insights, customizable credentialing workflows, and 24/7 expert support, enabling providers and organizations to stay compliant while focusing on patient care. MantraComply is proudly backed by $15M in funding from Impanix Capital.",
+    "followers": null,
+    "founded": null,
+    "headquarters_city": null,
+    "headquarters_country": null,
+    "headquarters_state": null,
+    "headquarters_street1": null,
+    "headquarters_street2": null,
+    "headquarters_zip": null,
+    "logo_url": "https://media.licdn.com/dms/image/v2/D4E0BAQFvvALimF7iKQ/company-logo_200_200/B4EZkO_QVNIsAI-/0/1756893087540?e=2147483647&v=beta&t=caEzAmiOwiY4DC4rxCkDnXZw1Se_uqp9Kc3h_7s0CxA",
+    "created": "2025-10-21 11:58:33",
+    "last_updated": "2025-10-21 11:58:33",
+    "last_response_code": 200,
+    "type": "Privately Held",
+    "headquarters_new_address": null,
+    "employees_count": null,
+    "headquarters_country_restored": null,
+    "headquarters_country_parsed": null,
+    "company_shorthand_name": "mantracomply",
+    "company_shorthand_name_hash": "5751b71b2e1119f27ed1c02539474d58",
+    "canonical_url": "https://www.linkedin.com/company/mantracomply",
+    "canonical_hash": "435a81fd70c0486480e38276a431c997",
+    "canonical_shorthand_name": "mantracomply",
+    "canonical_shorthand_name_hash": "5751b71b2e1119f27ed1c02539474d58",
+    "deleted": 0,
+    "last_updated_ux": 1761047913,
+    "source_id": 108503197,
+    "company_affiliated_collection": [],
+    "company_also_viewed_collection": [],
+    "company_crunchbase_info_collection": [
+      {
+        "id": 507382,
+        "company_id": 99588549,
+        "cb_url": "https://www.crunchbase.com/organization/mantracomply",
+        "created": "2025-10-21 11:58:33",
+        "last_updated": "2025-10-21 11:58:33",
+        "deleted": 0
+      }
+    ],
+    "company_featured_employees_collection": [],
+    "company_featured_investors_collection": [],
+    "company_funding_rounds_collection": [
+      {
+        "id": 12430735,
+        "last_round_investors_count": 0,
+        "total_rounds_count": 1,
+        "last_round_type": "Series A",
+        "last_round_date": "2025-08-27 00:00:00",
+        "last_round_money_raised": "US$ 15.0M",
+        "cb_url": "https://www.crunchbase.com/funding_round/mantracomply-series-a--6aff7460",
+        "created": "2025-10-21 11:58:33",
+        "last_updated": "2025-10-21 11:58:33",
+        "deleted": 0
+      }
+    ],
+    "company_locations_collection": [],
+    "company_similar_collection": [],
+    "company_specialties_collection": [
+      {
+        "id": 140730279,
+        "company_id": 99588549,
+        "specialty": "credentialing and enrollment",
+        "created": "2025-10-21 11:58:33",
+        "last_updated": "2025-10-21 11:58:33",
+        "deleted": 0
+      }
+    ],
+    "company_stock_info_collection": [],
+    "company_updates_collection": []
+  },
+  "status_code": 200
+}

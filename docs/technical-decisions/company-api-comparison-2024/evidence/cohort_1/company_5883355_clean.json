@@ -1,0 +1,126 @@
+{
+  "success": true,
+  "endpoint": "clean",
+  "data": {
+    "id": 5883355,
+    "linkedin_source_id": "2087613",
+    "name": "We Rock the Spectrum Kid's Gym",
+    "created_at": "2016-06-24",
+    "last_updated": "2025-10-13",
+    "websites_main": "https://werockthespectrumkidsgym.com",
+    "websites_resolved": "https://www.werockthespectrumkidsgym.com/",
+    "websites_main_original": "http://www.werockthespectrumkidsgym.com",
+    "unique_website": true,
+    "unique_domain": true,
+    "expired_domain": false,
+    "websites_linkedin": "https://www.linkedin.com/company/we-rock-the-spectrum-kids-gym",
+    "websites_linkedin_canonical": "https://www.linkedin.com/company/we-rock-the-spectrum-kids-gym",
+    "social_linkedin_urls": null,
+    "websites_facebook": null,
+    "social_facebook_urls": [
+      "https://www.facebook.com/WeRockTheSpectrumKidsGym"
+    ],
+    "websites_twitter": null,
+    "social_twitter_urls": [
+      "https://twitter.com/wrtspectrum"
+    ],
+    "social_x_urls": null,
+    "social_instagram_urls": [
+      "https://www.instagram.com/werockthespectrumkidsgym/"
+    ],
+    "social_youtube_urls": [
+      "https://www.youtube.com/channel/UCXI1hls_Xo-6dqBbwzpj91g"
+    ],
+    "social_github_urls": null,
+    "social_reddit_urls": null,
+    "social_discord_urls": null,
+    "social_pinterest_urls": [
+      "https://www.pinterest.com/wrtspectrum/"
+    ],
+    "social_tiktok_urls": null,
+    "logo": "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",
+    "enriched_b2b": 0,
+    "ticker": null,
+    "exchange": null,
+    "description": "We Rock the Spectrum Kids Gym is committed to providing a safe, nurturing, and fun environment for ALL KIDS, to foster learning, exploration and safe sensory experiences. We are committed to offering a place for events and special services for families and therapists, who are treating and working with kids on the spectrum, as well as their family and friends.",
+    "enriched_summary": "We Rock The Spectrum Kid's Gym is a kids indoor play gym located in tarzana, Ca. They provide a safe, nurturing, and fun environment for children to foster learning, exploration, and safe sensory experiences. They offer social skills groups and activities for children across the spectrum.",
+    "metadata_title": "Kids Indoor Play Gym | We Rock The Spectrum Kid's Gym",
+    "metadata_description": "",
+    "industry": "Wellness and Fitness Services",
+    "specialities": [
+      "sensory gym"
+    ],
+    "enriched_keywords": [
+      "nurturing",
+      "social skills groups",
+      "children",
+      "kids indoor play gym",
+      "activities"
+    ],
+    "enriched_category": "Education",
+    "type": "Public Company",
+    "founded": "2010",
+    "size_range": "Myself Only",
+    "size_employees_count": 204,
+    "size_employees_count_inferred": 120,
+    "followers": 1307,
+    "location_hq_raw_address": "Tarzana, California, United States",
+    "location_hq_country": "United States",
+    "location_hq_regions": [
+      "Northern America",
+      "Northern America",
+      "AMER"
+    ],
+    "locations_full": [
+      {
+        "location_address": "18816 VENTURA BLVD; Tarzana, California 91356, US",
+        "is_primary": true
+      }
+    ],
+    "updates": null,
+    "funding_rounds": [
+      {
+        "last_round_investors_count": 1,
+        "total_rounds_count": 1,
+        "last_round_type": "Grant",
+        "last_round_date": "2025-10-24",
+        "last_round_money_raised": 2000,
+        "cb_url": "https://www.crunchbase.com/funding_round/we-rock-the-spectrum-grant--26d95853"
+      }
+    ],
+    "technologies": [
+      {
+        "technology": "recognize",
+        "first_verified_at": "2024-05-20",
+        "last_verified_at": "2025-10-20"
+      },
+      {
+        "technology": "well",
+        "first_verified_at": "2024-04-04",
+        "last_verified_at": "2025-07-28"
+      },
+      {
+        "technology": "microsoft",
+        "first_verified_at": "2024-06-10",
+        "last_verified_at": "2024-08-05"
+      },
+      {
+        "technology": "amp",
+        "first_verified_at": "2024-05-20",
+        "last_verified_at": "2024-06-03"
+      }
+    ],
+    "phone_numbers": [
+      "818-708-0860"
+    ],
+    "emails": [],
+    "pricing_available": false,
+    "free_trial_available": false,
+    "demo_available": false,
+    "is_downloadable": true,
+    "mobile_apps_exist": false,
+    "online_reviews_exist": false,
+    "api_docs_exist": false
+  },
+  "status_code": 200
+}

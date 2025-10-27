@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkedIn Profile AI Assessor - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>LinkedIn Profile AI Assessor Settings</h1>
+      <p class="subtitle">Configure your extension preferences</p>
+    </header>
+
+    <main>
+      <!-- API Configuration -->
+      <section class="settings-section">
+        <h2>API Configuration</h2>
+        <div class="setting-group">
+          <label for="apiUrl">Backend API URL</label>
+          <input type="text" id="apiUrl" placeholder="http://localhost:5001">
+          <p class="help-text">URL of your LinkedIn Profile AI Assessor backend</p>
+        </div>
+
+        <div class="setting-group">
+          <label for="authToken">Authentication Token (Optional)</label>
+          <input type="password" id="authToken" placeholder="Enter your API token">
+          <p class="help-text">Leave blank for local development</p>
+        </div>
+      </section>
+
+      <!-- User Settings -->
+      <section class="settings-section">
+        <h2>User Information</h2>
+        <div class="setting-group">
+          <label for="recruiterName">Your Name</label>
+          <input type="text" id="recruiterName" placeholder="John Doe">
+          <p class="help-text">This will be used to tag your activities</p>
+        </div>
+
+        <div class="setting-group">
+          <label for="defaultList">Default List</label>
+          <select id="defaultList">
+            <option value="">No default list</option>
+          </select>
+          <p class="help-text">Profiles will be added to this list by default</p>
+        </div>
+      </section>
+
+      <!-- Assessment Settings -->
+      <section class="settings-section">
+        <h2>Assessment Settings</h2>
+
+        <div class="setting-group checkbox-group">
+          <label>
+            <input type="checkbox" id="autoAssess">
+            <span>Automatically assess profiles when added</span>
+          </label>
+          <p class="help-text">Run AI assessment immediately after adding a profile</p>
+        </div>
+
+        <div class="setting-group checkbox-group">
+          <label>
+            <input type="checkbox" id="enrichWithCompany" checked>
+            <span>Enrich with company data</span>
+          </label>
+          <p class="help-text">Fetch additional company information (uses more API credits)</p>
+        </div>
+
+        <div class="setting-group">
+          <label for="batchSize">Batch Processing Size</label>
+          <input type="number" id="batchSize" min="1" max="50" value="10">
+          <p class="help-text">Number of profiles to process simultaneously</p>
+        </div>
+      </section>
+
+      <!-- Default Requirements -->
+      <section class="settings-section">
+        <h2>Default Assessment Requirements</h2>
+        <div id="requirementsList">
+          <div class="requirement-item">
+            <input type="text" placeholder="Requirement description" value="Relevant technical skills and experience">
+            <input type="number" placeholder="Weight %" min="0" max="100" value="40">
+            <button class="remove-btn">Remove</button>
+          </div>
+          <div class="requirement-item">
+            <input type="text" placeholder="Requirement description" value="Leadership and team collaboration">
+            <input type="number" placeholder="Weight %" min="0" max="100" value="30">
+            <button class="remove-btn">Remove</button>
+          </div>
+          <div class="requirement-item">
+            <input type="text" placeholder="Requirement description" value="Industry knowledge and domain expertise">
+            <input type="number" placeholder="Weight %" min="0" max="100" value="30">
+            <button class="remove-btn">Remove</button>
+          </div>
+        </div>
+        <button id="addRequirement" class="secondary-btn">+ Add Requirement</button>
+        <p class="help-text">Total weight must equal 100%</p>
+        <div class="weight-indicator">
+          <span>Total Weight: </span>
+          <span id="totalWeight" class="weight-value">100%</span>
+        </div>
+      </section>
+
+      <!-- Notifications -->
+      <section class="settings-section">
+        <h2>Notifications</h2>
+
+        <div class="setting-group checkbox-group">
+          <label>
+            <input type="checkbox" id="enableNotifications" checked>
+            <span>Enable desktop notifications</span>
+          </label>
+          <p class="help-text">Show notifications for completed actions</p>
+        </div>
+
+        <div class="setting-group checkbox-group">
+          <label>
+            <input type="checkbox" id="soundEnabled">
+            <span>Enable sound notifications</span>
+          </label>
+          <p class="help-text">Play a sound when assessments complete</p>
+        </div>
+      </section>
+
+      <!-- Advanced Settings -->
+      <section class="settings-section">
+        <h2>Advanced Settings</h2>
+
+        <div class="setting-group checkbox-group">
+          <label>
+            <input type="checkbox" id="debugMode">
+            <span>Enable debug mode</span>
+          </label>
+          <p class="help-text">Show detailed logs in the browser console</p>
+        </div>
+
+        <div class="setting-group">
+          <label for="cacheExpiry">Cache Duration (hours)</label>
+          <input type="number" id="cacheExpiry" min="1" max="168" value="24">
+          <p class="help-text">How long to cache profile data</p>
+        </div>
+      </section>
+
+      <!-- Actions -->
+      <section class="actions-section">
+        <button id="saveSettings" class="primary-btn">Save Settings</button>
+        <button id="resetSettings" class="secondary-btn">Reset to Defaults</button>
+        <button id="clearCache" class="secondary-btn">Clear Cache</button>
+      </section>
+
+      <!-- Status Messages -->
+      <div id="statusMessage" class="status-message" style="display: none;"></div>
+    </main>
+
+    <footer>
+      <p>LinkedIn Profile AI Assessor v1.0.0</p>
+      <div class="footer-links">
+        <a href="#" id="openDashboard">Open Dashboard</a>
+        <span>|</span>
+        <a href="#" id="reportIssue">Report Issue</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

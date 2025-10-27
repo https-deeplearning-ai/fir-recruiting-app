@@ -33,6 +33,14 @@ anthropic_client = Anthropic(
 # Initialize services
 coresignal_service = CoreSignalService()
 
+# Import extension service (after defining constants)
+try:
+    from extension_service import ExtensionService
+    extension_service = ExtensionService()
+except ImportError as e:
+    print(f"Warning: Could not import ExtensionService: {e}")
+    extension_service = None
+
 # CoreSignal API configuration
 CORESIGNAL_API_KEY = os.getenv("CORESIGNAL_API_KEY")
 
@@ -199,6 +207,7 @@ def get_stored_profile(linkedin_url):
                 return {
                     'profile_data': stored['profile_data'],
                     'checked_at': stored.get('checked_at'),
+                    'last_fetched': stored.get('last_fetched'),  # When WE cached this data
                     'storage_age_days': age_days,
                     'is_stale': age_days >= 3
                 }
@@ -264,7 +273,8 @@ def get_stored_company(company_id, freshness_days=30):
                     print(f"✅ Using stored company {company_id} (age: {age.days} days) - SAVED 1 Collect credit!")
                     return {
                         'company_data': cached['company_data'],
-                        'cache_age_days': age.days
+                        'cache_age_days': age.days,
+                        'last_fetched': cached['last_fetched']  # When WE cached company data
                     }
                 else:
                     print(f"⏰ Stored company too old ({age.days} days) - fetching fresh data")
@@ -1004,6 +1014,7 @@ def fetch_profile():
             profile_data = stored_result['profile_data']
             storage_age_days = stored_result.get('storage_age_days', 0)
             checked_at = stored_result.get('checked_at')
+            last_fetched = stored_result.get('last_fetched')  # When WE cached this
             # Build result dict for cached profile (for response building later)
             result = {
                 'success': True,
@@ -1025,6 +1036,7 @@ def fetch_profile():
 
             profile_data = result['profile_data']
             checked_at = profile_data.get('checked_at')
+            last_fetched = None  # Fresh from API, not from cache
             storage_age_days = 0  # Fresh from API
 
             # Save to storage for next time
@@ -1060,6 +1072,10 @@ def fetch_profile():
             'data_source': result.get('method', result.get('data_source', 'coresignal')),
             'is_fresh': result.get('is_fresh', False)
         }
+
+        # Add last_fetched timestamp if available (when loaded from cache)
+        if last_fetched:
+            response_data['last_fetched'] = last_fetched
 
         # Add employee_id if available (from CoreSignal)
         if 'employee_id' in result:
@@ -1787,6 +1803,455 @@ def clear_feedback():
     except Exception as e:
         print(f"❌ Error clearing feedback: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+# ==================== CHROME EXTENSION API ENDPOINTS ====================
+
+@app.route('/extension/lists', methods=['GET'])
+def get_extension_lists():
+    """Get all lists for a recruiter"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    recruiter_name = request.args.get('recruiter_name', 'Unknown')
+
+    lists = extension_service.get_lists(recruiter_name)
+    return jsonify(lists)
+
+@app.route('/extension/create-list', methods=['POST'])
+def create_extension_list():
+    """Create a new list"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    data = request.json
+    recruiter_name = data.get('recruiter_name')
+    list_name = data.get('list_name')
+    job_template_id = data.get('job_template_id')
+    description = data.get('description')
+
+    if not recruiter_name or not list_name:
+        return jsonify({'error': 'recruiter_name and list_name are required'}), 400
+
+    result = extension_service.create_list(recruiter_name, list_name, job_template_id, description)
+
+    if result:
+        return jsonify(result), 201
+    else:
+        return jsonify({'error': 'Failed to create list'}), 500
+
+@app.route('/extension/lists/<list_id>', methods=['PUT'])
+def update_extension_list(list_id):
+    """Update a list"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    data = request.json
+    success = extension_service.update_list(list_id, data)
+
+    if success:
+        return jsonify({'message': 'List updated successfully'})
+    else:
+        return jsonify({'error': 'Failed to update list'}), 500
+
+@app.route('/extension/lists/<list_id>', methods=['DELETE'])
+def delete_extension_list(list_id):
+    """Delete (archive) a list"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    success = extension_service.delete_list(list_id)
+
+    if success:
+        return jsonify({'message': 'List deleted successfully'})
+    else:
+        return jsonify({'error': 'Failed to delete list'}), 500
+
+@app.route('/extension/lists/<list_id>/stats', methods=['GET'])
+def get_list_stats(list_id):
+    """Get statistics for a list"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    stats = extension_service.get_list_stats(list_id)
+
+    if stats:
+        return jsonify(stats)
+    else:
+        return jsonify({'error': 'List not found'}), 404
+
+@app.route('/extension/add-profile', methods=['POST'])
+def add_profile_to_list():
+    """Add a profile to a list (quick bookmark from extension)"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    data = request.json
+
+    # Validate required fields
+    if not data.get('linkedin_url'):
+        return jsonify({'error': 'linkedin_url is required'}), 400
+
+    if not data.get('list_id'):
+        return jsonify({'error': 'list_id is required'}), 400
+
+    result = extension_service.add_profile(data)
+
+    if result:
+        return jsonify({
+            'message': 'Profile added successfully',
+            'profile': result
+        }), 201
+    else:
+        return jsonify({'error': 'Failed to add profile'}), 500
+
+@app.route('/extension/profiles/<list_id>', methods=['GET'])
+def get_profiles_in_list(list_id):
+    """Get all profiles in a list"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    # Get filter parameters
+    filters = {}
+
+    if request.args.get('assessed'):
+        filters['assessed'] = request.args.get('assessed').lower() == 'true'
+
+    if request.args.get('min_score'):
+        try:
+            filters['min_score'] = float(request.args.get('min_score'))
+        except ValueError:
+            pass
+
+    if request.args.get('status'):
+        filters['status'] = request.args.get('status')
+
+    profiles = extension_service.get_profiles_in_list(list_id, filters if filters else None)
+    return jsonify(profiles)
+
+@app.route('/extension/profiles/<profile_id>/status', methods=['PUT'])
+def update_profile_status(profile_id):
+    """Update profile status"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    data = request.json
+    status = data.get('status')
+
+    if not status:
+        return jsonify({'error': 'status is required'}), 400
+
+    success = extension_service.update_profile_status(profile_id, status)
+
+    if success:
+        return jsonify({'message': 'Profile status updated'})
+    else:
+        return jsonify({'error': 'Failed to update profile status'}), 500
+
+@app.route('/extension/auth', methods=['GET'])
+def extension_auth():
+    """Simple authentication check for extension"""
+    # For now, just check if recruiter_name is provided
+    # In production, implement proper authentication
+    recruiter_name = request.args.get('recruiter_name')
+
+    if recruiter_name:
+        return jsonify({
+            'authenticated': True,
+            'recruiter_name': recruiter_name
+        })
+    else:
+        return jsonify({
+            'authenticated': False,
+            'error': 'recruiter_name required'
+        }), 401
+
+# ==================== LIST ASSESSMENT & EXPORT ENDPOINTS ====================
+
+@app.route('/lists/<list_id>/assess', methods=['POST'])
+def assess_list(list_id):
+    """Assess all unassessed profiles in a list using the existing batch assessment engine"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    try:
+        data = request.get_json() or {}
+        template_id = data.get('template_id')
+        enrich_with_company = data.get('enrich_with_company', True)
+        force_refresh = data.get('force_refresh', False)
+
+        print(f"🎯 Starting list assessment for list {list_id}")
+
+        # Step 1: Get all unassessed profiles from the list
+        profiles = extension_service.get_profiles_in_list(list_id, {'assessed': False})
+
+        if not profiles:
+            return jsonify({
+                'message': 'No unassessed profiles in list',
+                'total': 0,
+                'assessed': 0
+            })
+
+        print(f"Found {len(profiles)} unassessed profiles")
+
+        # Step 2: Format as candidates array for batch assessment
+        candidates = []
+        for profile in profiles:
+            candidates.append({
+                'url': profile['linkedin_url'],
+                'name': profile.get('name', '')
+            })
+
+        # Step 3: Get weighted requirements (from template if provided)
+        weighted_requirements = []
+        if template_id:
+            # TODO: Fetch template requirements
+            # For now, use default requirements
+            weighted_requirements = [
+                {"requirement": "Relevant technical skills and experience", "weight": 40},
+                {"requirement": "Leadership and team collaboration", "weight": 30},
+                {"requirement": "Industry knowledge and domain expertise", "weight": 30}
+            ]
+        else:
+            weighted_requirements = [
+                {"requirement": "Overall professional fit and experience", "weight": 100}
+            ]
+
+        # Step 4: Call the existing batch assessment endpoint internally
+        print(f"🚀 Calling batch assessment for {len(candidates)} candidates...")
+
+        # Create internal request data
+        batch_data = {
+            'candidates': candidates,
+            'user_prompt': 'Provide a comprehensive professional assessment',
+            'weighted_requirements': weighted_requirements
+        }
+
+        # Call batch_assess_profiles function directly
+        with app.test_request_context(
+            '/batch-assess-profiles',
+            method='POST',
+            json=batch_data
+        ):
+            batch_response = batch_assess_profiles()
+
+            if isinstance(batch_response, tuple):
+                batch_result = batch_response[0].get_json()
+            else:
+                batch_result = batch_response.get_json()
+
+        print(f"✅ Batch assessment complete")
+
+        # Step 5: Link assessment results back to extension_profiles
+        assessment_results = batch_result.get('results', [])
+        linked_count = 0
+        scores = []
+
+        for result in assessment_results:
+            if result.get('success'):
+                linkedin_url = result.get('linkedin_url')
+                assessment_data = result.get('assessment')
+
+                # Extract score
+                score = None
+                if assessment_data and assessment_data.get('weighted_analysis'):
+                    score = assessment_data['weighted_analysis'].get('weighted_score')
+                elif assessment_data:
+                    score = assessment_data.get('overall_score')
+
+                if score:
+                    scores.append(score)
+
+                # Find the corresponding profile
+                matching_profile = next((p for p in profiles if p['linkedin_url'] == linkedin_url), None)
+
+                if matching_profile:
+                    # Find the assessment ID from candidate_assessments table
+                    # Query Supabase for the assessment
+                    assessment_query_url = f"{SUPABASE_URL}/rest/v1/candidate_assessments"
+                    assessment_params = {
+                        'linkedin_url': f'eq.{linkedin_url}',
+                        'order': 'created_at.desc',
+                        'limit': '1'
+                    }
+
+                    headers = {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': f'Bearer {SUPABASE_KEY}'
+                    }
+
+                    assessment_response = requests.get(
+                        assessment_query_url,
+                        headers=headers,
+                        params=assessment_params
+                    )
+
+                    if assessment_response.ok:
+                        assessments = assessment_response.json()
+                        if assessments:
+                            assessment_id = assessments[0].get('id')
+
+                            # Link to extension_profiles
+                            success = extension_service.link_assessment(
+                                matching_profile['id'],
+                                assessment_id,
+                                score
+                            )
+
+                            if success:
+                                linked_count += 1
+
+        avg_score = sum(scores) / len(scores) if scores else None
+
+        return jsonify({
+            'message': 'List assessment complete',
+            'total': len(profiles),
+            'assessed': linked_count,
+            'failed': len(profiles) - linked_count,
+            'avg_score': round(avg_score, 1) if avg_score else None,
+            'results': assessment_results
+        })
+
+    except Exception as e:
+        print(f"❌ Error assessing list: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to assess list: {str(e)}'}), 500
+
+@app.route('/lists/<list_id>/export-csv', methods=['GET'])
+def export_list_to_csv(list_id):
+    """Export assessed profiles as CSV for LinkedIn Recruiter import"""
+    if not extension_service:
+        return jsonify({'error': 'Extension service not available'}), 503
+
+    try:
+        # Get query parameters
+        min_score = request.args.get('min_score', type=float)
+        include_notes = request.args.get('include_notes', 'true').lower() == 'true'
+
+        print(f"📤 Exporting list {list_id} to CSV (min_score: {min_score})")
+
+        # Get assessed profiles
+        filters = {'assessed': True}
+        if min_score:
+            filters['min_score'] = min_score
+
+        profiles = extension_service.get_profiles_in_list(list_id, filters)
+
+        if not profiles:
+            return jsonify({'error': 'No assessed profiles to export'}), 404
+
+        # Get list info
+        stats = extension_service.get_list_stats(list_id)
+        list_name = stats.get('list_name', 'candidates') if stats else 'candidates'
+
+        # Generate CSV
+        csv_output = StringIO()
+        csv_writer = csv.writer(csv_output)
+
+        # Header row
+        csv_writer.writerow(['first_name', 'last_name', 'email', 'note', 'tags'])
+
+        # Get full assessment data for each profile
+        profile_ids = []
+        for profile in profiles:
+            # Parse name
+            name = profile.get('name', '')
+            name_parts = name.split(' ', 1)
+            first_name = name_parts[0] if name_parts else ''
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+            # Email (leave blank - not available from public profiles)
+            email = ''
+
+            # Build note with assessment data
+            note = ''
+            if include_notes and profile.get('assessment_id'):
+                # Fetch full assessment
+                assessment_url = f"{SUPABASE_URL}/rest/v1/candidate_assessments"
+                assessment_params = {'id': f'eq.{profile["assessment_id"]}'}
+
+                headers = {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': f'Bearer {SUPABASE_KEY}'
+                }
+
+                assessment_response = requests.get(
+                    assessment_url,
+                    headers=headers,
+                    params=assessment_params
+                )
+
+                if assessment_response.ok:
+                    assessments = assessment_response.json()
+                    if assessments:
+                        assessment = assessments[0].get('assessment_data', {})
+                        score = profile.get('assessment_score', 0)
+
+                        # Extract strengths
+                        strengths = []
+                        if assessment.get('weighted_analysis'):
+                            for req in assessment['weighted_analysis'].get('requirements_analysis', []):
+                                strengths.append(req.get('analysis', ''))
+                        elif assessment.get('strengths'):
+                            strengths = assessment['strengths']
+
+                        # Build note
+                        note_parts = [
+                            f"AI Score: {score}/100"
+                        ]
+
+                        if strengths:
+                            note_parts.append(f"Strengths: {', '.join(strengths[:3])}")
+
+                        note_parts.append(f"LinkedIn: {profile['linkedin_url']}")
+                        note_parts.append(f"Assessed: {datetime.now().strftime('%Y-%m-%d')}")
+
+                        note = '. '.join(note_parts)
+
+            # Tags
+            tags = f"{list_name.replace(' ', '-')},{datetime.now().strftime('%Y-Q%q')}"
+
+            # Write row
+            csv_writer.writerow([first_name, last_name, email, note, tags])
+
+            profile_ids.append(profile['id'])
+
+        # Mark profiles as exported
+        if profile_ids:
+            extension_service.mark_exported(profile_ids)
+
+        # Record export
+        export_record = {
+            'list_id': list_id,
+            'exported_by': request.args.get('recruiter_name', 'Unknown'),
+            'candidate_count': len(profiles),
+            'min_score_filter': min_score,
+            'csv_filename': f"{list_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.csv"
+        }
+        extension_service.record_export(export_record)
+
+        # Prepare response
+        csv_content = csv_output.getvalue()
+        csv_output.close()
+
+        # Create response with CSV download
+        response = app.response_class(
+            csv_content,
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename={export_record["csv_filename"]}'
+            }
+        )
+
+        print(f"✅ Exported {len(profiles)} profiles to CSV")
+
+        return response
+
+    except Exception as e:
+        print(f"❌ Error exporting to CSV: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to export CSV: {str(e)}'}), 500
 
 @app.route('/health', methods=['GET'])
 def health_check():

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkedIn Profile AI Assessor</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header>
+      <h1>LinkedIn AI Assessor</h1>
+      <div class="status-indicator">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Ready</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- Current Profile Section -->
+      <div class="current-profile" id="currentProfile" style="display: none;">
+        <h2>Current Profile</h2>
+        <div class="profile-info">
+          <div class="profile-name" id="profileName">Loading...</div>
+          <div class="profile-headline" id="profileHeadline">Loading...</div>
+          <div class="profile-company" id="profileCompany">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="actions-section">
+        <h2>Quick Actions</h2>
+
+        <button class="action-btn primary" id="addToListBtn">
+          <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z"/>
+          </svg>
+          Add to List
+        </button>
+
+        <button class="action-btn secondary" id="quickAssessBtn">
+          <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm-3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm-5 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1z"/>
+            <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/>
+          </svg>
+          Run Analysis
+        </button>
+
+        <button class="action-btn secondary" id="batchAddBtn" style="display: none;">
+          <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z"/>
+          </svg>
+          Batch Add (0)
+        </button>
+      </div>
+
+      <!-- List Management -->
+      <div class="list-section">
+        <h2>Manage Lists</h2>
+        <select id="listSelect" class="list-dropdown">
+          <option value="">Select a list...</option>
+          <option value="new">+ Create new list</option>
+        </select>
+
+        <div class="list-stats" id="listStats" style="display: none;">
+          <span class="stat">
+            <strong id="listCount">0</strong> profiles
+          </span>
+          <span class="stat">
+            <strong id="assessedCount">0</strong> assessed
+          </span>
+        </div>
+      </div>
+
+      <!-- Job Template Section -->
+      <div class="template-section">
+        <h2>Job Template</h2>
+        <select id="templateSelect" class="template-dropdown">
+          <option value="">No template selected</option>
+          <option value="new">+ Create from job description</option>
+        </select>
+      </div>
+
+      <!-- Batch Operations (shown on search results page) -->
+      <div class="batch-section" id="batchSection" style="display: none;">
+        <h2>Batch Operations</h2>
+        <div class="batch-controls">
+          <label class="checkbox-label">
+            <input type="checkbox" id="selectAllCheckbox">
+            Select all on page
+          </label>
+          <button class="action-btn small" id="addSelectedBtn">
+            Add Selected (<span id="selectedCount">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages/Feedback -->
+      <div class="message" id="message" style="display: none;"></div>
+    </main>
+
+    <footer>
+      <a href="#" id="openDashboard" class="footer-link">Open Dashboard</a>
+      <span class="separator">|</span>
+      <a href="#" id="openOptions" class="footer-link">Settings</a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

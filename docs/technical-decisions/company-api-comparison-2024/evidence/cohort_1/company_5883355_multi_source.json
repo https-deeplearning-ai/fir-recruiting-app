@@ -1,0 +1,5141 @@
+{
+  "success": true,
+  "endpoint": "multi_source",
+  "data": {
+    "id": 5883355,
+    "source_id": "2087613",
+    "company_name": "We Rock the Spectrum Kid's Gym",
+    "company_name_alias": [
+      "we rock the spectrum kid's gym",
+      "we rock the spectrum kids gym",
+      "we rock the spectrum",
+      "we rock the spectrum kid\u2019s gym",
+      "we rock the spectrum kids gym \"for all kids\"",
+      "spectrum",
+      "we rock the spectrum kid's gym, llc"
+    ],
+    "company_legal_name": "We rock the spectrum kid's gym, llc",
+    "created_at": "2016-06-24",
+    "last_updated_at": "2025-09-01",
+    "website": "https://www.werockthespectrumkidsgym.com",
+    "website_alias": [
+      "https://www.werockthespectrumkidsgym.com",
+      "https://www.werockthespectrumdavie.com",
+      "https://www.werockthespectrumkidsgym.com/"
+    ],
+    "unique_website": true,
+    "unique_domain": true,
+    "expired_domain": false,
+    "linkedin_url": "https://www.linkedin.com/company/we-rock-the-spectrum-kids-gym",
+    "facebook_url": [
+      "https://www.facebook.com/werockthespectrumkidsgym",
+      "https://www.facebook.com/wrtslakecharles"
+    ],
+    "twitter_url": [
+      "https://www.twitter.com/wrtspectrum",
+      "https://www.twitter.com/wrtsmilwaukee"
+    ],
+    "crunchbase_url": "https://www.crunchbase.com/organization/we-rock-the-spectrum",
+    "instagram_url": [
+      "https://www.instagram.com/werockthespectrumkidsgym"
+    ],
+    "youtube_url": [
+      "https://www.youtube.com/channel/ucxi1hls_xo-6dqbbwzpj91g"
+    ],
+    "github_url": [],
+    "reddit_url": [],
+    "discord_url": [],
+    "pinterest_url": [
+      "https://www.pinterest.com/wrtspectrum/"
+    ],
+    "tiktok_url": [],
+    "company_logo": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAyADIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9U6KTP1/KjP1/KgBaKTd9fyo3D3/KgBaKTP1/KjP1/KgBaKTcPf8AKigD8i7XQPH895c2z6xfxvDMltvk1eVEklaMSCNDu+Zgh3HHQdcZFXf+EN8fyTPb23iCS/u4grT2tpr0jzQBl3KXTdkDkDPPJAOM1fn+MWla14igudShuFttKmSXSpIbdQ6oYRHNFIoIzuYBw3JyvoeM++8eeHbTV9d1nT5tUvL7WbaOze28gWy28RMXnESh2LMRGVXAAG7J6Yr6J1+Ja1VKph+SThF6Rm487cVbmUopJQblK/KlJOPvWTl+Y0cwwlCmoUpxkk2tYw5nHfrFuT5kkt3az0u0s/WdJ8b6KIAviG51GV7sadJb6frUs8sN0ekMihuGOCOMjIIzxVybwx45CXRtvEx1J7YOLiCx195ZIpFUsYyA3LYVyAuQdjAHIq5q3xL0mG90vUYTc+ItUstVivILy8sEtriO2XO6CWVWJmY5X5iONuc84rObxR4f0DRDBos17dX0eoQXljdTaZFBLaIsjM6NKCXkYggdduF6c8VDGZxOjTvBKbsr8s7SvKzbu04qCtZyUW9eXm5Vz9ilWjUklT5orpyRbWmytF35tbpNrZu17qs2l+Ol8KT+Iv7W1IafBBDdSr/a0vmpFK7JG5TdnDFSR7YPQ10Wm/DT4kX1leXEmvXNkLfTI9VC3GsTbpIpAxQKN3X5GzngHAJ5FQWPxW0k+IvFb6pDezaRrmpReZDHEoYWASZPLAzhSoeLaBwNvtXVaTffDn4t2sd/408b6n4TvoIY9NhtIIt8YVneRnIwf3YYxjjH3RxxmlLFcRKTX1b3XyyUo3dlKMGo6uXM4y9opSaV1y2SZ14CrluKxX1fH1o0l7ylenDSUeZXtZcvNaNkno7nld6/jHT7ye1n8TXMc8EjRSIdabKsDgj7/qKK5DUo5RqN0GlF43mtm5D5EpyfnyeTnrz60V+yKkmk9Pu/4J+RyrSTaV//AAI/WD/hlL4Sf9CHpH/ftv8A4qj/AIZS+En/AEIekf8Afpv/AIqvWaK/Bvr2L/5+y/8AAn/mf0L9Qwi/5dR/8BX+R5N/wyj8JMY/4QLR/wDv03/xVH/DKXwk/wChC0f/AL9N/wDFV6zRWf1vEf8APyX3s2WHorVQX3I8m/4ZS+En/Qh6R/36b/4ql/4ZT+Ev/Qh6R/37b/4qvWKKtY3FJWVWX/gT/wAzKWCws25SpRbfkv8AI8n/AOGU/hL/ANCHpH/ftv8A4qivWKKf17F/8/Zf+BP/ADJ+oYT/AJ8x/wDAV/kFFFFcJ3hRRRQAUUUUAFFFFAH/2Q==",
+    "company_logo_url": "https://media.licdn.com/dms/image/v2/C510BAQFfv6o0nI9xuA/company-logo_200_200/company-logo_200_200/0/1631307535769?e=2147483647&v=beta&t=trsHJTeIAHxKl3qQX6Jd-DA456YQsTNQDlZyKnH-8oo",
+    "stock_ticker": [],
+    "is_b2b": 0,
+    "is_public": false,
+    "description": "We Rock the Spectrum Kids Gym is committed to providing a safe, nurturing, and fun environment for ALL KIDS, to foster learning, exploration and safe sensory experiences. We are committed to offering a place for events and special services for families and therapists, who are treating and working with kids on the spectrum, as well as their family and friends.",
+    "description_enriched": "We Rock The Spectrum Kid's Gym is a kids indoor play gym located in tarzana, Ca. They provide a safe, nurturing, and fun environment for children to foster learning, exploration, and safe sensory experiences. They offer social skills groups and activities for children across the spectrum.",
+    "description_metadata_raw": "",
+    "sic_codes": [
+      "80",
+      "804"
+    ],
+    "naics_codes": [
+      "62",
+      "621"
+    ],
+    "industry": "Wellness and Fitness Services",
+    "categories_and_keywords": [
+      "education",
+      "health > developmental and physical disabilities (in united states)",
+      "sensory gym",
+      "nurturing",
+      "social skills groups",
+      "children",
+      "kids indoor play gym",
+      "activities",
+      "health",
+      "fitness",
+      "health care",
+      "recreation",
+      "wellness"
+    ],
+    "type": "Public Company",
+    "status": {
+      "value": "active",
+      "comment": "Independent Company"
+    },
+    "founded_year": "2010",
+    "size_range": "Myself Only",
+    "employees_count": 201,
+    "followers_count_linkedin": 1277,
+    "followers_count_twitter": null,
+    "followers_count_owler": 1,
+    "hq_region": [
+      "Americas",
+      "Northern America",
+      "AMER"
+    ],
+    "hq_country": "United States",
+    "hq_country_iso2": "US",
+    "hq_country_iso3": "USA",
+    "hq_location": "Tarzana, California, United States",
+    "hq_full_address": "18816 VENTURA BLVD; Tarzana, California 91356, US",
+    "hq_city": "Tarzana",
+    "hq_state": "California",
+    "hq_street": "18816 VENTURA BLVD",
+    "hq_zipcode": "91356",
+    "company_locations_full": [
+      {
+        "location_address": "18816 VENTURA BLVD; Tarzana, California 91356, US",
+        "is_primary": 1
+      },
+      {
+        "location_address": "5520 Crebs Ave, Tarzana; Los Angeles, CA, United States",
+        "is_primary": 0
+      },
+      {
+        "location_address": "5520 Crebs Ave; Tarzana, California 91356, United States",
+        "is_primary": 0
+      },
+      {
+        "location_address": "5520 Crebs Ave; Tarzana, 91356, United States",
+        "is_primary": 0
+      },
+      {
+        "location_address": "Davie, Florida, United States",
+        "is_primary": 0
+      }
+    ],
+    "company_updates": [],
+    "num_technologies_used": 4,
+    "technologies_used": [
+      {
+        "technology": "recognize",
+        "first_verified_at": "2024-05-20",
+        "last_verified_at": "2025-09-08"
+      },
+      {
+        "technology": "well",
+        "first_verified_at": "2024-04-04",
+        "last_verified_at": "2025-07-28"
+      },
+      {
+        "technology": "microsoft",
+        "first_verified_at": "2024-06-10",
+        "last_verified_at": "2024-08-05"
+      },
+      {
+        "technology": "amp",
+        "first_verified_at": "2024-05-20",
+        "last_verified_at": "2024-06-03"
+      }
+    ],
+    "ipo_date": null,
+    "ipo_share_price": null,
+    "ipo_share_price_currency": null,
+    "stock_information": [],
+    "revenue_annual_range": null,
+    "revenue_annual": {
+      "source_5_annual_revenue": {
+        "annual_revenue": 8232533,
+        "annual_revenue_currency": "USD"
+      },
+      "source_1_annual_revenue": null
+    },
+    "revenue_quarterly": null,
+    "income_statements": [],
+    "last_funding_round_name": null,
+    "last_funding_round_announced_date": null,
+    "last_funding_round_lead_investors": [],
+    "last_funding_round_amount_raised": null,
+    "last_funding_round_amount_raised_currency": null,
+    "last_funding_round_num_investors": null,
+    "funding_rounds": [],
+    "ownership_status": "Private",
+    "parent_company_information": null,
+    "acquired_by_summary": {
+      "acquirer_name": null,
+      "announced_date": null,
+      "price": null,
+      "currency": "USD"
+    },
+    "num_acquisitions_source_1": null,
+    "acquisition_list_source_1": [],
+    "num_acquisitions_source_2": 0,
+    "acquisition_list_source_2": [],
+    "num_acquisitions_source_5": null,
+    "acquisition_list_source_5": [],
+    "competitors": [
+      {
+        "company_name": "massage envy spa",
+        "similarity_score": null
+      },
+      {
+        "company_name": "visiting angels",
+        "similarity_score": null
+      },
+      {
+        "company_name": "life time fitness",
+        "similarity_score": null
+      },
+      {
+        "company_name": "team beachbody",
+        "similarity_score": null
+      }
+    ],
+    "competitors_websites": [
+      {
+        "website": "thetreetop.com",
+        "similarity_score": 100,
+        "total_website_visits_monthly": 62100,
+        "category": "Health > Mental Health",
+        "rank_category": 1035
+      },
+      {
+        "website": "wrtsfranchise.com",
+        "similarity_score": 86,
+        "total_website_visits_monthly": 3600,
+        "category": "Health > Mental Health",
+        "rank_category": 7340
+      },
+      {
+        "website": "greatplay.com",
+        "similarity_score": 84,
+        "total_website_visits_monthly": 0,
+        "category": "Health > Nutrition Diets and Fitness",
+        "rank_category": 0
+      },
+      {
+        "website": "werockthespectrumstudiocity.com",
+        "similarity_score": 50,
+        "total_website_visits_monthly": 1000,
+        "category": "N/A",
+        "rank_category": 0
+      },
+      {
+        "website": "losangeles.cbslocal.com",
+        "similarity_score": 48,
+        "total_website_visits_monthly": 1600,
+        "category": "News & Media Publishers",
+        "rank_category": 0
+      },
+      {
+        "website": "akidsgym.com",
+        "similarity_score": 46,
+        "total_website_visits_monthly": 1000,
+        "category": "N/A",
+        "rank_category": 0
+      },
+      {
+        "website": "werockthespectrumwaretown.com",
+        "similarity_score": 45,
+        "total_website_visits_monthly": 337,
+        "category": "N/A",
+        "rank_category": 0
+      },
+      {
+        "website": "toddlerplayzone.com",
+        "similarity_score": 43,
+        "total_website_visits_monthly": 463,
+        "category": "N/A",
+        "rank_category": 0
+      },
+      {
+        "website": "davidoliversplayvisions.com",
+        "similarity_score": 43,
+        "total_website_visits_monthly": 0,
+        "category": "N/A",
+        "rank_category": 0
+      },
+      {
+        "website": "2kiddy.com",
+        "similarity_score": 43,
+        "total_website_visits_monthly": 72,
+        "category": "N/A",
+        "rank_category": 0
+      }
+    ],
+    "company_phone_numbers": [
+      "818-708-0860",
+      "1 (754) 216-2153"
+    ],
+    "company_emails": [
+      "info@werockthespectrumdavie.com"
+    ],
+    "pricing_available": false,
+    "free_trial_available": false,
+    "demo_available": false,
+    "is_downloadable": true,
+    "mobile_apps_exist": false,
+    "online_reviews_exist": false,
+    "documentation_exist": false,
+    "product_reviews_count": null,
+    "product_reviews_aggregate_score": null,
+    "product_reviews_score_distribution": null,
+    "product_pricing_summary": [],
+    "num_news_articles": 1,
+    "news_articles": [
+      {
+        "headline": "Autism-friendly children's gym to open in Broomfield",
+        "published_date": "2025-03-21",
+        "summary": null,
+        "article_url": "https://www.bizjournals.com/denver/news/2025/03/21/we-rock-the-spectrum-childrens-gym-broomfield.html",
+        "source": "Denver Business Journal"
+      }
+    ],
+    "total_website_visits_monthly": 15000,
+    "visits_change_monthly": 30.17,
+    "rank_global": 1186661,
+    "rank_country": 300697,
+    "rank_category": 114,
+    "visits_breakdown_by_country": [
+      {
+        "country": "United States",
+        "percentage": 94.0,
+        "percentage_monthly_change": 30.12
+      },
+      {
+        "country": "India",
+        "percentage": 6.0,
+        "percentage_monthly_change": null
+      }
+    ],
+    "visits_breakdown_by_gender": {
+      "male_percentage": 0.0,
+      "female_percentage": 0.0
+    },
+    "visits_breakdown_by_age": {
+      "age_18_24_percentage": 0.0,
+      "age_25_34_percentage": 0.0,
+      "age_35_44_percentage": 0.0,
+      "age_45_54_percentage": 0.0,
+      "age_55_64_percentage": 0.0,
+      "age_65_plus_percentage": 0.0
+    },
+    "bounce_rate": 27.11,
+    "pages_per_visit": 3.3,
+    "average_visit_duration_seconds": 75.0,
+    "similarly_ranked_websites": [
+      "americanadvocacygroup.com",
+      "myeshars.com",
+      "werockthespectrumkidsgym.com",
+      "chimes.org",
+      "goodwillnwnc.org",
+      "thetreetop.com",
+      "werockthespectrumkidsgym.com",
+      "wrtsfranchise.com",
+      "werockthespectrumstudiocity.com",
+      "greatplay.com"
+    ],
+    "top_topics": [],
+    "company_employee_reviews_count": 33,
+    "company_employee_reviews_aggregate_score": 4.099999904632568,
+    "employee_reviews_score_breakdown": {
+      "business_outlook": 0.6600000262260437,
+      "career_opportunities": 3.5,
+      "ceo_approval": -1.0,
+      "compensation_benefits": 3.200000047683716,
+      "culture_values": 4.300000190734863,
+      "diversity_inclusion": 4.300000190734863,
+      "recommend": 0.7699999809265137,
+      "senior_management": 3.799999952316284,
+      "work_life_balance": 4.199999809265137
+    },
+    "employee_reviews_score_distribution": {
+      "score_1": 0.0,
+      "score_2": 0.0,
+      "score_3": 3.0,
+      "score_4": 2.0,
+      "score_5": 8.0
+    },
+    "active_job_postings_count": 1,
+    "active_job_postings": [
+      {
+        "job_posting_id": 4252189898,
+        "job_posting_title": "Indoor Playground Customer Associate Coach"
+      }
+    ],
+    "active_job_postings_count_change": {
+      "current": 1,
+      "change_monthly": 0,
+      "change_monthly_percentage": 0.0,
+      "change_quarterly": 0,
+      "change_quarterly_percentage": 0.0,
+      "change_yearly": 1,
+      "change_yearly_percentage": null
+    },
+    "active_job_postings_count_by_month": [
+      {
+        "active_job_postings_count": 1,
+        "date": "2025-09"
+      },
+      {
+        "active_job_postings_count": 1,
+        "date": "2025-08"
+      },
+      {
+        "active_job_postings_count": 1,
+        "date": "2025-07"
+      },
+      {
+        "active_job_postings_count": 1,
+        "date": "2025-06"
+      },
+      {
+        "active_job_postings_count": 1,
+        "date": "2025-05"
+      },
+      {
+        "active_job_postings_count": 1,
+        "date": "2025-04"
+      },
+      {
+        "active_job_postings_count": 1,
+        "date": "2025-03"
+      },
+      {
+        "active_job_postings_count": 1,
+        "date": "2025-02"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2025-01"
+      },
+      {
+        "active_job_postings_count": 1,
+        "date": "2024-12"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2024-11"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2024-10"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2024-09"
+      },
+      {
+        "active_job_postings_count": 2,
+        "date": "2024-08"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2024-07"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2024-06"
+      },
+      {
+        "active_job_postings_count": 1,
+        "date": "2024-05"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2024-04"
+      },
+      {
+        "active_job_postings_count": 1,
+        "date": "2024-03"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2024-02"
+      },
+      {
+        "active_job_postings_count": 1,
+        "date": "2024-01"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2023-12"
+      },
+      {
+        "active_job_postings_count": 1,
+        "date": "2023-11"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2023-10"
+      },
+      {
+        "active_job_postings_count": 1,
+        "date": "2023-09"
+      },
+      {
+        "active_job_postings_count": 2,
+        "date": "2023-08"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2023-07"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2023-06"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2023-05"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2023-04"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2023-03"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2023-02"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2023-01"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2022-12"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2022-11"
+      },
+      {
+        "active_job_postings_count": 0,
+        "date": "2022-10"
+      }
+    ],
+    "linkedin_followers_count_change": {
+      "current": 1273,
+      "change_monthly": 27,
+      "change_monthly_percentage": 2.166934189406099,
+      "change_quarterly": 77,
+      "change_quarterly_percentage": 6.438127090301003,
+      "change_yearly": 216,
+      "change_yearly_percentage": 20.43519394512772
+    },
+    "linkedin_followers_count_by_month": [
+      {
+        "follower_count": 1273,
+        "date": "2025-09"
+      },
+      {
+        "follower_count": 1246,
+        "date": "2025-08"
+      },
+      {
+        "follower_count": 1215,
+        "date": "2025-07"
+      },
+      {
+        "follower_count": 1196,
+        "date": "2025-06"
+      },
+      {
+        "follower_count": 1183,
+        "date": "2025-05"
+      },
+      {
+        "follower_count": 1160,
+        "date": "2025-04"
+      },
+      {
+        "follower_count": 1145,
+        "date": "2025-03"
+      },
+      {
+        "follower_count": 1135,
+        "date": "2025-02"
+      },
+      {
+        "follower_count": 1107,
+        "date": "2025-01"
+      },
+      {
+        "follower_count": 1104,
+        "date": "2024-12"
+      },
+      {
+        "follower_count": 1074,
+        "date": "2024-11"
+      },
+      {
+        "follower_count": 1066,
+        "date": "2024-10"
+      },
+      {
+        "follower_count": 1057,
+        "date": "2024-09"
+      },
+      {
+        "follower_count": 1027,
+        "date": "2024-08"
+      },
+      {
+        "follower_count": 1013,
+        "date": "2024-07"
+      },
+      {
+        "follower_count": 993,
+        "date": "2024-06"
+      },
+      {
+        "follower_count": 973,
+        "date": "2024-05"
+      },
+      {
+        "follower_count": 959,
+        "date": "2024-04"
+      },
+      {
+        "follower_count": 807,
+        "date": "2024-03"
+      },
+      {
+        "follower_count": 779,
+        "date": "2024-02"
+      },
+      {
+        "follower_count": 769,
+        "date": "2024-01"
+      },
+      {
+        "follower_count": 761,
+        "date": "2023-12"
+      },
+      {
+        "follower_count": 747,
+        "date": "2023-11"
+      },
+      {
+        "follower_count": 735,
+        "date": "2023-10"
+      },
+      {
+        "follower_count": 716,
+        "date": "2023-09"
+      },
+      {
+        "follower_count": 679,
+        "date": "2023-08"
+      },
+      {
+        "follower_count": 668,
+        "date": "2023-07"
+      },
+      {
+        "follower_count": 646,
+        "date": "2023-06"
+      },
+      {
+        "follower_count": 629,
+        "date": "2023-05"
+      },
+      {
+        "follower_count": 610,
+        "date": "2023-04"
+      },
+      {
+        "follower_count": 606,
+        "date": "2023-03"
+      },
+      {
+        "follower_count": 592,
+        "date": "2023-02"
+      },
+      {
+        "follower_count": 576,
+        "date": "2023-01"
+      },
+      {
+        "follower_count": 572,
+        "date": "2022-12"
+      },
+      {
+        "follower_count": 562,
+        "date": "2022-11"
+      },
+      {
+        "follower_count": 547,
+        "date": "2022-10"
+      }
+    ],
+    "base_salary": [],
+    "additional_pay": [],
+    "total_salary": [],
+    "employees_count_inferred": 113,
+    "employees_count_inferred_by_month": [
+      {
+        "employees_count_inferred": 107,
+        "date": "202311"
+      },
+      {
+        "employees_count_inferred": 124,
+        "date": "202405"
+      },
+      {
+        "employees_count_inferred": 117,
+        "date": "202404"
+      },
+      {
+        "employees_count_inferred": 104,
+        "date": "202307"
+      },
+      {
+        "employees_count_inferred": 109,
+        "date": "202503"
+      },
+      {
+        "employees_count_inferred": 123,
+        "date": "202406"
+      },
+      {
+        "employees_count_inferred": 116,
+        "date": "202506"
+      },
+      {
+        "employees_count_inferred": 105,
+        "date": "202306"
+      },
+      {
+        "employees_count_inferred": 112,
+        "date": "202411"
+      },
+      {
+        "employees_count_inferred": 114,
+        "date": "202412"
+      },
+      {
+        "employees_count_inferred": 115,
+        "date": "202407"
+      },
+      {
+        "employees_count_inferred": 111,
+        "date": "202502"
+      },
+      {
+        "employees_count_inferred": 113,
+        "date": "202505"
+      },
+      {
+        "employees_count_inferred": 116,
+        "date": "202408"
+      },
+      {
+        "employees_count_inferred": 95,
+        "date": "202211"
+      },
+      {
+        "employees_count_inferred": 101,
+        "date": "202310"
+      },
+      {
+        "employees_count_inferred": 99,
+        "date": "202303"
+      },
+      {
+        "employees_count_inferred": 96,
+        "date": "202212"
+      },
+      {
+        "employees_count_inferred": 103,
+        "date": "202305"
+      },
+      {
+        "employees_count_inferred": 115,
+        "date": "202507"
+      },
+      {
+        "employees_count_inferred": 113,
+        "date": "202410"
+      },
+      {
+        "employees_count_inferred": 108,
+        "date": "202312"
+      },
+      {
+        "employees_count_inferred": 91,
+        "date": "202209"
+      },
+      {
+        "employees_count_inferred": 115,
+        "date": "202402"
+      },
+      {
+        "employees_count_inferred": 100,
+        "date": "202304"
+      },
+      {
+        "employees_count_inferred": 116,
+        "date": "202401"
+      },
+      {
+        "employees_count_inferred": 98,
+        "date": "202301"
+      },
+      {
+        "employees_count_inferred": 110,
+        "date": "202504"
+      },
+      {
+        "employees_count_inferred": 113,
+        "date": "202508"
+      },
+      {
+        "employees_count_inferred": 94,
+        "date": "202210"
+      },
+      {
+        "employees_count_inferred": 108,
+        "date": "202308"
+      },
+      {
+        "employees_count_inferred": 99,
+        "date": "202302"
+      },
+      {
+        "employees_count_inferred": 115,
+        "date": "202403"
+      },
+      {
+        "employees_count_inferred": 113,
+        "date": "202501"
+      },
+      {
+        "employees_count_inferred": 98,
+        "date": "202309"
+      },
+      {
+        "employees_count_inferred": 111,
+        "date": "202409"
+      }
+    ],
+    "top_previous_companies": [
+      {
+        "company_id": 10398593,
+        "company_name": "Kenosha Unified School District",
+        "count": 2
+      },
+      {
+        "company_id": 10874931,
+        "company_name": "Carters Inc.",
+        "count": 2
+      },
+      {
+        "company_id": 9588784,
+        "company_name": null,
+        "count": 2
+      },
+      {
+        "company_id": 31127274,
+        "company_name": "The Royal Melbourne Hospital",
+        "count": 2
+      },
+      {
+        "company_id": 29181161,
+        "company_name": "Jeni's Splendid Ice Creams",
+        "count": 2
+      },
+      {
+        "company_id": 6676957,
+        "company_name": "Kohl's",
+        "count": 2
+      },
+      {
+        "company_id": 5802507,
+        "company_name": "WiCell",
+        "count": 2
+      },
+      {
+        "company_id": 6448374,
+        "company_name": "Edward Jones",
+        "count": 2
+      },
+      {
+        "company_id": 10299700,
+        "company_name": "Cleveland State University",
+        "count": 2
+      },
+      {
+        "company_id": 9033332,
+        "company_name": "Azusa Pacific University",
+        "count": 3
+      }
+    ],
+    "top_next_companies": [
+      {
+        "company_id": 26315479,
+        "company_name": "MISERICORDIA UNIVERSITY SPEECH-LANGUAGE AND HEARING CENTER",
+        "count": 2
+      },
+      {
+        "company_id": 5068058,
+        "company_name": "MedStar Franklin Square Medical Center",
+        "count": 2
+      },
+      {
+        "company_id": 8251401,
+        "company_name": "Lindamood-Bell Learning Processes",
+        "count": 3
+      },
+      {
+        "company_id": 96227411,
+        "company_name": "Washington University School of Medicine in St. Louis",
+        "count": 2
+      },
+      {
+        "company_id": 12085017,
+        "company_name": "Everyday Independence",
+        "count": 2
+      },
+      {
+        "company_id": 88102228,
+        "company_name": "Maxim Healthcare Staffing",
+        "count": 3
+      },
+      {
+        "company_id": 1533690,
+        "company_name": "Cambrian Homecare",
+        "count": 3
+      },
+      {
+        "company_id": 1017765,
+        "company_name": "Hireup",
+        "count": 2
+      },
+      {
+        "company_id": 12429535,
+        "company_name": "Self Employed",
+        "count": 3
+      },
+      {
+        "company_id": 1024783,
+        "company_name": "Huntsville Hospital",
+        "count": 2
+      }
+    ],
+    "key_executives": [
+      {
+        "parent_id": 245611219,
+        "member_full_name": "Ryan Roark",
+        "member_position_title": "Owner"
+      },
+      {
+        "parent_id": 132564509,
+        "member_full_name": "Colin Hirsch",
+        "member_position_title": "Business Owner"
+      },
+      {
+        "parent_id": 357598549,
+        "member_full_name": "Marcus Johnson",
+        "member_position_title": "Master Franchisee - Australia"
+      },
+      {
+        "parent_id": 436286282,
+        "member_full_name": "Lyla Novakowski",
+        "member_position_title": "Franchise Owner"
+      },
+      {
+        "parent_id": 387743741,
+        "member_full_name": "Matthew O'brien",
+        "member_position_title": "Owner And CFO"
+      },
+      {
+        "parent_id": 411774843,
+        "member_full_name": "Rachel Longcrier",
+        "member_position_title": "Business Owner"
+      },
+      {
+        "parent_id": 575889876,
+        "member_full_name": "Timothy Rosas",
+        "member_position_title": "Owner"
+      },
+      {
+        "parent_id": 324894526,
+        "member_full_name": "Susan Cardoso",
+        "member_position_title": "Owner"
+      },
+      {
+        "parent_id": 599715159,
+        "member_full_name": "Shannon Will",
+        "member_position_title": "Managing Director"
+      },
+      {
+        "parent_id": 24303200,
+        "member_full_name": "Pauline Smales",
+        "member_position_title": "Franchise Owner"
+      },
+      {
+        "parent_id": 756142468,
+        "member_full_name": "We Rock The Spectrum Oakville",
+        "member_position_title": "Company Owner"
+      },
+      {
+        "parent_id": 65003771,
+        "member_full_name": "Katy Fontenot",
+        "member_position_title": "Owner"
+      },
+      {
+        "parent_id": 149398288,
+        "member_full_name": "Andrea Bourassa",
+        "member_position_title": "Business Owner"
+      },
+      {
+        "parent_id": 574401836,
+        "member_full_name": "Joceline Olague",
+        "member_position_title": "Creative Director"
+      },
+      {
+        "parent_id": 180861709,
+        "member_full_name": "Dina Kimmel",
+        "member_position_title": "Founder"
+      }
+    ],
+    "key_employee_change_events": [],
+    "key_executive_arrivals": [
+      {
+        "parent_id": 324894526,
+        "member_full_name": "Susan Cardoso",
+        "member_position_title": "Owner",
+        "arrival_date": "Apr 2025"
+      },
+      {
+        "parent_id": 575889876,
+        "member_full_name": "Timothy Rosas",
+        "member_position_title": "Owner",
+        "arrival_date": "Jun 2025"
+      }
+    ],
+    "key_executive_departures": [],
+    "employees_count_change": {
+      "current": 201,
+      "change_monthly": -3,
+      "change_monthly_percentage": -1.4705882352941175,
+      "change_quarterly": 19,
+      "change_quarterly_percentage": 10.43956043956044,
+      "change_yearly": 42,
+      "change_yearly_percentage": 26.41509433962264
+    },
+    "employees_count_by_month": [
+      {
+        "employees_count": 201,
+        "date": "2025-09"
+      },
+      {
+        "employees_count": 204,
+        "date": "2025-08"
+      },
+      {
+        "employees_count": 191,
+        "date": "2025-07"
+      },
+      {
+        "employees_count": 182,
+        "date": "2025-06"
+      },
+      {
+        "employees_count": 180,
+        "date": "2025-05"
+      },
+      {
+        "employees_count": 179,
+        "date": "2025-04"
+      },
+      {
+        "employees_count": 176,
+        "date": "2025-03"
+      },
+      {
+        "employees_count": 171,
+        "date": "2025-02"
+      },
+      {
+        "employees_count": 169,
+        "date": "2025-01"
+      },
+      {
+        "employees_count": 169,
+        "date": "2024-12"
+      },
+      {
+        "employees_count": 160,
+        "date": "2024-11"
+      },
+      {
+        "employees_count": 160,
+        "date": "2024-10"
+      },
+      {
+        "employees_count": 159,
+        "date": "2024-09"
+      },
+      {
+        "employees_count": 155,
+        "date": "2024-08"
+      },
+      {
+        "employees_count": 156,
+        "date": "2024-07"
+      },
+      {
+        "employees_count": 147,
+        "date": "2024-06"
+      },
+      {
+        "employees_count": 143,
+        "date": "2024-05"
+      },
+      {
+        "employees_count": 138,
+        "date": "2024-04"
+      },
+      {
+        "employees_count": 132,
+        "date": "2024-03"
+      },
+      {
+        "employees_count": 130,
+        "date": "2024-02"
+      },
+      {
+        "employees_count": 129,
+        "date": "2024-01"
+      },
+      {
+        "employees_count": 117,
+        "date": "2023-12"
+      },
+      {
+        "employees_count": 115,
+        "date": "2023-11"
+      },
+      {
+        "employees_count": 111,
+        "date": "2023-10"
+      },
+      {
+        "employees_count": 109,
+        "date": "2023-09"
+      },
+      {
+        "employees_count": 106,
+        "date": "2023-08"
+      },
+      {
+        "employees_count": 107,
+        "date": "2023-07"
+      },
+      {
+        "employees_count": 96,
+        "date": "2023-06"
+      },
+      {
+        "employees_count": 101,
+        "date": "2023-05"
+      },
+      {
+        "employees_count": 101,
+        "date": "2023-04"
+      },
+      {
+        "employees_count": 99,
+        "date": "2023-03"
+      },
+      {
+        "employees_count": 98,
+        "date": "2023-02"
+      },
+      {
+        "employees_count": 95,
+        "date": "2023-01"
+      },
+      {
+        "employees_count": 95,
+        "date": "2022-12"
+      },
+      {
+        "employees_count": 91,
+        "date": "2022-11"
+      },
+      {
+        "employees_count": 86,
+        "date": "2022-10"
+      }
+    ],
+    "employees_count_breakdown_by_seniority": {
+      "employees_count_owner": 14,
+      "employees_count_founder": 1,
+      "employees_count_clevel": 0,
+      "employees_count_partner": 0,
+      "employees_count_vp": 0,
+      "employees_count_head": 0,
+      "employees_count_director": 2,
+      "employees_count_manager": 14,
+      "employees_count_senior": 2,
+      "employees_count_intern": 0,
+      "employees_count_specialist": 63,
+      "employees_count_other_management": 17
+    },
+    "employees_count_breakdown_by_seniority_by_month": [
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 14,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 14,
+          "employees_count_senior": 2,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 63,
+          "employees_count_other_management": 17
+        },
+        "date": "202508"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 15,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 14,
+          "employees_count_senior": 2,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 64,
+          "employees_count_other_management": 17
+        },
+        "date": "202507"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 15,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 14,
+          "employees_count_senior": 2,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 65,
+          "employees_count_other_management": 17
+        },
+        "date": "202506"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 14,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 15,
+          "employees_count_senior": 2,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 63,
+          "employees_count_other_management": 16
+        },
+        "date": "202505"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 14,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 15,
+          "employees_count_senior": 2,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 60,
+          "employees_count_other_management": 16
+        },
+        "date": "202504"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 13,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 15,
+          "employees_count_senior": 2,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 61,
+          "employees_count_other_management": 15
+        },
+        "date": "202503"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 13,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 14,
+          "employees_count_senior": 2,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 63,
+          "employees_count_other_management": 16
+        },
+        "date": "202502"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 13,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 14,
+          "employees_count_senior": 2,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 64,
+          "employees_count_other_management": 18
+        },
+        "date": "202501"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 14,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 14,
+          "employees_count_senior": 2,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 64,
+          "employees_count_other_management": 17
+        },
+        "date": "202412"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 14,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 13,
+          "employees_count_senior": 2,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 63,
+          "employees_count_other_management": 17
+        },
+        "date": "202411"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 14,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 2,
+          "employees_count_manager": 13,
+          "employees_count_senior": 2,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 64,
+          "employees_count_other_management": 16
+        },
+        "date": "202410"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 14,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 2,
+          "employees_count_manager": 13,
+          "employees_count_senior": 2,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 64,
+          "employees_count_other_management": 15
+        },
+        "date": "202409"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 14,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 2,
+          "employees_count_manager": 13,
+          "employees_count_senior": 3,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 67,
+          "employees_count_other_management": 16
+        },
+        "date": "202408"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 13,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 2,
+          "employees_count_manager": 12,
+          "employees_count_senior": 3,
+          "employees_count_intern": 1,
+          "employees_count_specialist": 67,
+          "employees_count_other_management": 16
+        },
+        "date": "202407"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 13,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 2,
+          "employees_count_manager": 12,
+          "employees_count_senior": 5,
+          "employees_count_intern": 1,
+          "employees_count_specialist": 72,
+          "employees_count_other_management": 17
+        },
+        "date": "202406"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 12,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 3,
+          "employees_count_manager": 13,
+          "employees_count_senior": 6,
+          "employees_count_intern": 1,
+          "employees_count_specialist": 71,
+          "employees_count_other_management": 17
+        },
+        "date": "202405"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 12,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 3,
+          "employees_count_manager": 12,
+          "employees_count_senior": 6,
+          "employees_count_intern": 1,
+          "employees_count_specialist": 66,
+          "employees_count_other_management": 15
+        },
+        "date": "202404"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 11,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 3,
+          "employees_count_manager": 13,
+          "employees_count_senior": 6,
+          "employees_count_intern": 1,
+          "employees_count_specialist": 66,
+          "employees_count_other_management": 14
+        },
+        "date": "202403"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 11,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 3,
+          "employees_count_manager": 13,
+          "employees_count_senior": 6,
+          "employees_count_intern": 1,
+          "employees_count_specialist": 66,
+          "employees_count_other_management": 14
+        },
+        "date": "202402"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 12,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 3,
+          "employees_count_manager": 13,
+          "employees_count_senior": 6,
+          "employees_count_intern": 1,
+          "employees_count_specialist": 66,
+          "employees_count_other_management": 14
+        },
+        "date": "202401"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 12,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 2,
+          "employees_count_manager": 13,
+          "employees_count_senior": 6,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 59,
+          "employees_count_other_management": 14
+        },
+        "date": "202312"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 12,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 2,
+          "employees_count_manager": 14,
+          "employees_count_senior": 6,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 57,
+          "employees_count_other_management": 14
+        },
+        "date": "202311"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 12,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 2,
+          "employees_count_manager": 11,
+          "employees_count_senior": 6,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 57,
+          "employees_count_other_management": 11
+        },
+        "date": "202310"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 12,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 2,
+          "employees_count_manager": 10,
+          "employees_count_senior": 6,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 56,
+          "employees_count_other_management": 10
+        },
+        "date": "202309"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 12,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 2,
+          "employees_count_manager": 11,
+          "employees_count_senior": 7,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 64,
+          "employees_count_other_management": 11
+        },
+        "date": "202308"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 10,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 2,
+          "employees_count_manager": 10,
+          "employees_count_senior": 5,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 62,
+          "employees_count_other_management": 14
+        },
+        "date": "202307"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 9,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 2,
+          "employees_count_manager": 10,
+          "employees_count_senior": 5,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 63,
+          "employees_count_other_management": 15
+        },
+        "date": "202306"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 9,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 1,
+          "employees_count_director": 2,
+          "employees_count_manager": 9,
+          "employees_count_senior": 5,
+          "employees_count_intern": 0,
+          "employees_count_specialist": 61,
+          "employees_count_other_management": 16
+        },
+        "date": "202305"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 9,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 9,
+          "employees_count_senior": 5,
+          "employees_count_intern": 1,
+          "employees_count_specialist": 58,
+          "employees_count_other_management": 16
+        },
+        "date": "202304"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 9,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 10,
+          "employees_count_senior": 5,
+          "employees_count_intern": 1,
+          "employees_count_specialist": 56,
+          "employees_count_other_management": 16
+        },
+        "date": "202303"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 9,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 10,
+          "employees_count_senior": 5,
+          "employees_count_intern": 1,
+          "employees_count_specialist": 56,
+          "employees_count_other_management": 16
+        },
+        "date": "202302"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 9,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 10,
+          "employees_count_senior": 5,
+          "employees_count_intern": 1,
+          "employees_count_specialist": 55,
+          "employees_count_other_management": 16
+        },
+        "date": "202301"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 7,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 10,
+          "employees_count_senior": 4,
+          "employees_count_intern": 3,
+          "employees_count_specialist": 54,
+          "employees_count_other_management": 15
+        },
+        "date": "202212"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 7,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 9,
+          "employees_count_senior": 4,
+          "employees_count_intern": 3,
+          "employees_count_specialist": 54,
+          "employees_count_other_management": 15
+        },
+        "date": "202211"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 7,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 9,
+          "employees_count_senior": 4,
+          "employees_count_intern": 3,
+          "employees_count_specialist": 55,
+          "employees_count_other_management": 13
+        },
+        "date": "202210"
+      },
+      {
+        "employees_count_breakdown_by_seniority": {
+          "employees_count_owner": 7,
+          "employees_count_founder": 1,
+          "employees_count_clevel": 0,
+          "employees_count_partner": 0,
+          "employees_count_vp": 0,
+          "employees_count_head": 0,
+          "employees_count_director": 2,
+          "employees_count_manager": 9,
+          "employees_count_senior": 4,
+          "employees_count_intern": 3,
+          "employees_count_specialist": 53,
+          "employees_count_other_management": 12
+        },
+        "date": "202209"
+      }
+    ],
+    "employees_count_breakdown_by_department": {
+      "employees_count_medical": 3,
+      "employees_count_sales": 4,
+      "employees_count_hr": 0,
+      "employees_count_legal": 1,
+      "employees_count_marketing": 1,
+      "employees_count_finance": 1,
+      "employees_count_technical": 0,
+      "employees_count_consulting": 0,
+      "employees_count_operations": 3,
+      "employees_count_product": 0,
+      "employees_count_general_management": 18,
+      "employees_count_administrative": 11,
+      "employees_count_customer_service": 8,
+      "employees_count_project_management": 1,
+      "employees_count_design": 1,
+      "employees_count_research": 0,
+      "employees_count_trades": 0,
+      "employees_count_real_estate": 0,
+      "employees_count_education": 19,
+      "employees_count_other_department": 42
+    },
+    "employees_count_breakdown_by_department_by_month": [
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 4,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 3,
+          "employees_count_product": 0,
+          "employees_count_general_management": 18,
+          "employees_count_administrative": 11,
+          "employees_count_customer_service": 8,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 19,
+          "employees_count_other_department": 42
+        },
+        "date": "202508"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 4,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 3,
+          "employees_count_product": 0,
+          "employees_count_general_management": 19,
+          "employees_count_administrative": 11,
+          "employees_count_customer_service": 9,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 19,
+          "employees_count_other_department": 42
+        },
+        "date": "202507"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 4,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 3,
+          "employees_count_product": 0,
+          "employees_count_general_management": 19,
+          "employees_count_administrative": 11,
+          "employees_count_customer_service": 9,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 19,
+          "employees_count_other_department": 43
+        },
+        "date": "202506"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 4,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 4,
+          "employees_count_product": 0,
+          "employees_count_general_management": 18,
+          "employees_count_administrative": 11,
+          "employees_count_customer_service": 9,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 17,
+          "employees_count_other_department": 42
+        },
+        "date": "202505"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 4,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 4,
+          "employees_count_product": 0,
+          "employees_count_general_management": 18,
+          "employees_count_administrative": 11,
+          "employees_count_customer_service": 7,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 17,
+          "employees_count_other_department": 41
+        },
+        "date": "202504"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 4,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 4,
+          "employees_count_product": 0,
+          "employees_count_general_management": 17,
+          "employees_count_administrative": 11,
+          "employees_count_customer_service": 7,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 17,
+          "employees_count_other_department": 41
+        },
+        "date": "202503"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 3,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 4,
+          "employees_count_product": 0,
+          "employees_count_general_management": 17,
+          "employees_count_administrative": 11,
+          "employees_count_customer_service": 8,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 18,
+          "employees_count_other_department": 42
+        },
+        "date": "202502"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 3,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 4,
+          "employees_count_product": 0,
+          "employees_count_general_management": 17,
+          "employees_count_administrative": 11,
+          "employees_count_customer_service": 8,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 20,
+          "employees_count_other_department": 43
+        },
+        "date": "202501"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 2,
+          "employees_count_sales": 3,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 4,
+          "employees_count_product": 0,
+          "employees_count_general_management": 18,
+          "employees_count_administrative": 11,
+          "employees_count_customer_service": 8,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 22,
+          "employees_count_other_department": 41
+        },
+        "date": "202412"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 2,
+          "employees_count_sales": 3,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 4,
+          "employees_count_product": 0,
+          "employees_count_general_management": 18,
+          "employees_count_administrative": 10,
+          "employees_count_customer_service": 8,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 22,
+          "employees_count_other_department": 40
+        },
+        "date": "202411"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 2,
+          "employees_count_sales": 3,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 5,
+          "employees_count_product": 0,
+          "employees_count_general_management": 18,
+          "employees_count_administrative": 10,
+          "employees_count_customer_service": 8,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 22,
+          "employees_count_other_department": 40
+        },
+        "date": "202410"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 2,
+          "employees_count_sales": 3,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 5,
+          "employees_count_product": 0,
+          "employees_count_general_management": 18,
+          "employees_count_administrative": 10,
+          "employees_count_customer_service": 8,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 22,
+          "employees_count_other_department": 39
+        },
+        "date": "202409"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 2,
+          "employees_count_sales": 3,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 18,
+          "employees_count_administrative": 9,
+          "employees_count_customer_service": 8,
+          "employees_count_project_management": 2,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 25,
+          "employees_count_other_department": 40
+        },
+        "date": "202408"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 2,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 16,
+          "employees_count_administrative": 9,
+          "employees_count_customer_service": 8,
+          "employees_count_project_management": 2,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 24,
+          "employees_count_other_department": 42
+        },
+        "date": "202407"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 2,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 0,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 16,
+          "employees_count_administrative": 11,
+          "employees_count_customer_service": 9,
+          "employees_count_project_management": 2,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 25,
+          "employees_count_other_department": 46
+        },
+        "date": "202406"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 2,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 15,
+          "employees_count_administrative": 13,
+          "employees_count_customer_service": 9,
+          "employees_count_project_management": 2,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 25,
+          "employees_count_other_department": 45
+        },
+        "date": "202405"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 2,
+          "employees_count_sales": 2,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 15,
+          "employees_count_administrative": 12,
+          "employees_count_customer_service": 11,
+          "employees_count_project_management": 2,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 21,
+          "employees_count_other_department": 41
+        },
+        "date": "202404"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 2,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 14,
+          "employees_count_administrative": 13,
+          "employees_count_customer_service": 11,
+          "employees_count_project_management": 2,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 19,
+          "employees_count_other_department": 41
+        },
+        "date": "202403"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 2,
+          "employees_count_hr": 0,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 14,
+          "employees_count_administrative": 13,
+          "employees_count_customer_service": 10,
+          "employees_count_project_management": 2,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 19,
+          "employees_count_other_department": 42
+        },
+        "date": "202402"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 2,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 15,
+          "employees_count_administrative": 12,
+          "employees_count_customer_service": 10,
+          "employees_count_project_management": 2,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 19,
+          "employees_count_other_department": 42
+        },
+        "date": "202401"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 2,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 15,
+          "employees_count_administrative": 12,
+          "employees_count_customer_service": 9,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 17,
+          "employees_count_other_department": 39
+        },
+        "date": "202312"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 2,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 15,
+          "employees_count_administrative": 13,
+          "employees_count_customer_service": 9,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 17,
+          "employees_count_other_department": 37
+        },
+        "date": "202311"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 2,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 0,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 15,
+          "employees_count_administrative": 11,
+          "employees_count_customer_service": 9,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 17,
+          "employees_count_other_department": 34
+        },
+        "date": "202310"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 2,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 0,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 15,
+          "employees_count_administrative": 10,
+          "employees_count_customer_service": 9,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 16,
+          "employees_count_other_department": 33
+        },
+        "date": "202309"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 0,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 15,
+          "employees_count_administrative": 12,
+          "employees_count_customer_service": 9,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 20,
+          "employees_count_other_department": 37
+        },
+        "date": "202308"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 0,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 12,
+          "employees_count_administrative": 12,
+          "employees_count_customer_service": 9,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 19,
+          "employees_count_other_department": 37
+        },
+        "date": "202307"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 1,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 11,
+          "employees_count_administrative": 12,
+          "employees_count_customer_service": 9,
+          "employees_count_project_management": 1,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 20,
+          "employees_count_other_department": 37
+        },
+        "date": "202306"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 4,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 2,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 6,
+          "employees_count_product": 0,
+          "employees_count_general_management": 11,
+          "employees_count_administrative": 12,
+          "employees_count_customer_service": 7,
+          "employees_count_project_management": 0,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 19,
+          "employees_count_other_department": 37
+        },
+        "date": "202305"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 3,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 3,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 5,
+          "employees_count_product": 0,
+          "employees_count_general_management": 11,
+          "employees_count_administrative": 13,
+          "employees_count_customer_service": 6,
+          "employees_count_project_management": 0,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 17,
+          "employees_count_other_department": 37
+        },
+        "date": "202304"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 2,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 3,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 5,
+          "employees_count_product": 0,
+          "employees_count_general_management": 11,
+          "employees_count_administrative": 13,
+          "employees_count_customer_service": 6,
+          "employees_count_project_management": 0,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 17,
+          "employees_count_other_department": 37
+        },
+        "date": "202303"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 2,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 3,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 5,
+          "employees_count_product": 0,
+          "employees_count_general_management": 11,
+          "employees_count_administrative": 13,
+          "employees_count_customer_service": 6,
+          "employees_count_project_management": 0,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 17,
+          "employees_count_other_department": 37
+        },
+        "date": "202302"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 2,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 2,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 5,
+          "employees_count_product": 0,
+          "employees_count_general_management": 11,
+          "employees_count_administrative": 13,
+          "employees_count_customer_service": 6,
+          "employees_count_project_management": 0,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 18,
+          "employees_count_other_department": 36
+        },
+        "date": "202301"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 4,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 2,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 4,
+          "employees_count_product": 0,
+          "employees_count_general_management": 9,
+          "employees_count_administrative": 12,
+          "employees_count_customer_service": 6,
+          "employees_count_project_management": 0,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 17,
+          "employees_count_other_department": 36
+        },
+        "date": "202212"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 4,
+          "employees_count_sales": 1,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 2,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 4,
+          "employees_count_product": 0,
+          "employees_count_general_management": 9,
+          "employees_count_administrative": 11,
+          "employees_count_customer_service": 6,
+          "employees_count_project_management": 0,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 17,
+          "employees_count_other_department": 36
+        },
+        "date": "202211"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 4,
+          "employees_count_sales": 2,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 2,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 4,
+          "employees_count_product": 0,
+          "employees_count_general_management": 9,
+          "employees_count_administrative": 11,
+          "employees_count_customer_service": 6,
+          "employees_count_project_management": 0,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 17,
+          "employees_count_other_department": 34
+        },
+        "date": "202210"
+      },
+      {
+        "employees_count_breakdown_by_department": {
+          "employees_count_medical": 4,
+          "employees_count_sales": 2,
+          "employees_count_hr": 1,
+          "employees_count_legal": 1,
+          "employees_count_marketing": 2,
+          "employees_count_finance": 1,
+          "employees_count_technical": 0,
+          "employees_count_consulting": 1,
+          "employees_count_operations": 3,
+          "employees_count_product": 0,
+          "employees_count_general_management": 9,
+          "employees_count_administrative": 10,
+          "employees_count_customer_service": 7,
+          "employees_count_project_management": 0,
+          "employees_count_design": 1,
+          "employees_count_research": 0,
+          "employees_count_trades": 0,
+          "employees_count_real_estate": 0,
+          "employees_count_education": 17,
+          "employees_count_other_department": 32
+        },
+        "date": "202209"
+      }
+    ],
+    "employees_count_breakdown_by_region": {
+      "employees_count_eastern_europe": 0,
+      "employees_count_latin_america": 0,
+      "employees_count_southern_europe": 0,
+      "employees_count_sub_saharan_africa": 0,
+      "employees_count_central_asia": 0,
+      "employees_count_northern_america": 98,
+      "employees_count_australia_new_zealand": 10,
+      "employees_count_northern_europe": 0,
+      "employees_count_south_eastern_asia": 2,
+      "employees_count_polynesia": 0,
+      "employees_count_southern_asia": 0,
+      "employees_count_northern_africa": 2,
+      "employees_count_melanesia": 0,
+      "employees_count_western_europe": 0,
+      "employees_count_western_asia": 1,
+      "employees_count_eastern_asia": 0,
+      "employees_count_micronesia": 0,
+      "employees_count_unknown": 0
+    },
+    "employees_count_breakdown_by_region_by_month": [
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 98,
+          "employees_count_australia_new_zealand": 10,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202508"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 100,
+          "employees_count_australia_new_zealand": 10,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202507"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 101,
+          "employees_count_australia_new_zealand": 10,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202506"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 98,
+          "employees_count_australia_new_zealand": 10,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202505"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 95,
+          "employees_count_australia_new_zealand": 10,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202504"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 94,
+          "employees_count_australia_new_zealand": 10,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202503"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 94,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202502"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 96,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202501"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 97,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202412"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 95,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202411"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 94,
+          "employees_count_australia_new_zealand": 13,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202410"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 92,
+          "employees_count_australia_new_zealand": 13,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202409"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 97,
+          "employees_count_australia_new_zealand": 13,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202408"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 97,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202407"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 104,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 3,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202406"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 105,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 3,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202405"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 98,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 3,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202404"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 96,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 3,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202403"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 95,
+          "employees_count_australia_new_zealand": 13,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 3,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202402"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 94,
+          "employees_count_australia_new_zealand": 15,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 3,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202401"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 88,
+          "employees_count_australia_new_zealand": 14,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 3,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 1,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202312"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 88,
+          "employees_count_australia_new_zealand": 13,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 3,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 1,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202311"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 83,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 3,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 1,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202310"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 80,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 3,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 1,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202309"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 91,
+          "employees_count_australia_new_zealand": 11,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 3,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 1,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202308"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 87,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 1,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202307"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 88,
+          "employees_count_australia_new_zealand": 11,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202306"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 85,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 2,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202305"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 82,
+          "employees_count_australia_new_zealand": 13,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202304"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 82,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202303"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 82,
+          "employees_count_australia_new_zealand": 12,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202302"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 80,
+          "employees_count_australia_new_zealand": 13,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202301"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 76,
+          "employees_count_australia_new_zealand": 15,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202212"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 75,
+          "employees_count_australia_new_zealand": 15,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202211"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 74,
+          "employees_count_australia_new_zealand": 15,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 2,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202210"
+      },
+      {
+        "employees_count_breakdown_by_region": {
+          "employees_count_eastern_europe": 0,
+          "employees_count_latin_america": 0,
+          "employees_count_southern_europe": 0,
+          "employees_count_sub_saharan_africa": 0,
+          "employees_count_central_asia": 0,
+          "employees_count_northern_america": 70,
+          "employees_count_australia_new_zealand": 15,
+          "employees_count_northern_europe": 0,
+          "employees_count_south_eastern_asia": 3,
+          "employees_count_polynesia": 0,
+          "employees_count_southern_asia": 0,
+          "employees_count_northern_africa": 2,
+          "employees_count_melanesia": 0,
+          "employees_count_western_europe": 0,
+          "employees_count_western_asia": 1,
+          "employees_count_eastern_asia": 0,
+          "employees_count_micronesia": 0,
+          "employees_count_unknown": 0
+        },
+        "date": "202209"
+      }
+    ],
+    "employees_count_by_country": [
+      {
+        "country": "Malaysia",
+        "employee_count": 2
+      },
+      {
+        "country": "United States",
+        "employee_count": 90
+      },
+      {
+        "country": "Israel",
+        "employee_count": 1
+      },
+      {
+        "country": "Australia",
+        "employee_count": 10
+      },
+      {
+        "country": "Canada",
+        "employee_count": 8
+      },
+      {
+        "country": "Egypt",
+        "employee_count": 2
+      }
+    ],
+    "employees_count_by_country_by_month": [
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "United States",
+            "employee_count": 90
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Australia",
+            "employee_count": 10
+          },
+          {
+            "country": "Canada",
+            "employee_count": 8
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          }
+        ],
+        "date": "202508"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Australia",
+            "employee_count": 10
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Canada",
+            "employee_count": 8
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "United States",
+            "employee_count": 92
+          }
+        ],
+        "date": "202507"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Canada",
+            "employee_count": 8
+          },
+          {
+            "country": "United States",
+            "employee_count": 93
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Australia",
+            "employee_count": 10
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          }
+        ],
+        "date": "202506"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Canada",
+            "employee_count": 8
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "United States",
+            "employee_count": 90
+          },
+          {
+            "country": "Australia",
+            "employee_count": 10
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          }
+        ],
+        "date": "202505"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Canada",
+            "employee_count": 9
+          },
+          {
+            "country": "Australia",
+            "employee_count": 10
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "United States",
+            "employee_count": 86
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          }
+        ],
+        "date": "202504"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "United States",
+            "employee_count": 85
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Australia",
+            "employee_count": 10
+          },
+          {
+            "country": "Canada",
+            "employee_count": 9
+          }
+        ],
+        "date": "202503"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Canada",
+            "employee_count": 10
+          },
+          {
+            "country": "United States",
+            "employee_count": 84
+          },
+          {
+            "country": "Australia",
+            "employee_count": 12
+          }
+        ],
+        "date": "202502"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Australia",
+            "employee_count": 12
+          },
+          {
+            "country": "Canada",
+            "employee_count": 10
+          },
+          {
+            "country": "United States",
+            "employee_count": 86
+          }
+        ],
+        "date": "202501"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Australia",
+            "employee_count": 12
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Canada",
+            "employee_count": 10
+          },
+          {
+            "country": "United States",
+            "employee_count": 87
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          }
+        ],
+        "date": "202412"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "United States",
+            "employee_count": 85
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Australia",
+            "employee_count": 12
+          },
+          {
+            "country": "Canada",
+            "employee_count": 10
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          }
+        ],
+        "date": "202411"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "United States",
+            "employee_count": 83
+          },
+          {
+            "country": "Australia",
+            "employee_count": 13
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "Canada",
+            "employee_count": 11
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          }
+        ],
+        "date": "202410"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Australia",
+            "employee_count": 13
+          },
+          {
+            "country": "Canada",
+            "employee_count": 11
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "United States",
+            "employee_count": 81
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          }
+        ],
+        "date": "202409"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "United States",
+            "employee_count": 86
+          },
+          {
+            "country": "Australia",
+            "employee_count": 13
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Canada",
+            "employee_count": 11
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          }
+        ],
+        "date": "202408"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Australia",
+            "employee_count": 12
+          },
+          {
+            "country": "Canada",
+            "employee_count": 11
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "United States",
+            "employee_count": 86
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          }
+        ],
+        "date": "202407"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Malaysia",
+            "employee_count": 3
+          },
+          {
+            "country": "Australia",
+            "employee_count": 12
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "Canada",
+            "employee_count": 12
+          },
+          {
+            "country": "United States",
+            "employee_count": 92
+          }
+        ],
+        "date": "202406"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Malaysia",
+            "employee_count": 3
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Canada",
+            "employee_count": 12
+          },
+          {
+            "country": "United States",
+            "employee_count": 93
+          },
+          {
+            "country": "Australia",
+            "employee_count": 12
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          }
+        ],
+        "date": "202405"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Malaysia",
+            "employee_count": 3
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "United States",
+            "employee_count": 88
+          },
+          {
+            "country": "Canada",
+            "employee_count": 10
+          },
+          {
+            "country": "Australia",
+            "employee_count": 12
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          }
+        ],
+        "date": "202404"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 3
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "United States",
+            "employee_count": 86
+          },
+          {
+            "country": "Australia",
+            "employee_count": 12
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Canada",
+            "employee_count": 10
+          }
+        ],
+        "date": "202403"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Australia",
+            "employee_count": 13
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "United States",
+            "employee_count": 84
+          },
+          {
+            "country": "Canada",
+            "employee_count": 11
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 3
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          }
+        ],
+        "date": "202402"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "United States",
+            "employee_count": 83
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Australia",
+            "employee_count": 15
+          },
+          {
+            "country": "Canada",
+            "employee_count": 11
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 3
+          }
+        ],
+        "date": "202401"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "United States",
+            "employee_count": 79
+          },
+          {
+            "country": "Canada",
+            "employee_count": 9
+          },
+          {
+            "country": "Australia",
+            "employee_count": 14
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 1
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 3
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          }
+        ],
+        "date": "202312"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 3
+          },
+          {
+            "country": "United States",
+            "employee_count": 80
+          },
+          {
+            "country": "Australia",
+            "employee_count": 13
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 1
+          },
+          {
+            "country": "Canada",
+            "employee_count": 8
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          }
+        ],
+        "date": "202311"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Egypt",
+            "employee_count": 1
+          },
+          {
+            "country": "United States",
+            "employee_count": 77
+          },
+          {
+            "country": "Canada",
+            "employee_count": 6
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "Australia",
+            "employee_count": 12
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 3
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          }
+        ],
+        "date": "202310"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "United States",
+            "employee_count": 74
+          },
+          {
+            "country": "Canada",
+            "employee_count": 6
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 1
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 3
+          },
+          {
+            "country": "Australia",
+            "employee_count": 12
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          }
+        ],
+        "date": "202309"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Canada",
+            "employee_count": 6
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 3
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "United States",
+            "employee_count": 85
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Australia",
+            "employee_count": 11
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 1
+          }
+        ],
+        "date": "202308"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Egypt",
+            "employee_count": 1
+          },
+          {
+            "country": "United States",
+            "employee_count": 83
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Canada",
+            "employee_count": 4
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Australia",
+            "employee_count": 12
+          }
+        ],
+        "date": "202307"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Australia",
+            "employee_count": 11
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Canada",
+            "employee_count": 4
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "United States",
+            "employee_count": 84
+          }
+        ],
+        "date": "202306"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Saudi Arabia",
+            "employee_count": 1
+          },
+          {
+            "country": "Australia",
+            "employee_count": 12
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Canada",
+            "employee_count": 3
+          },
+          {
+            "country": "United States",
+            "employee_count": 82
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          }
+        ],
+        "date": "202305"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "United States",
+            "employee_count": 79
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Australia",
+            "employee_count": 13
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Canada",
+            "employee_count": 3
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          }
+        ],
+        "date": "202304"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Canada",
+            "employee_count": 3
+          },
+          {
+            "country": "United States",
+            "employee_count": 79
+          },
+          {
+            "country": "Australia",
+            "employee_count": 12
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          }
+        ],
+        "date": "202303"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Australia",
+            "employee_count": 12
+          },
+          {
+            "country": "Canada",
+            "employee_count": 3
+          },
+          {
+            "country": "United States",
+            "employee_count": 79
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          }
+        ],
+        "date": "202302"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "United States",
+            "employee_count": 77
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Canada",
+            "employee_count": 3
+          },
+          {
+            "country": "Australia",
+            "employee_count": 13
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          }
+        ],
+        "date": "202301"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "United States",
+            "employee_count": 74
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Australia",
+            "employee_count": 15
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Canada",
+            "employee_count": 2
+          }
+        ],
+        "date": "202212"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "United States",
+            "employee_count": 73
+          },
+          {
+            "country": "Australia",
+            "employee_count": 15
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Canada",
+            "employee_count": 2
+          }
+        ],
+        "date": "202211"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "United States",
+            "employee_count": 72
+          },
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Australia",
+            "employee_count": 15
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 2
+          },
+          {
+            "country": "Canada",
+            "employee_count": 2
+          }
+        ],
+        "date": "202210"
+      },
+      {
+        "employees_count_by_country": [
+          {
+            "country": "Egypt",
+            "employee_count": 2
+          },
+          {
+            "country": "United States",
+            "employee_count": 68
+          },
+          {
+            "country": "Israel",
+            "employee_count": 1
+          },
+          {
+            "country": "Australia",
+            "employee_count": 15
+          },
+          {
+            "country": "Malaysia",
+            "employee_count": 3
+          },
+          {
+            "country": "Canada",
+            "employee_count": 2
+          }
+        ],
+        "date": "202209"
+      }
+    ],
+    "product_reviews_score_change": null,
+    "product_reviews_score_by_month": [],
+    "total_website_visits_change": {
+      "current": 15000,
+      "change_monthly": 0,
+      "change_monthly_percentage": 0.0,
+      "change_quarterly": 6700,
+      "change_quarterly_percentage": 80.72289156626506,
+      "change_yearly": -4700,
+      "change_yearly_percentage": -23.85786802030457
+    },
+    "total_website_visits_by_month": [
+      {
+        "total_website_visits": 15000,
+        "date": "2025-09"
+      },
+      {
+        "total_website_visits": 15000,
+        "date": "2025-08"
+      },
+      {
+        "total_website_visits": 21600,
+        "date": "2025-07"
+      },
+      {
+        "total_website_visits": 8300,
+        "date": "2025-06"
+      },
+      {
+        "total_website_visits": 11200,
+        "date": "2025-05"
+      },
+      {
+        "total_website_visits": 11200,
+        "date": "2025-04"
+      },
+      {
+        "total_website_visits": 5900,
+        "date": "2025-03"
+      },
+      {
+        "total_website_visits": 5400,
+        "date": "2025-02"
+      },
+      {
+        "total_website_visits": 5400,
+        "date": "2025-01"
+      },
+      {
+        "total_website_visits": 5400,
+        "date": "2024-12"
+      },
+      {
+        "total_website_visits": 4800,
+        "date": "2024-11"
+      },
+      {
+        "total_website_visits": 11200,
+        "date": "2024-10"
+      },
+      {
+        "total_website_visits": 19700,
+        "date": "2024-09"
+      },
+      {
+        "total_website_visits": 19700,
+        "date": "2024-08"
+      },
+      {
+        "total_website_visits": 19700,
+        "date": "2024-07"
+      },
+      {
+        "total_website_visits": 19700,
+        "date": "2024-06"
+      },
+      {
+        "total_website_visits": 19700,
+        "date": "2024-05"
+      }
+    ],
+    "employee_reviews_score_aggregated_change": {
+      "current": 4.1,
+      "change_monthly": 0.0,
+      "change_quarterly": 0.0,
+      "change_yearly": null
+    },
+    "employee_reviews_score_aggregated_by_month": [
+      {
+        "aggregated_score": 4.1,
+        "date": "2025-09"
+      },
+      {
+        "aggregated_score": 4.1,
+        "date": "2025-08"
+      },
+      {
+        "aggregated_score": 4.1,
+        "date": "2025-07"
+      },
+      {
+        "aggregated_score": 4.1,
+        "date": "2025-06"
+      },
+      {
+        "aggregated_score": 4.1,
+        "date": "2025-05"
+      },
+      {
+        "aggregated_score": 4.1,
+        "date": "2025-04"
+      }
+    ],
+    "employee_reviews_score_business_outlook_change": {
+      "current": 0.66,
+      "change_monthly": 0.0,
+      "change_quarterly": 0.0,
+      "change_yearly": null
+    },
+    "employee_reviews_score_business_outlook_by_month": [
+      {
+        "business_outlook_score": 0.66,
+        "date": "2025-09"
+      },
+      {
+        "business_outlook_score": 0.66,
+        "date": "2025-08"
+      },
+      {
+        "business_outlook_score": 0.66,
+        "date": "2025-07"
+      },
+      {
+        "business_outlook_score": 0.66,
+        "date": "2025-06"
+      },
+      {
+        "business_outlook_score": 0.63,
+        "date": "2025-05"
+      },
+      {
+        "business_outlook_score": 0.63,
+        "date": "2025-04"
+      }
+    ],
+    "employee_reviews_score_career_opportunities_change": {
+      "current": 3.5,
+      "change_monthly": 0.0,
+      "change_quarterly": 0.0,
+      "change_yearly": null
+    },
+    "employee_reviews_score_career_opportunities_by_month": [
+      {
+        "career_opportunities_score": 3.5,
+        "date": "2025-09"
+      },
+      {
+        "career_opportunities_score": 3.5,
+        "date": "2025-08"
+      },
+      {
+        "career_opportunities_score": 3.5,
+        "date": "2025-07"
+      },
+      {
+        "career_opportunities_score": 3.5,
+        "date": "2025-06"
+      },
+      {
+        "career_opportunities_score": 3.4,
+        "date": "2025-05"
+      },
+      {
+        "career_opportunities_score": 3.4,
+        "date": "2025-04"
+      }
+    ],
+    "employee_reviews_score_ceo_approval_change": {
+      "current": -1.0,
+      "change_monthly": 0.0,
+      "change_quarterly": 0.0,
+      "change_yearly": null
+    },
+    "employee_reviews_score_ceo_approval_by_month": [
+      {
+        "ceo_approval_score": -1.0,
+        "date": "2025-09"
+      },
+      {
+        "ceo_approval_score": -1.0,
+        "date": "2025-08"
+      },
+      {
+        "ceo_approval_score": -1.0,
+        "date": "2025-07"
+      },
+      {
+        "ceo_approval_score": -1.0,
+        "date": "2025-06"
+      },
+      {
+        "ceo_approval_score": -1.0,
+        "date": "2025-05"
+      },
+      {
+        "ceo_approval_score": -1.0,
+        "date": "2025-04"
+      }
+    ],
+    "employee_reviews_score_compensation_benefits_change": {
+      "current": 3.2,
+      "change_monthly": 0.0,
+      "change_quarterly": 0.0,
+      "change_yearly": null
+    },
+    "employee_reviews_score_compensation_benefits_by_month": [
+      {
+        "compensation_benefits_score": 3.2,
+        "date": "2025-09"
+      },
+      {
+        "compensation_benefits_score": 3.2,
+        "date": "2025-08"
+      },
+      {
+        "compensation_benefits_score": 3.2,
+        "date": "2025-07"
+      },
+      {
+        "compensation_benefits_score": 3.2,
+        "date": "2025-06"
+      },
+      {
+        "compensation_benefits_score": 3.3,
+        "date": "2025-05"
+      },
+      {
+        "compensation_benefits_score": 3.3,
+        "date": "2025-04"
+      }
+    ],
+    "employee_reviews_score_culture_values_change": {
+      "current": 4.3,
+      "change_monthly": 0.0,
+      "change_quarterly": 0.0,
+      "change_yearly": null
+    },
+    "employee_reviews_score_culture_values_by_month": [
+      {
+        "culture_values_score": 4.3,
+        "date": "2025-09"
+      },
+      {
+        "culture_values_score": 4.3,
+        "date": "2025-08"
+      },
+      {
+        "culture_values_score": 4.3,
+        "date": "2025-07"
+      },
+      {
+        "culture_values_score": 4.3,
+        "date": "2025-06"
+      },
+      {
+        "culture_values_score": 4.2,
+        "date": "2025-05"
+      },
+      {
+        "culture_values_score": 4.2,
+        "date": "2025-04"
+      }
+    ],
+    "employee_reviews_score_diversity_inclusion_change": {
+      "current": 4.3,
+      "change_monthly": 0.0,
+      "change_quarterly": 0.0,
+      "change_yearly": null
+    },
+    "employee_reviews_score_diversity_inclusion_by_month": [
+      {
+        "diversity_inclusion_score": 4.3,
+        "date": "2025-09"
+      },
+      {
+        "diversity_inclusion_score": 4.3,
+        "date": "2025-08"
+      },
+      {
+        "diversity_inclusion_score": 4.3,
+        "date": "2025-07"
+      },
+      {
+        "diversity_inclusion_score": 4.3,
+        "date": "2025-06"
+      },
+      {
+        "diversity_inclusion_score": 4.2,
+        "date": "2025-05"
+      },
+      {
+        "diversity_inclusion_score": 4.2,
+        "date": "2025-04"
+      }
+    ],
+    "employee_reviews_score_recommend_change": {
+      "current": 0.77,
+      "change_monthly": 0.0,
+      "change_quarterly": 0.0,
+      "change_yearly": null
+    },
+    "employee_reviews_score_recommend_by_month": [
+      {
+        "recommend_score": 0.77,
+        "date": "2025-09"
+      },
+      {
+        "recommend_score": 0.77,
+        "date": "2025-08"
+      },
+      {
+        "recommend_score": 0.77,
+        "date": "2025-07"
+      },
+      {
+        "recommend_score": 0.77,
+        "date": "2025-06"
+      },
+      {
+        "recommend_score": 0.75,
+        "date": "2025-05"
+      },
+      {
+        "recommend_score": 0.75,
+        "date": "2025-04"
+      }
+    ],
+    "employee_reviews_score_senior_management_change": {
+      "current": 3.8,
+      "change_monthly": 0.0,
+      "change_quarterly": 0.0,
+      "change_yearly": null
+    },
+    "employee_reviews_score_senior_management_by_month": [
+      {
+        "senior_management_score": 3.8,
+        "date": "2025-09"
+      },
+      {
+        "senior_management_score": 3.8,
+        "date": "2025-08"
+      },
+      {
+        "senior_management_score": 3.8,
+        "date": "2025-07"
+      },
+      {
+        "senior_management_score": 3.8,
+        "date": "2025-06"
+      },
+      {
+        "senior_management_score": 3.7,
+        "date": "2025-05"
+      },
+      {
+        "senior_management_score": 3.7,
+        "date": "2025-04"
+      }
+    ],
+    "employee_reviews_score_work_life_balance_change": {
+      "current": 4.2,
+      "change_monthly": 0.0,
+      "change_quarterly": 0.0,
+      "change_yearly": null
+    },
+    "employee_reviews_score_work_life_balance_by_month": [
+      {
+        "work_life_balance_score": 4.2,
+        "date": "2025-09"
+      },
+      {
+        "work_life_balance_score": 4.2,
+        "date": "2025-08"
+      },
+      {
+        "work_life_balance_score": 4.2,
+        "date": "2025-07"
+      },
+      {
+        "work_life_balance_score": 4.2,
+        "date": "2025-06"
+      },
+      {
+        "work_life_balance_score": 4.1,
+        "date": "2025-05"
+      },
+      {
+        "work_life_balance_score": 4.1,
+        "date": "2025-04"
+      }
+    ]
+  },
+  "status_code": 200
+}

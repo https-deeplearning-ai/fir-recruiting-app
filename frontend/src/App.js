@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import JsonView from '@uiw/react-json-view';
 import WorkExperienceSection from './components/WorkExperienceSection';
+import ListsView from './components/ListsView';
 import './App.css';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
   const [searchMode, setSearchMode] = useState(false);
+  const [listsMode, setListsMode] = useState(false);
   const [searchPrompt, setSearchPrompt] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [profileCount, setProfileCount] = useState(20);
@@ -877,7 +879,9 @@ function App() {
         assessment: null, // No assessment yet, will be loaded on-demand
         profileSummary: fetchData.profile_summary,
         profile_data: { profile_data: fetchData.profile_data }, // Store raw profile data for work experience
-        checked_at: fetchData.profile_summary?.checked_at,
+        checked_at: fetchData.profile_summary?.checked_at,  // CoreSignal's last scrape
+        last_fetched: fetchData.last_fetched,  // When WE cached this data (null if fresh from API)
+        is_cached: !!fetchData.last_fetched,  // Flag if from cache
         success: true,
         url: cleanedUrl,
         timestamp: new Date().toISOString()
@@ -947,6 +951,51 @@ function App() {
     } finally {
       // Clear loading state
       setAiAnalysisLoading(prev => ({ ...prev, [linkedinUrl]: false }));
+    }
+  };
+
+  // Force refresh a profile from CoreSignal (uses API credits)
+  const handleRefreshProfile = async (linkedinUrl) => {
+    try {
+      setShowLoadingOverlay(true);
+      setLoadingMessage('Refreshing profile data from CoreSignal...\n\n(This will use 1 API credit)');
+
+      const response = await fetch('/fetch-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          linkedin_url: linkedinUrl,
+          force_refresh: true,  // Force fresh fetch
+          enrich_companies: true
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the candidate in the results array
+        setSingleProfileResults(prev => prev.map(candidate =>
+          candidate.url === linkedinUrl
+            ? {
+                ...candidate,
+                profileSummary: data.profile_summary,
+                profile_data: { profile_data: data.profile_data },
+                checked_at: data.profile_summary?.checked_at,
+                last_fetched: null, // Fresh from API (not cached)
+                is_cached: false,
+                timestamp: new Date().toISOString()
+              }
+            : candidate
+        ));
+
+        showNotification('✅ Profile refreshed from CoreSignal!', 'success');
+      } else {
+        showNotification('❌ Failed to refresh profile', 'error');
+      }
+    } catch (error) {
+      showNotification('❌ Network error during refresh', 'error');
+    } finally {
+      setShowLoadingOverlay(false);
     }
   };
 
@@ -1459,7 +1508,9 @@ function App() {
           </div>
         </div>
         <p className="description">
-          {searchMode
+          {listsMode
+            ? 'View and manage candidate lists created from the Chrome extension'
+            : searchMode
             ? 'Search for LinkedIn profiles using natural language and download results as CSV'
             : batchMode
             ? 'Upload a CSV file with LinkedIn URLs for batch assessment'
@@ -1467,36 +1518,54 @@ function App() {
         </p>
 
         <div className="mode-toggle">
-          <button 
-            className={`mode-btn ${!batchMode && !searchMode ? 'active' : ''}`}
+          <button
+            className={`mode-btn ${!batchMode && !searchMode && !listsMode ? 'active' : ''}`}
             onClick={() => {
               setBatchMode(false);
               setSearchMode(false);
+              setListsMode(false);
             }}
           >
             Single Profile
           </button>
-          <button 
+          <button
             className={`mode-btn ${searchMode ? 'active' : ''}`}
             onClick={() => {
               setSearchMode(true);
               setBatchMode(false);
+              setListsMode(false);
             }}
           >
             Profile Search
           </button>
-          <button 
+          <button
             className={`mode-btn ${batchMode && !searchMode ? 'active' : ''}`}
             onClick={() => {
               setBatchMode(true);
               setSearchMode(false);
+              setListsMode(false);
             }}
           >
             Batch Processing
           </button>
+          <button
+            className={`mode-btn ${listsMode ? 'active' : ''}`}
+            onClick={() => {
+              setListsMode(true);
+              setBatchMode(false);
+              setSearchMode(false);
+            }}
+          >
+            Lists
+          </button>
         </div>
 
-        {searchMode ? (
+        {listsMode ? (
+          <ListsView
+            recruiterName={selectedRecruiter}
+            showNotification={showNotification}
+          />
+        ) : searchMode ? (
           <div className="search-form">
             <div className="form-group">
               <label htmlFor="searchPrompt">Describe the candidate you're looking for:</label>
@@ -1650,7 +1719,8 @@ function App() {
             </div>
           </div>
 
-          {/* Company Enrichment Toggle */}
+          {/* HIDDEN: Company Enrichment Toggle - Keep code for future use */}
+          {false && (
           <div className="form-group checkbox-group">
             <label className="checkbox-label">
               <input
@@ -1668,6 +1738,7 @@ function App() {
               </span>
             </label>
           </div>
+          )}
 
           {/* Force Refresh Toggle */}
           <div className="form-group checkbox-group">
@@ -1688,7 +1759,8 @@ function App() {
             </label>
           </div>
 
-          {/* Auto-Generate AI Analysis Toggle */}
+          {/* HIDDEN: Auto-Generate AI Analysis Toggle - Keep code for future use */}
+          {false && (
           <div className="form-group checkbox-group">
             <label className="checkbox-label">
               <input
@@ -1706,6 +1778,7 @@ function App() {
               </span>
             </label>
           </div>
+          )}
 
           <div className="button-group">
             <button
@@ -2054,17 +2127,52 @@ function App() {
                       <div className="candidate-meta">
                           <span className="candidate-headline">{candidate.headline}</span>
                       </div>
-                      {candidate.checked_at && (
-                        <div style={{ marginTop: '8px', fontSize: '13px', color: '#64748b' }}>
-                          <span style={{ fontWeight: '500' }}>
-                            Profile Last Updated: {new Date(candidate.checked_at).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </span>
+
+                      {/* Data Freshness - Compact Design */}
+                      <div className="data-freshness-box">
+                        <div className="freshness-row">
+                          <div className="freshness-info">
+                            {candidate.checked_at && (
+                              <div className="freshness-item">
+                                <span className="freshness-label">LinkedIn scraped:</span>
+                                <span className="freshness-date">
+                                  {new Date(candidate.checked_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                              </div>
+                            )}
+                            {candidate.last_fetched ? (
+                              <div className="freshness-item">
+                                <span className="freshness-label">Cached:</span>
+                                <span className="freshness-date">
+                                  {new Date(candidate.last_fetched).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                                <span className="freshness-age">
+                                  ({Math.floor((new Date() - new Date(candidate.last_fetched)) / (1000 * 60 * 60 * 24))}d ago)
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="freshness-item">
+                                <span className="freshness-fresh">✨ Fresh from API</span>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm(
+                                `Refresh ${candidate.name}'s profile?\n\n` +
+                                `This will use 1 CoreSignal API credit.`
+                              )) {
+                                handleRefreshProfile(candidate.url);
+                              }
+                            }}
+                            className="refresh-profile-button"
+                            title="Refresh from CoreSignal (1 API credit)"
+                          >
+                            🔄
+                          </button>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
 
@@ -2169,7 +2277,9 @@ function App() {
                                   ) : null;
                                 })()}
 
-                                {/* Quick Feedback Buttons */}
+                                {/* HIDDEN: Quick Feedback Buttons - Keep code for future use */}
+                                {false && (
+                                <>
                                 <div className="feedback-section">
                                   <div className="feedback-section-title">👍 Why do you like this candidate?</div>
                                   <div className="feedback-buttons">
@@ -2199,6 +2309,8 @@ function App() {
                                     ))}
                                   </div>
                                 </div>
+                                </>
+                                )}
 
                                 {/* Custom Notes */}
                                 <div className="feedback-section">
@@ -2234,8 +2346,8 @@ function App() {
                             </div>
                           )}
 
-                          {/* Assessment Scores - Only show if assessment exists */}
-                          {candidate.assessment && (
+                          {/* HIDDEN: Assessment Scores - Keep code for future use */}
+                          {false && candidate.assessment && (
                             <div className="assessment-scores">
                                 {candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.weighted_score !== undefined ? (
                                 <div className="score-section">
@@ -2251,8 +2363,8 @@ function App() {
                             </div>
                           )}
 
-                          {/* Weighted Analysis */}
-                            {candidate.assessment && candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.requirements && candidate.assessment.weighted_analysis.requirements.length > 0 && (
+                          {/* HIDDEN: Weighted Analysis - Keep code for future use */}
+                            {false && candidate.assessment && candidate.assessment.weighted_analysis && candidate.assessment.weighted_analysis.requirements && candidate.assessment.weighted_analysis.requirements.length > 0 && (
                             <div className="weighted-analysis-section">
                               <h4>Weighted Analysis</h4>
                               <div className="weighted-requirements">
@@ -2265,7 +2377,7 @@ function App() {
                                     <p className="requirement-analysis">{req.analysis}</p>
                                   </div>
                                 ))}
-                                
+
                                   {candidate.assessment.weighted_analysis.general_fit_weight > 0 && (
                                   <div className="requirement-item general-fit">
                                     <div className="requirement-header">
@@ -2279,7 +2391,8 @@ function App() {
                             </div>
                           )}
 
-                          {/* AI Analysis Accordion - On-Demand */}
+                          {/* HIDDEN: AI Analysis Accordion - Keep code for future use */}
+                          {false && (
                           <div className="ai-analysis-accordion">
                             <details
                               className="ai-analysis-details"
@@ -2365,6 +2478,7 @@ function App() {
                               </div>
                             </details>
                           </div>
+                          )}
 
                           {/* Work Experience with Company Intelligence */}
                           <WorkExperienceSection
