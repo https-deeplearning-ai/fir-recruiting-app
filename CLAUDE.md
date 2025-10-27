@@ -324,6 +324,12 @@ Robust parser handles:
    - ✅ Use `position: fixed` (stays in viewport)
    - Add `z-index: 1000` to ensure it's on top
 
+6. **File Management:**
+   - ❌ Never delete files without reading them first
+   - ✅ Always read and confirm contents before deletion
+   - ❌ Don't create unnecessary markdown (.md) files
+   - ✅ Only create documentation when explicitly required by the user
+
 ## Documentation Structure
 
 - `docs/SUPABASE_SCHEMA.sql` - Complete database schema

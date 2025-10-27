@@ -2134,7 +2134,7 @@ function App() {
                           <div className="freshness-info">
                             {candidate.checked_at && (
                               <div className="freshness-item">
-                                <span className="freshness-label">LinkedIn scraped:</span>
+                                <span className="freshness-label">Data fetched from CoreSignal:</span>
                                 <span className="freshness-date">
                                   {new Date(candidate.checked_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </span>
@@ -2142,7 +2142,7 @@ function App() {
                             )}
                             {candidate.last_fetched ? (
                               <div className="freshness-item">
-                                <span className="freshness-label">Cached:</span>
+                                <span className="freshness-label">Stored in database:</span>
                                 <span className="freshness-date">
                                   {new Date(candidate.last_fetched).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </span>

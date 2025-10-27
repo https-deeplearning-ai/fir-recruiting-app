@@ -299,7 +299,8 @@ class CoreSignalService:
                     'success': True,
                     'company_data': company_data,
                     'company_id': company_id,
-                    'from_storage': False
+                    'from_storage': False,
+                    'storage_age_days': 0
                 }
 
                 # Save to DATABASE STORAGE for next time (if storage functions provided)
@@ -396,8 +397,12 @@ class CoreSignalService:
                 company_data = company_result['company_data']
                 companies_enriched += 1
 
-                # Add enriched fields to experience
-                exp['company_enriched'] = self._extract_company_intelligence(company_data)
+                # Add enriched fields to experience (with storage metadata)
+                exp['company_enriched'] = self._extract_company_intelligence(
+                    company_data,
+                    from_storage=company_result.get('from_storage', False),
+                    storage_age_days=company_result.get('storage_age_days', 0)
+                )
 
                 # Track if we used cache or made API call
                 if company_id not in self.company_cache or len(self.company_cache) == 1:
@@ -431,7 +436,7 @@ class CoreSignalService:
             'enrichment_summary': enrichment_summary
         }
 
-    def _extract_company_intelligence(self, company_data):
+    def _extract_company_intelligence(self, company_data, from_storage=False, storage_age_days=0):
         """
         Extract key intelligence signals from full company profile
 
@@ -439,12 +444,22 @@ class CoreSignalService:
 
         IMPORTANT: We store BOTH the raw company data (all 45+ fields) AND
         curated intelligence fields for easy frontend access.
+
+        Args:
+            company_data: Raw company data from CoreSignal API
+            from_storage: Whether this data came from Supabase cache
+            storage_age_days: How old the cached data is (0 if fresh)
         """
         intelligence = {}
 
         # Store ALL raw company data for maximum flexibility
         # This ensures we never lose data and can access any field later
         intelligence['raw_data'] = company_data
+
+        # Data freshness metadata (NEW)
+        intelligence['coresignal_last_updated'] = company_data.get('last_updated')
+        intelligence['from_storage'] = from_storage
+        intelligence['storage_age_days'] = storage_age_days
 
         # Basic info (curated for easy access)
         intelligence['name'] = company_data.get('name')

@@ -276,6 +276,36 @@ const CompanyTooltip = ({ enrichedData, companyName, visible }) => {
             </div>
           </div>
         )}
+
+        {/* Company Data Freshness */}
+        {(enrichedData.coresignal_last_updated || enrichedData.from_storage) && (
+          <div className="tooltip-row company-freshness-row">
+            <span className="tooltip-icon">📅</span>
+            <div className="company-freshness-details">
+              {enrichedData.coresignal_last_updated && (
+                <div className="freshness-item-compact">
+                  <span className="freshness-label-compact">Data fetched from CoreSignal:</span>
+                  <span className="freshness-date-compact">
+                    {new Date(enrichedData.coresignal_last_updated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                </div>
+              )}
+              {enrichedData.from_storage && (
+                <div className="freshness-item-compact">
+                  <span className="freshness-label-compact">Stored in database:</span>
+                  <span className="freshness-date-compact">
+                    {enrichedData.storage_age_days}d ago
+                  </span>
+                </div>
+              )}
+              {!enrichedData.from_storage && (
+                <div className="freshness-item-compact">
+                  <span className="freshness-fresh-compact">✨ Fresh from API</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* No data message */}

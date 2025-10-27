@@ -209,6 +209,32 @@ const WorkExperienceCard = ({ experience, index }) => {
           </div>
         )}
 
+        {/* Company Data Freshness (if enriched) */}
+        {hasEnrichedData && (experience.company_enriched.coresignal_last_updated || experience.company_enriched.from_storage !== undefined) && (
+          <div className="company-freshness-box">
+            {experience.company_enriched.coresignal_last_updated && (
+              <div className="company-freshness-item">
+                <span className="company-freshness-label">Data fetched from CoreSignal:</span>
+                <span className="company-freshness-date">
+                  {new Date(experience.company_enriched.coresignal_last_updated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+              </div>
+            )}
+            {experience.company_enriched.from_storage ? (
+              <div className="company-freshness-item">
+                <span className="company-freshness-label">Stored in database:</span>
+                <span className="company-freshness-date">
+                  {experience.company_enriched.storage_age_days}d ago
+                </span>
+              </div>
+            ) : (
+              <div className="company-freshness-item">
+                <span className="company-freshness-fresh">✨ Fresh from API</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {experience.description && (
           <div className="experience-description">
             {experience.description}
