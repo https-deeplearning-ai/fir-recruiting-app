@@ -1,204 +1,194 @@
 # Project Documentation Index
 
-This folder contains organized technical documentation, decision records, and investigation reports for the LinkedIn Profile AI Assessor project.
+This folder contains organized technical documentation and decision records for the LinkedIn Profile AI Assessor project.
 
 ---
 
-## 📂 Complete Folder Structure
+## 📂 Documentation Structure
 
 ```
 docs/
 ├── README.md (this file)
+├── SUPABASE_SCHEMA.sql
+├── CORESIGNAL_MCP_SETUP.md
+├── EXTENSION_API.md
+├── TESTING_GUIDE.md
 │
-├── technical-decisions/ (Important decision records)
-│   ├── company-base-vs-clean/
-│   │   ├── README.md
-│   │   ├── WHY_COMPANY_BASE_OVER_COMPANY_CLEAN.md
-│   │   └── evidence/ (14 JSON test files)
-│   │       ├── company_92819342_clean.json
-│   │       ├── company_92819342_base.json
-│   │       ├── company_7116608_clean.json
-│   │       ├── company_7116608_base.json
-│   │       ├── company_96309016_clean.json
-│   │       ├── company_96309016_base.json
-│   │       ├── company_12616963_clean.json
-│   │       ├── company_12616963_base.json
-│   │       ├── company_5883355_clean.json
-│   │       ├── company_5883355_base.json
-│   │       ├── bexorg_clean_API.json
-│   │       ├── bexorg_base_API.json
-│   │       ├── endpoint_comparison_summary.json
-│   │       └── endpoint_comparison_results.json
-│   └── WHY_SEARCH_API_DOESNT_WORK.md
-│
-├── investigations/ (Research & evidence)
-│   ├── ENDPOINT_COMPARISON_REPORT.md
-│   ├── COMPANY_DATA_VERIFICATION.md
-│   ├── COMPANY_ENRICHMENT_GUIDE.md
-│   ├── CORESIGNAL_DATA_MISMATCH_REPORT.md
-│   └── IMPLEMENTATION_SUMMARY.md
-│
-└── archived/ (Superseded documents)
-    ├── SESSION_SUMMARY.md
-    ├── CORESIGNAL_SEARCH_VS_COLLECT_API_COMPLETE_ANALYSIS.md
-    ├── FINAL_SEARCH_VS_COLLECT_VERIFIED.md
-    ├── SEARCH_VS_COLLECT_QUICK_REFERENCE.md
-    └── README_API_TESTING.md
+└── technical-decisions/
+    ├── WHY_SEARCH_API_DOESNT_WORK.md
+    └── company-api-comparison-2024/
+        ├── COMPLETE_VERIFICATION_REPORT.md (Master document)
+        ├── FINAL_RECOMMENDATION.md (Executive summary)
+        ├── COMPARISON_MATRIX.csv
+        └── evidence/ (60 JSON test files from 26 companies)
 ```
-
----
-
-## 📂 Folder Structure
-
-### `/technical-decisions/` - Architecture Decision Records (ADRs)
-
-**Purpose:** Documents explaining WHY we made specific technical choices
-
-| Document | Decision | Date | Status |
-|----------|----------|------|--------|
-| [WHY_COMPANY_BASE_OVER_COMPANY_CLEAN.md](technical-decisions/WHY_COMPANY_BASE_OVER_COMPANY_CLEAN.md) | Use `company_base` API endpoint instead of `company_clean` | Oct 23, 2025 | ✅ Approved |
-| [WHY_SEARCH_API_DOESNT_WORK.md](technical-decisions/WHY_SEARCH_API_DOESNT_WORK.md) | Use Collect API instead of Search API for profiles | Earlier | ✅ Active |
-
-**Key Insights:**
-- **company_base vs company_clean:** Funding data reliability (100% vs 60% success rate) drove the decision
-- **Collect vs Search API:** Search API returns incomplete data unsuitable for candidate assessment
-
----
-
-### `/investigations/` - Evidence & Research Reports
-
-**Purpose:** Detailed investigation reports with test data and analysis
-
-| Document | Investigation Topic | Key Finding |
-|----------|---------------------|-------------|
-| [ENDPOINT_COMPARISON_REPORT.md](investigations/ENDPOINT_COMPARISON_REPORT.md) | Complete comparison of base vs clean endpoints | Base has funding data, clean often returns null |
-| [COMPANY_DATA_VERIFICATION.md](investigations/COMPANY_DATA_VERIFICATION.md) | Bexorg funding data missing from public API | Confirmed data limitation in public API |
-| [COMPANY_ENRICHMENT_GUIDE.md](investigations/COMPANY_ENRICHMENT_GUIDE.md) | Two different CoreSignal API access methods | Dashboard API vs Public API have different data |
-| [CORESIGNAL_DATA_MISMATCH_REPORT.md](investigations/CORESIGNAL_DATA_MISMATCH_REPORT.md) | Dashboard shows data that API doesn't return | Formatted report for CoreSignal support |
-| [IMPLEMENTATION_SUMMARY.md](investigations/IMPLEMENTATION_SUMMARY.md) | Complete timeline of funding data investigation | Summary of all findings and next steps |
-
-**Supporting Evidence:**
-- Test data from 5 companies (Bexorg, Rabine, Griphic, Hybrid Poultry, We Rock Spectrum)
-- Raw JSON responses saved in `backend/company_{id}_base.json` and `backend/company_{id}_clean.json`
-- Field-by-field comparison tables
-
----
-
-### `/archived/` - Superseded Documentation
-
-**Purpose:** Old documentation kept for historical reference
-
-| Document | Reason for Archival |
-|----------|---------------------|
-| SESSION_SUMMARY.md | Old session notes, superseded by newer investigations |
-| CORESIGNAL_SEARCH_VS_COLLECT_API_COMPLETE_ANALYSIS.md | Early analysis, superseded by WHY_SEARCH_API_DOESNT_WORK.md |
-| FINAL_SEARCH_VS_COLLECT_VERIFIED.md | Superseded by technical decision document |
-| SEARCH_VS_COLLECT_QUICK_REFERENCE.md | Old quick reference, no longer maintained |
-| README_API_TESTING.md | Old testing notes, superseded by investigation reports |
-
-⚠️ **Note:** These documents are kept for historical reference but should not be used for current decision-making.
 
 ---
 
 ## 🎯 Quick Start
 
 ### For New Team Members:
-1. Read [WHY_COMPANY_BASE_OVER_COMPANY_CLEAN.md](technical-decisions/WHY_COMPANY_BASE_OVER_COMPANY_CLEAN.md) - Understand our core API decision
-2. Read [WHY_SEARCH_API_DOESNT_WORK.md](technical-decisions/WHY_SEARCH_API_DOESNT_WORK.md) - Understand why we use Collect API
-3. Review [ENDPOINT_COMPARISON_REPORT.md](investigations/ENDPOINT_COMPARISON_REPORT.md) for detailed evidence
+1. Read [COMPLETE_VERIFICATION_REPORT.md](technical-decisions/company-api-comparison-2024/COMPLETE_VERIFICATION_REPORT.md) - Comprehensive company API analysis
+2. Read [WHY_SEARCH_API_DOESNT_WORK.md](technical-decisions/WHY_SEARCH_API_DOESNT_WORK.md) - Why we use Collect API for profiles
+3. Review [SUPABASE_SCHEMA.sql](SUPABASE_SCHEMA.sql) for database structure
 
-### For Debugging Funding Data Issues:
-1. Check [COMPANY_DATA_VERIFICATION.md](investigations/COMPANY_DATA_VERIFICATION.md) for verification methodology
-2. Review test data in `backend/company_*_base.json` files
-3. Compare with [ENDPOINT_COMPARISON_REPORT.md](investigations/ENDPOINT_COMPARISON_REPORT.md) field tables
-
-### For API Questions:
-1. [COMPANY_ENRICHMENT_GUIDE.md](investigations/COMPANY_ENRICHMENT_GUIDE.md) - Dashboard vs Public API differences
-2. [CORESIGNAL_DATA_MISMATCH_REPORT.md](investigations/CORESIGNAL_DATA_MISMATCH_REPORT.md) - Report template for CoreSignal support
+### For Debugging Company Data Issues:
+1. Check [COMPLETE_VERIFICATION_REPORT.md](technical-decisions/company-api-comparison-2024/COMPLETE_VERIFICATION_REPORT.md) for API behavior
+2. Review test evidence in `technical-decisions/company-api-comparison-2024/evidence/`
+3. Consult [FINAL_RECOMMENDATION.md](technical-decisions/company-api-comparison-2024/FINAL_RECOMMENDATION.md) for decision rationale
 
 ---
 
-## 📊 Test Data Reference
+## 📚 Key Documents
 
-**Location:** `backend/`
+### Database & Schema
+- **[SUPABASE_SCHEMA.sql](SUPABASE_SCHEMA.sql)** - Complete database schema with tables:
+  - `stored_profiles` - Profile caching
+  - `stored_companies` - Company data caching
+  - `candidate_assessments` - AI assessment results
+  - `recruiter_feedback` - Feedback notes and ratings
 
-**Files:**
-- `company_92819342_clean.json` & `company_92819342_base.json` - Bexorg (Series A $23M)
-- `company_7116608_clean.json` & `company_7116608_base.json` - Rabine (PE funding)
-- `company_96309016_clean.json` & `company_96309016_base.json` - Griphic (Seed $2.4M)
-- `company_12616963_clean.json` & `company_12616963_base.json` - Hybrid Poultry (Debt $10M)
-- `company_5883355_clean.json` & `company_5883355_base.json` - We Rock Spectrum (Grant $2K)
-- `endpoint_comparison_summary.json` - Statistical summary
+### Technical Decisions (Architecture Decision Records)
 
-**How to Use:**
+#### Company API Selection (October 2024)
+**Decision:** Use `company_base` API endpoint exclusively
+
+**Documents:**
+- **[COMPLETE_VERIFICATION_REPORT.md](technical-decisions/company-api-comparison-2024/COMPLETE_VERIFICATION_REPORT.md)** (400+ lines)
+  - Complete testing methodology across 26 companies
+  - Field-by-field comparison of all three endpoints
+  - Crunchbase URL availability analysis (69.2% coverage)
+  - Implementation guide with Python + React examples
+  - Evidence files index (60 JSON files)
+
+- **[FINAL_RECOMMENDATION.md](technical-decisions/company-api-comparison-2024/FINAL_RECOMMENDATION.md)**
+  - Executive summary and decision rationale
+  - Trade-offs and risk assessment
+  - Quick reference guide
+
+**Key Findings:**
+- `company_base`: 100% availability, 69.2% Crunchbase URL coverage
+- `company_clean`: Inconsistent funding data, no Crunchbase URLs
+- `company_multi_source`: 50% availability, not reliable enough
+
+**Test Evidence:**
+- Cohort 1: Initial 5 companies (15 JSON files)
+- Cohort 2: August 2025 funded companies (30 JSON files)
+- Cohort 3: Healthcare verification (15 JSON files)
+- Total: 26 companies × 3 endpoints = 60 evidence files
+
+#### Profile Search API (Earlier)
+**Decision:** Use Collect API instead of Search API for profile data
+
+**Document:** [WHY_SEARCH_API_DOESNT_WORK.md](technical-decisions/WHY_SEARCH_API_DOESNT_WORK.md)
+
+**Rationale:** Search API returns incomplete data unsuitable for candidate assessment
+
+---
+
+## 🔍 Key Technical Decisions Summary
+
+### 1. Company Data Enrichment
+- **API Endpoint:** `company_base` (NOT `company_clean` or `company_multi_source`)
+- **Field Priority:** `company_crunchbase_info_collection[0].cb_url` for Crunchbase URLs
+- **Optimization:** Only enrich companies from jobs starting 2020+ (saves 60-80% API credits)
+- **Fallback Chain:** Company CB URL → Funding round CB URL → None
+
+### 2. Data Freshness Strategy
+- Display `last_updated` timestamps from CoreSignal
+- Provide Crunchbase links for users to verify current data
+- Color-coded freshness indicators (green < 6mo, yellow 6mo-2yr, red > 2yr)
+- Store all raw API data for future flexibility
+
+### 3. Profile Data Fetching
+- Use Collect API (2-step: search by URL → fetch by ID)
+- Prefer `generated_headline` over `headline` field
+- Handle date overlaps in experience calculation
+- Session-based caching to avoid duplicate API calls
+
+---
+
+## 📊 Evidence Files
+
+**Location:** `technical-decisions/company-api-comparison-2024/evidence/`
+
+**Structure:**
+- `cohort_1/` - Initial verification (5 companies × 3 endpoints = 15 files)
+- `comprehensive_august_2025/` - August 2025 funding search (10 companies × 3 endpoints = 30 files)
+- `healthcare_verification/` - Healthcare companies (5 companies × 3 endpoints = 15 files)
+
+**Naming Convention:**
+- `{company_id}_base.json` - company_base endpoint response
+- `{company_id}_clean.json` - company_clean endpoint response
+- `{company_id}_multi_source.json` - company_multi_source endpoint response
+
+**Usage:**
 ```bash
-# Compare clean vs base for a specific company
-diff backend/company_92819342_clean.json backend/company_92819342_base.json
+# Search for specific field across all evidence
+grep -r "company_crunchbase_info_collection" docs/technical-decisions/company-api-comparison-2024/evidence/
 
-# Search for specific fields
-grep -r "funding_rounds" backend/company_*.json
-grep -r "company_funding_rounds_collection" backend/company_*.json
+# Compare endpoints for same company
+diff evidence/cohort_1/92819342_clean.json evidence/cohort_1/92819342_base.json
 ```
 
 ---
 
-## 🔍 Key Takeaways
+## 🛠️ Setup Guides
 
-### Critical Decisions:
-1. **Use `company_base` endpoint** - More reliable funding data (100% vs 60%)
-2. **Use Collect API not Search** - Search returns incomplete data
-3. **Store all raw data** - Never lose information from API responses
+### CoreSignal MCP Server
+**Document:** [CORESIGNAL_MCP_SETUP.md](CORESIGNAL_MCP_SETUP.md)
 
-### Data Availability Findings:
-- Funding data: `company_base` reliable, `company_clean` spotty
-- Investor data: Only in `company_base`
-- Crunchbase links: Only in `company_base`
-- Enriched AI fields: Only in `company_clean` (but often inaccurate)
+Instructions for integrating CoreSignal API via Model Context Protocol (MCP) server for Claude Code.
 
-### Implementation Status:
-- ✅ Investigation complete
-- ✅ Decision approved
-- ⏳ Code implementation pending
-- ⏳ Testing pending
-- ⏳ Deployment pending
+### Extension API
+**Document:** [EXTENSION_API.md](EXTENSION_API.md)
+
+API documentation for browser extension integration (if applicable).
+
+### Testing Guide
+**Document:** [TESTING_GUIDE.md](TESTING_GUIDE.md)
+
+Testing procedures for API integration, data validation, and quality assurance.
 
 ---
 
-## 📝 Document Maintenance
+## 📝 Document Maintenance Guidelines
 
-### When to Add New Documents:
+### When to Add New Documents
 
 **Technical Decisions:**
-- Making a significant architectural choice
+- Making significant architectural choices
 - Choosing between multiple API options
 - Changing core data sources
 - Format: Problem → Options → Decision → Rationale → Evidence
 
-**Investigations:**
+**Investigation Reports:**
 - Discovering unexpected API behavior
-- Debugging missing or incorrect data
+- Comprehensive testing and verification
 - Comparing multiple data sources
-- Format: Issue → Methodology → Findings → Evidence → Conclusion
+- Format: Methodology → Test Results → Analysis → Evidence → Conclusion
 
-**Archiving:**
-- Document superseded by newer version
-- Implementation approach changed
-- No longer relevant to current architecture
-
-### Document Template:
-
-See [WHY_COMPANY_BASE_OVER_COMPANY_CLEAN.md](technical-decisions/WHY_COMPANY_BASE_OVER_COMPANY_CLEAN.md) for a comprehensive ADR template including:
+### Document Template Structure
+See [COMPLETE_VERIFICATION_REPORT.md](technical-decisions/company-api-comparison-2024/COMPLETE_VERIFICATION_REPORT.md) for comprehensive template including:
 - Executive Summary
-- Problem Statement
-- Test Methodology
-- Evidence & Data
+- Testing Methodology
+- Test Results with Evidence
+- Field Comparison Tables
+- API Behavior Documentation
+- Implementation Guide
 - Decision Rationale
-- Implementation Requirements
-- Risk Assessment
-- Approval & Sign-off
+- Evidence Files Index
 
 ---
 
-**Last Updated:** October 23, 2025
+## 🗂️ Related Files
+
+- **[../README.md](../README.md)** - Project overview and usage guide
+- **[../CLAUDE.md](../CLAUDE.md)** - Instructions for Claude Code when working with this codebase
+- **[../render.yaml](../render.yaml)** - Deployment configuration
+
+---
+
+**Last Updated:** October 27, 2025
 **Maintained By:** Project Team
 **Questions?** See root [README.md](../README.md) or [CLAUDE.md](../CLAUDE.md)

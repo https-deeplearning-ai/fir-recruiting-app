@@ -205,9 +205,13 @@ linkedin_profile_ai_assessor/
 
 ### CoreSignal Integration
 - **Profile Fetching**: Two-step process (search by URL → fetch full profile by ID)
-- **Company Enrichment**: Uses `/company_base/` endpoint for richer data (45+ fields)
+- **Company Enrichment**: Uses `/company_base/` endpoint exclusively (tested across 26 companies)
+  - 100% data availability vs 50% for alternatives
+  - 69.2% Crunchbase URL coverage via `company_crunchbase_info_collection`
+  - Only enriches companies from 2020+ jobs (60-80% API credit savings)
+  - See [docs/technical-decisions/company-api-comparison-2024/](docs/technical-decisions/company-api-comparison-2024/) for comprehensive analysis
 - **Smart Caching**: Session-based caching to avoid redundant API calls
-- **Freshness Tracking**: Uses CoreSignal's `checked_at` timestamp for data recency
+- **Freshness Tracking**: Uses CoreSignal's `last_updated` timestamp with color-coded indicators
 
 ### AI Assessment
 - **Model**: Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
