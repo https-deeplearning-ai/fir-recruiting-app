@@ -8,7 +8,7 @@ import './WorkExperienceSection.css';
  * Displays all work experiences in a LinkedIn-style layout
  * Integrates with enriched company data for tooltips
  */
-const WorkExperienceSection = ({ profileData, profileSummary }) => {
+const WorkExperienceSection = ({ profileData, profileSummary, onRegenerateUrl, onCrunchbaseClick }) => {
   // Extract experiences from either profileSummary or profileData
   let experiences = [];
 
@@ -44,6 +44,8 @@ const WorkExperienceSection = ({ profileData, profileSummary }) => {
             key={index}
             experience={exp}
             index={index}
+            onRegenerateUrl={onRegenerateUrl}
+            onCrunchbaseClick={onCrunchbaseClick}
           />
         ))}
       </div>
