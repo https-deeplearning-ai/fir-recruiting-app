@@ -271,10 +271,28 @@ def get_stored_company(company_id, freshness_days=30):
 
                 if age.days < freshness_days:
                     print(f"✅ Using stored company {company_id} (age: {age.days} days) - SAVED 1 Collect credit!")
+
+                    # Extract verification data if available
+                    verification_data = {}
+                    if cached.get('user_verified'):
+                        verification_data['user_verified'] = cached['user_verified']
+                        verification_data['verification_status'] = cached.get('verification_status', 'pending')
+                        verification_data['verified_by'] = cached.get('verified_by')
+                        verification_data['verified_at'] = cached.get('verified_at')
+
+                        # Extract the verified Crunchbase URL from company_data
+                        company_data = cached.get('company_data', {})
+                        if isinstance(company_data, dict):
+                            verified_url = company_data.get('crunchbase_company_url')
+                            if verified_url:
+                                verification_data['verified_crunchbase_url'] = verified_url
+                                print(f"   ✅ Found user-verified Crunchbase URL: {verified_url}")
+
                     return {
                         'company_data': cached['company_data'],
                         'cache_age_days': age.days,
-                        'last_fetched': cached['last_fetched']  # When WE cached company data
+                        'last_fetched': cached['last_fetched'],  # When WE cached company data
+                        'verification_data': verification_data
                     }
                 else:
                     print(f"⏰ Stored company too old ({age.days} days) - fetching fresh data")
@@ -1802,6 +1820,315 @@ def clear_feedback():
 
     except Exception as e:
         print(f"❌ Error clearing feedback: {str(e)}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/regenerate-crunchbase-url', methods=['POST'])
+def regenerate_crunchbase_url():
+    """
+    Manually regenerate Crunchbase URL using Claude Agent SDK WebSearch
+
+    This endpoint uses Claude with WebSearch to validate/correct Crunchbase URLs
+    for companies where Tavily returned low-confidence results.
+
+    Expected request body:
+    {
+        "company_name": "FOX Tech",
+        "company_id": 25523180,
+        "current_url": "https://www.crunchbase.com/organization/fox-tech"
+    }
+
+    Returns:
+    {
+        "success": true,
+        "crunchbase_url": "https://www.crunchbase.com/organization/fox-tech-co",
+        "crunchbase_source": "websearch_validated",
+        "crunchbase_confidence": 0.95
+    }
+    """
+    try:
+        data = request.get_json()
+        company_name = data.get('company_name')
+        company_id = data.get('company_id')
+        current_url = data.get('current_url')
+        return_candidates = data.get('return_candidates', False)
+
+        if not company_name:
+            return jsonify({'error': 'company_name is required'}), 400
+
+        print(f"\n🔄 Regenerating Crunchbase URL for: {company_name}")
+        print(f"   Current URL: {current_url}")
+        print(f"   Company ID: {company_id}")
+
+        # Initialize CoreSignal service
+        service = CoreSignalService()
+
+        # Fetch company data if company_id provided (for rich context)
+        company_data = {}
+        if company_id:
+            print(f"   📊 Fetching company data for context...")
+            company_endpoint = f"https://api.coresignal.com/cdapi/v2/company_base/collect/{company_id}"
+            response = requests.get(company_endpoint, headers=service.headers, timeout=30)
+
+            if response.status_code == 200:
+                company_data = response.json()
+                print(f"   ✅ Got company data ({len(company_data)} fields)")
+            else:
+                print(f"   ⚠️  Could not fetch company data (status {response.status_code})")
+
+        # Step 1: Get Tavily candidates
+        print(f"   🔍 Stage 1: Getting Tavily candidates...")
+        try:
+            from tavily import TavilyClient
+            import re
+
+            tavily_client = TavilyClient(api_key=os.getenv('TAVILY_API_KEY'))
+            response = tavily_client.search(
+                query=f"{company_name} crunchbase",
+                search_depth="basic",
+                max_results=10,
+                include_domains=["crunchbase.com"]
+            )
+
+            # Extract candidates with scores
+            crunchbase_pattern = r'crunchbase\.com/organization/([a-z0-9-]+)'
+            candidates = []
+            seen = set()
+
+            for result in response.get('results', []):
+                match = re.search(crunchbase_pattern, result.get('url', ''), re.IGNORECASE)
+                if match:
+                    slug = match.group(1)
+                    if slug not in seen:
+                        candidates.append({
+                            'slug': slug,
+                            'score': result.get('score', 0.0),
+                            'title': result.get('title', ''),
+                            'url': result.get('url', '')
+                        })
+                        seen.add(slug)
+
+            candidates.sort(key=lambda x: x['score'], reverse=True)
+            print(f"   📋 Found {len(candidates)} Tavily candidates")
+
+            # Don't fail if no candidates - Claude WebSearch can work standalone
+            if not candidates:
+                print(f"   ⚠️  No Tavily candidates, will use Claude WebSearch alone")
+
+        except Exception as e:
+            print(f"   ⚠️  Tavily search error: {e}, falling back to Claude WebSearch alone")
+            candidates = []
+
+        # Step 2: Use Claude WebSearch (validation mode if candidates exist, search mode if not)
+        print(f"   🤖 Stage 2: Claude WebSearch {'validation' if candidates else 'search'}...")
+        result = service._validate_with_claude_websearch(company_name, candidates, company_data)
+
+        if result and result.get('url'):
+            new_url = result['url']
+            new_source = result['source']
+            new_confidence = result['confidence']
+            print(f"   ✅ Regenerated URL: {new_url}")
+        elif candidates:
+            # Fallback to top Tavily candidate if Claude failed but we have candidates
+            print(f"   ⚠️  Claude validation failed, returning top Tavily candidate")
+            top = candidates[0]
+            new_url = f"https://www.crunchbase.com/organization/{top['slug']}"
+            new_source = 'tavily_fallback'
+            new_confidence = top['score']
+        else:
+            # Both Tavily and Claude failed
+            print(f"   ❌ Both Tavily and Claude failed to find Crunchbase URL")
+            return jsonify({'error': 'Could not find Crunchbase URL for this company'}), 404
+
+        # Step 2.5: If return_candidates=true, return array for user selection
+        if return_candidates:
+            # Mark which candidate was validated by Claude (if any)
+            for candidate in candidates:
+                if result and result.get('url'):
+                    candidate['validated'] = (result['url'] == f"https://www.crunchbase.com/organization/{candidate['slug']}")
+                else:
+                    candidate['validated'] = False
+
+            # Build full URLs for all candidates
+            for candidate in candidates:
+                if not candidate.get('url'):
+                    candidate['url'] = f"https://www.crunchbase.com/organization/{candidate['slug']}"
+
+            print(f"   📋 Returning {len(candidates)} candidates for user selection")
+            return jsonify({
+                'success': True,
+                'candidates': candidates[:4],  # Top 4 candidates
+                'claude_pick': result.get('url') if result else None
+            })
+
+        # Step 3: Update stored company data in Supabase (if company_id provided)
+        if company_id:
+            print(f"   💾 Updating stored company data in Supabase...")
+            try:
+                # Fetch current stored company data
+                headers = {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': f'Bearer {SUPABASE_KEY}',
+                    'Content-Type': 'application/json'
+                }
+
+                # Get current company data
+                get_url = f"{SUPABASE_URL}/rest/v1/stored_companies?company_id=eq.{company_id}"
+                response = requests.get(get_url, headers=headers)
+
+                if response.status_code == 200 and response.json():
+                    stored_data = response.json()[0]
+                    company_data_json = stored_data.get('company_data', {})
+
+                    # Update Crunchbase URL in the intelligence section
+                    if 'intelligence' not in company_data_json:
+                        company_data_json['intelligence'] = {}
+
+                    intelligence = company_data_json['intelligence']
+                    intelligence['crunchbase_company_url'] = new_url
+                    intelligence['crunchbase_source'] = new_source
+                    intelligence['crunchbase_confidence'] = new_confidence
+
+                    # Update in database
+                    patch_url = f"{SUPABASE_URL}/rest/v1/stored_companies?company_id=eq.{company_id}"
+                    update_response = requests.patch(
+                        patch_url,
+                        headers=headers,
+                        json={'company_data': company_data_json}
+                    )
+
+                    if update_response.status_code in [200, 204]:
+                        print(f"   ✅ Updated stored company data for company_id {company_id}")
+                    else:
+                        print(f"   ⚠️  Failed to update company data: {update_response.status_code}")
+                else:
+                    print(f"   ⚠️  No stored company data found for company_id {company_id}")
+
+            except Exception as e:
+                print(f"   ⚠️  Error updating stored data: {e}")
+                # Continue anyway - don't fail the whole request
+
+        # Return result
+        return jsonify({
+            'success': True,
+            'crunchbase_url': new_url,
+            'crunchbase_source': new_source,
+            'crunchbase_confidence': new_confidence,
+            'warning': 'Claude validation failed, using top Tavily result' if not result else None
+        })
+
+    except Exception as e:
+        import traceback
+        print(f"❌ Error regenerating URL: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/verify-crunchbase-url', methods=['POST'])
+def verify_crunchbase_url():
+    """
+    Endpoint to handle user verification of Crunchbase URLs.
+
+    Payload:
+    {
+        "company_id": 12345,
+        "is_correct": true/false/null,
+        "verification_status": "verified"/"needs_review"/"skipped",
+        "corrected_url": "https://..." (optional)
+    }
+    """
+    try:
+        data = request.json
+        print(f"📥 Received verification request: {data}")
+
+        # Accept both camelCase (companyId) and snake_case (company_id)
+        company_id = data.get('companyId') or data.get('company_id')
+        is_correct = data.get('isCorrect') if 'isCorrect' in data else data.get('is_correct')
+        verification_status = data.get('verificationStatus') or data.get('verification_status', 'pending')
+        corrected_url = data.get('correctedUrl') or data.get('corrected_url')
+
+        if not company_id:
+            print(f"❌ Missing company_id. Received data: {data}")
+            return jsonify({'error': 'company_id is required', 'received': data}), 400
+
+        # Prepare update data
+        update_data = {
+            'user_verified': is_correct if is_correct is not None else False,
+            'verification_status': verification_status,
+            'verified_by': 'user',  # Could be parameterized later
+            'verified_at': datetime.utcnow().isoformat()
+        }
+
+        # CRITICAL: Fetch current company_data to save the verified URL
+        # The URL comes from the frontend (which computed it during enrichment)
+        verified_url = data.get('crunchbaseUrl') or data.get('crunchbase_url')
+
+        # Fetch current data to get company_data
+        get_url = f"{SUPABASE_URL}/rest/v1/stored_companies?company_id=eq.{company_id}&select=company_data"
+        get_response = requests.get(
+            get_url,
+            headers={
+                'apikey': SUPABASE_KEY,
+                'Authorization': f'Bearer {SUPABASE_KEY}',
+                'Content-Type': 'application/json'
+            }
+        )
+
+        if get_response.status_code == 200 and get_response.json():
+            stored_data = get_response.json()[0]
+            company_data = stored_data.get('company_data', {})
+
+            # If user clicked "Yes, Correct", save the verified URL to company_data
+            if is_correct and verified_url:
+                company_data['crunchbase_company_url'] = verified_url
+                company_data['crunchbase_source'] = 'user_verified'
+                update_data['company_data'] = company_data
+                print(f"   💾 Saving user-verified URL to company_data: {verified_url}")
+
+        # If user provided a corrected URL, override with that
+        if corrected_url and get_response.status_code == 200 and get_response.json():
+            stored_data = get_response.json()[0]
+            company_data = stored_data.get('company_data', {})
+
+            # Store original URL before updating
+            update_data['original_url'] = company_data.get('crunchbase_company_url')
+
+            # Update company_data with corrected URL
+            company_data['crunchbase_company_url'] = corrected_url
+            company_data['crunchbase_source'] = 'user_corrected'
+            update_data['company_data'] = company_data
+            print(f"   💾 Saving user-corrected URL to company_data: {corrected_url}")
+
+        # Update Supabase
+        update_url = f"{SUPABASE_URL}/rest/v1/stored_companies?company_id=eq.{company_id}"
+        update_response = requests.patch(
+            update_url,
+            headers={
+                'apikey': SUPABASE_KEY,
+                'Authorization': f'Bearer {SUPABASE_KEY}',
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            json=update_data
+        )
+
+        if update_response.status_code in [200, 204]:
+            print(f"✅ Verified company_id {company_id}: {verification_status}")
+            return jsonify({
+                'success': True,
+                'message': 'Verification saved successfully',
+                'company_id': company_id,
+                'verification_status': verification_status
+            })
+        else:
+            print(f"⚠️  Failed to update verification: {update_response.status_code}")
+            return jsonify({
+                'error': 'Failed to save verification',
+                'status_code': update_response.status_code
+            }), 500
+
+    except Exception as e:
+        import traceback
+        print(f"❌ Error saving verification: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 # ==================== CHROME EXTENSION API ENDPOINTS ====================

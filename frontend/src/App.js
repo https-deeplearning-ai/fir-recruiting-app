@@ -1,8 +1,10 @@
 // App.js
 import React, { useState } from 'react';
 import JsonView from '@uiw/react-json-view';
+import { TbRefresh } from "react-icons/tb";
 import WorkExperienceSection from './components/WorkExperienceSection';
 import ListsView from './components/ListsView';
+import CrunchbaseValidationModal from './components/CrunchbaseValidationModal';
 import './App.css';
 
 function App() {
@@ -54,6 +56,10 @@ function App() {
   const [candidateVisibility, setCandidateVisibility] = useState({}); // Track viewport visibility percentage for each candidate
   const [aiAnalysisLoading, setAiAnalysisLoading] = useState({}); // Track AI analysis loading state per candidate
   const [autoGenerateAI, setAutoGenerateAI] = useState(false); // Toggle for automatic AI analysis after profile fetch
+
+  // Crunchbase URL validation state
+  const [validationModalOpen, setValidationModalOpen] = useState(false);
+  const [validationData, setValidationData] = useState(null); // {companyId, companyName, crunchbaseUrl, source}
 
   // Save recruiter name to localStorage whenever it changes
   React.useEffect(() => {
@@ -814,6 +820,117 @@ function App() {
     "hidden_details": []
   };
 
+  // Handler for Crunchbase link clicks
+  const handleCrunchbaseClick = async (clickData) => {
+    const { companyId, companyName, crunchbaseUrl, source } = clickData;
+
+    // Trusted sources (no modal needed): auto-verified or user-verified
+    const trustedSources = ['coresignal', 'websearch_validated', 'user_verified'];
+
+    if (trustedSources.includes(source)) {
+      // Silent auto-verification in background
+      try {
+        const response = await fetch('/verify-crunchbase-url', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            companyId,
+            isCorrect: true,
+            verificationStatus: 'verified',
+            correctedUrl: null,
+            crunchbaseUrl  // Pass URL so backend can save it to company_data
+          }),
+        });
+
+        if (response.ok) {
+          console.log(`✅ Auto-verified ${source} URL for ${companyName}`);
+        } else {
+          console.error('Failed to auto-verify URL');
+        }
+      } catch (error) {
+        console.error('Error auto-verifying URL:', error);
+      }
+      return; // Exit - no modal needed for trusted sources
+    }
+
+    // Uncertain sources: show validation modal for user review
+    setValidationData({
+      companyId,
+      companyName,
+      crunchbaseUrl,
+      source,
+      onRegenerate: () => handleRegenerateCrunchbaseUrl(companyName, companyId, crunchbaseUrl),
+    });
+    setValidationModalOpen(true);
+  };
+
+  // Handler for validation submission
+  const handleValidation = async (validationPayload) => {
+    try {
+      const response = await fetch('/verify-crunchbase-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(validationPayload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save verification');
+      }
+
+      const result = await response.json();
+      console.log('✅ Verification saved:', result);
+
+      // Update UI to reflect verification
+      const companyId = validationPayload.companyId;
+      const isCorrect = validationPayload.isCorrect;
+      const newSource = isCorrect ? 'user_verified' : validationPayload.verificationStatus;
+
+      // Update all candidate profiles that have this company
+      const updateCompanySource = (candidates) => {
+        return candidates.map(candidate => {
+          if (!candidate.profileSummary?.experiences) return candidate;
+
+          const updatedExperiences = candidate.profileSummary.experiences.map(exp => {
+            if (exp.company_id === companyId && exp.company_enriched) {
+              return {
+                ...exp,
+                company_enriched: {
+                  ...exp.company_enriched,
+                  crunchbase_source: newSource,
+                  user_verified: isCorrect
+                }
+              };
+            }
+            return exp;
+          });
+
+          return {
+            ...candidate,
+            profileSummary: {
+              ...candidate.profileSummary,
+              experiences: updatedExperiences
+            }
+          };
+        });
+      };
+
+      // Update all result arrays
+      setSingleProfileResults(prev => updateCompanySource(prev));
+      setBatchResults(prev => updateCompanySource(prev));
+      setSavedAssessments(prev => updateCompanySource(prev));
+
+      showNotification('Thank you for your feedback!', 'success');
+    } catch (error) {
+      console.error('Error saving verification:', error);
+      showNotification('Failed to save verification', 'error');
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -997,6 +1114,80 @@ function App() {
     } finally {
       setShowLoadingOverlay(false);
     }
+  };
+
+  const handleRegenerateCrunchbaseUrl = async (companyName, companyId, currentUrl) => {
+    try {
+      // Don't show loading overlay - let the button handle its own loading state
+      const response = await fetch('/regenerate-crunchbase-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_name: companyName,
+          company_id: companyId,
+          current_url: currentUrl
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        const newUrl = data.crunchbase_url;
+        const newSource = data.crunchbase_source;
+        const newConfidence = data.crunchbase_confidence;
+
+        // Update all candidate profiles that have this company
+        const updateCompanyUrl = (candidates) => {
+          return candidates.map(candidate => {
+            if (!candidate.profileSummary?.experiences) return candidate;
+
+            const updatedExperiences = candidate.profileSummary.experiences.map(exp => {
+              if (exp.company_id === companyId && exp.company_enriched) {
+                return {
+                  ...exp,
+                  company_enriched: {
+                    ...exp.company_enriched,
+                    crunchbase_company_url: newUrl,
+                    crunchbase_source: newSource,
+                    crunchbase_confidence: newConfidence
+                  }
+                };
+              }
+              return exp;
+            });
+
+            return {
+              ...candidate,
+              profileSummary: {
+                ...candidate.profileSummary,
+                experiences: updatedExperiences
+              }
+            };
+          });
+        };
+
+        // Update all result arrays
+        setSingleProfileResults(prev => updateCompanyUrl(prev));
+        setBatchResults(prev => updateCompanyUrl(prev));
+        setSavedAssessments(prev => updateCompanyUrl(prev));
+
+        const changeMessage = currentUrl !== newUrl
+          ? `\n\nOld: ${currentUrl}\nNew: ${newUrl}`
+          : '\n\n(URL unchanged, but validated!)';
+
+        showNotification(
+          `✅ Crunchbase URL updated for ${companyName}!${changeMessage}`,
+          'success',
+          8000  // Show for 8 seconds
+        );
+      } else {
+        showNotification(`❌ Failed to regenerate URL: ${data.error}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error regenerating URL:', error);
+      showNotification('❌ Network error during URL regeneration', 'error');
+    }
+    // No finally block - let CompanyTooltip handle its own loading state
   };
 
   const addRequirement = () => {
@@ -1741,7 +1932,7 @@ function App() {
           )}
 
           {/* Force Refresh Toggle */}
-          <div className="form-group checkbox-group">
+          <div className="checkbox-group">
             <label className="checkbox-label">
               <input
                 type="checkbox"
@@ -1750,7 +1941,10 @@ function App() {
                 className="enrichment-checkbox"
               />
               <span className="checkbox-text">
-                <strong>🔄 Force Refresh Data</strong>
+                <strong>
+                  <TbRefresh style={{marginRight: '8px', verticalAlign: 'middle'}} size={16} />
+                  Force Refresh Data
+                </strong>
                 <span className="checkbox-description">
                   Bypass stored data and fetch fresh profile from CoreSignal (uses 1 credit even if stored).
                   {forceRefresh && <span className="cost-note"> ⚠️ Will use API credits</span>}
@@ -2169,7 +2363,7 @@ function App() {
                             className="refresh-profile-button"
                             title="Refresh from CoreSignal (1 API credit)"
                           >
-                            🔄
+                            <TbRefresh size={14} />
                           </button>
                         </div>
                       </div>
@@ -2484,6 +2678,8 @@ function App() {
                           <WorkExperienceSection
                             profileData={candidate.profileSummary || (candidate.type === 'batch' ? candidate.profile_data?.profile_data : null)}
                             profileSummary={candidate.profileSummary}
+                            onRegenerateUrl={handleRegenerateCrunchbaseUrl}
+                            onCrunchbaseClick={handleCrunchbaseClick}
                           />
 
                             {/* Profile Not Found Message - only for batch results */}
@@ -2522,6 +2718,19 @@ function App() {
         <div className={`notification ${notification.type}`}>
           {notification.type === 'success' ? '✅' : '❌'} {notification.message}
       </div>
+      )}
+
+      {/* Crunchbase Validation Modal */}
+      {validationModalOpen && validationData && (
+        <CrunchbaseValidationModal
+          isOpen={validationModalOpen}
+          onClose={() => setValidationModalOpen(false)}
+          companyName={validationData.companyName}
+          crunchbaseUrl={validationData.crunchbaseUrl}
+          companyId={validationData.companyId}
+          onValidate={handleValidation}
+          onRegenerate={validationData.onRegenerate}
+        />
       )}
     </div>
   );
