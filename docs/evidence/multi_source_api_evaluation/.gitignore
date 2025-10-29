@@ -1,0 +1,12 @@
+# Ignore test results and raw API responses
+results/
+comparisons/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore any personal test scripts
+*_personal.py
+test_*.json

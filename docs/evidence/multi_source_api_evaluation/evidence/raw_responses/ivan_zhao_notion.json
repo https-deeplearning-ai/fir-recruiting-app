@@ -1,0 +1,366 @@
+{
+  "id": 260056287,
+  "parent_id": 260056287,
+  "created_at": "2016-08-23T20:31:28.000Z",
+  "updated_at": "2025-10-15T03:17:14.554015Z",
+  "checked_at": "2025-10-17T20:05:37.305100Z",
+  "changed_at": "2025-10-15T03:17:14.554015Z",
+  "experience_change_last_identified_at": "2025-08-03T03:46:09.566755Z",
+  "is_deleted": 0,
+  "is_parent": 1,
+  "public_profile_id": 84625942,
+  "linkedin_url": "https://www.linkedin.com/in/ivan-zhao-41a41124",
+  "linkedin_shorthand_names": [
+    "ivan-zhao-41a41124",
+    "ivanhzhao"
+  ],
+  "historical_ids": [
+    260056287
+  ],
+  "full_name": "Ivan Zhao",
+  "first_name": "Ivan",
+  "first_name_initial": "I",
+  "middle_name": null,
+  "middle_name_initial": null,
+  "last_name": "Zhao",
+  "last_name_initial": "Z",
+  "headline": "Founder at Notion",
+  "summary": null,
+  "picture_url": "https://media.licdn.com/dms/image/v2/C5603AQFAeZE7FH21tg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1543342081776?e=2147483647&v=beta&t=7dPcTp3cqaJw1bfQoJKPFL6wrrYEr4UME6m7lkuGWWI",
+  "location_country": "United States",
+  "location_country_iso2": "US",
+  "location_country_iso3": "USA",
+  "location_full": "San Francisco, California, United States",
+  "location_regions": [
+    "Americas",
+    "Northern America",
+    "AMER"
+  ],
+  "location_city": "San Francisco",
+  "location_state": "California",
+  "interests": [],
+  "inferred_skills": [],
+  "historical_skills": [],
+  "connections_count": 500,
+  "followers_count": 24612,
+  "services": null,
+  "primary_professional_email": "ivan.zhao@notion.so",
+  "primary_professional_email_status": "matched_email",
+  "professional_emails_collection": [
+    {
+      "professional_email": "ivan.zhao@notion.so",
+      "professional_email_status": "matched_email",
+      "order_of_priority": 1
+    }
+  ],
+  "is_working": 1,
+  "active_experience_company_id": 24269554,
+  "active_experience_title": "Founder",
+  "active_experience_description": null,
+  "active_experience_department": "C-Suite",
+  "active_experience_management_level": "Founder",
+  "is_decision_maker": 1,
+  "total_experience_duration_months": 165,
+  "total_experience_duration_months_breakdown_department": [
+    {
+      "department": "C-Suite",
+      "total_experience_duration_months": 153
+    },
+    {
+      "department": "Product",
+      "total_experience_duration_months": 12
+    }
+  ],
+  "total_experience_duration_months_breakdown_management_level": [
+    {
+      "management_level": "Specialist",
+      "total_experience_duration_months": 12
+    },
+    {
+      "management_level": "Founder",
+      "total_experience_duration_months": 153
+    }
+  ],
+  "experience": [
+    {
+      "active_experience": 1,
+      "position_title": "Founder",
+      "department": "C-Suite",
+      "management_level": "Founder",
+      "location": "San Francisco Bay Area",
+      "description": null,
+      "date_from": "2013",
+      "date_from_year": 2013,
+      "date_from_month": null,
+      "date_to": null,
+      "date_to_year": null,
+      "date_to_month": null,
+      "duration_months": 153,
+      "company_id": 24269554,
+      "company_name": "Notion",
+      "company_type": "Privately Held",
+      "company_founded_year": 2016,
+      "company_followers_count": 855600,
+      "company_website": "https://www.notion.com",
+      "company_facebook_url": [
+        "https://www.facebook.com/notionhq"
+      ],
+      "company_twitter_url": [
+        "https://www.twitter.com/notionhq"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/notionhq",
+      "company_size_range": "501-1000 employees",
+      "company_employees_count": 4036,
+      "company_industry": "Software Development",
+      "company_categories_and_keywords": [
+        "workspace",
+        "computers electronics and technology > computers electronics and technology - other",
+        "wikis",
+        "docs",
+        "projects",
+        "collaboration",
+        "technology",
+        "application-software",
+        "data-management",
+        "platform",
+        "project-management",
+        "apps",
+        "product management",
+        "real time",
+        "software"
+      ],
+      "company_annual_revenue_source_5": 50000000,
+      "company_annual_revenue_currency_source_5": "USD",
+      "company_annual_revenue_source_1": null,
+      "company_annual_revenue_currency_source_1": null,
+      "company_employees_count_change_yearly_percentage": -13.390557939914164,
+      "company_last_funding_round_date": "2021-10-08",
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": "San Francisco, California 94110, US",
+      "company_hq_country": "United States",
+      "company_hq_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "company_hq_country_iso2": "US",
+      "company_hq_country_iso3": "USA",
+      "company_hq_city": "San Francisco",
+      "company_hq_state": "California",
+      "company_hq_street": "",
+      "company_hq_zipcode": "94110",
+      "company_last_updated_at": "2025-09-09",
+      "company_stock_ticker": [],
+      "company_is_b2b": 1,
+      "order_in_profile": 1
+    },
+    {
+      "active_experience": 0,
+      "position_title": "Product",
+      "department": "Product",
+      "management_level": "Specialist",
+      "location": null,
+      "description": null,
+      "date_from": "2011",
+      "date_from_year": 2011,
+      "date_from_month": null,
+      "date_to": "2012",
+      "date_to_year": 2012,
+      "date_to_month": null,
+      "duration_months": 12,
+      "company_id": 27551559,
+      "company_name": "Inkling",
+      "company_type": "Privately Held",
+      "company_founded_year": 2009,
+      "company_followers_count": 11877,
+      "company_website": "https://www.inkling.com",
+      "company_facebook_url": [
+        "https://www.facebook.com/pages/inkling/377802230525",
+        "https://www.facebook.com/inklingsf"
+      ],
+      "company_twitter_url": [
+        "https://www.twitter.com/inkling"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/inkling_2",
+      "company_size_range": "51-200 employees",
+      "company_employees_count": 49,
+      "company_industry": "E-Learning Providers",
+      "company_categories_and_keywords": [
+        "education",
+        "health > medicine (in united states)",
+        "training & development",
+        "sales enablement",
+        "new hire training",
+        "store training & execution",
+        "field services training",
+        "policy and process reinforcement",
+        "product & initiative launch training",
+        "elearning",
+        "mobile learning",
+        "content authoring",
+        "content management",
+        "onboarding",
+        "frontline worker training",
+        "learning and development",
+        "frontline",
+        "digital learning",
+        "skills development",
+        "compliance",
+        "employee training",
+        "technology",
+        "e-learning",
+        "enterprise-software",
+        "mobile-app",
+        "platform",
+        "professional-education",
+        "analytics",
+        "android",
+        "corporate training",
+        "enterprise software",
+        "ios",
+        "mobile",
+        "publishing",
+        "saas",
+        "software"
+      ],
+      "company_annual_revenue_source_5": 12000000,
+      "company_annual_revenue_currency_source_5": "USD",
+      "company_annual_revenue_source_1": null,
+      "company_annual_revenue_currency_source_1": null,
+      "company_employees_count_change_yearly_percentage": -24.615384615384617,
+      "company_last_funding_round_date": "2016-12-13",
+      "company_last_funding_round_amount_raised": 25000000,
+      "company_hq_full_address": "535 Mission Street; 14th Floor; San Francisco, CA 94105, US",
+      "company_hq_country": "United States",
+      "company_hq_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "company_hq_country_iso2": "US",
+      "company_hq_country_iso3": "USA",
+      "company_hq_city": "San Francisco",
+      "company_hq_state": "California",
+      "company_hq_street": "535 Mission Street; 14th Floor",
+      "company_hq_zipcode": "94105",
+      "company_last_updated_at": "2025-09-08",
+      "company_stock_ticker": [],
+      "company_is_b2b": 1,
+      "order_in_profile": 2
+    }
+  ],
+  "projected_base_salary_p25": null,
+  "projected_base_salary_median": null,
+  "projected_base_salary_p75": null,
+  "projected_base_salary_period": null,
+  "projected_base_salary_currency": null,
+  "projected_base_salary_updated_at": null,
+  "projected_additional_salary": [],
+  "projected_additional_salary_period": null,
+  "projected_additional_salary_currency": null,
+  "projected_additional_salary_updated_at": null,
+  "projected_total_salary_p25": null,
+  "projected_total_salary_median": null,
+  "projected_total_salary_p75": null,
+  "projected_total_salary_period": null,
+  "projected_total_salary_currency": null,
+  "projected_total_salary_updated_at": null,
+  "last_graduation_date": null,
+  "education_degrees": [],
+  "education": [],
+  "recommendations_count": null,
+  "recommendations": [],
+  "activity": [
+    {
+      "activity_url": "https://www.linkedin.com/posts/johnhurley22_love-seeing-notion-in-top-10-love-more-that-activity-7379776271561580544--auj",
+      "title": "Love seeing Notion in top 10. Love more that almost everyone on the list is a Notion customer.",
+      "action": "Liked by",
+      "order_in_profile": 1
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/claudia-hamer_hatchhotlist2025-activity-7368080133905108992-O51q",
+      "title": "4 months in = 4 months of telling anyone who\u2019ll listen how amazing working at Notion is.\n\nAnd now we\u2019ve earnt a nice little accolade to back it up\u2026",
+      "action": "Liked by",
+      "order_in_profile": 2
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/ivanhzhao_kinda-funny-activity-7362098722794561536-_jDt",
+      "title": "Kinda funny",
+      "action": "Shared by",
+      "order_in_profile": 3
+    }
+  ],
+  "awards": [],
+  "courses": [],
+  "certifications": [],
+  "languages": [],
+  "patents_count": null,
+  "patents_topics": [],
+  "patents": [],
+  "publications_count": null,
+  "publications_topics": [],
+  "publications": [],
+  "projects_count": null,
+  "projects_topics": [],
+  "projects": [],
+  "organizations": [],
+  "github_url": null,
+  "github_username": null,
+  "github_mapping_confidence": null,
+  "github_contributions_count": null,
+  "github_repos_summary": [],
+  "profile_root_field_changes_summary": [
+    {
+      "field_name": "location",
+      "change_type": "updated",
+      "last_changed_at": "2025-02-25 04:07:28.704469"
+    },
+    {
+      "field_name": "profile_photo_url",
+      "change_type": "new",
+      "last_changed_at": "2025-02-25 04:07:28.704469"
+    },
+    {
+      "field_name": "country",
+      "change_type": "updated",
+      "last_changed_at": "2025-02-25 04:07:28.704469"
+    },
+    {
+      "field_name": "follower_count",
+      "change_type": "updated",
+      "last_changed_at": "2025-10-15 03:17:14.554015"
+    },
+    {
+      "field_name": "experience_count",
+      "change_type": "updated",
+      "last_changed_at": "2025-09-30 04:55:29.885979"
+    }
+  ],
+  "profile_collection_field_changes_summary": [
+    {
+      "field_name": "activity",
+      "last_changed_at": "2025-10-15 03:17:14.554015"
+    },
+    {
+      "field_name": "websites",
+      "last_changed_at": "2025-03-13 19:58:58.211254"
+    },
+    {
+      "field_name": "experience",
+      "last_changed_at": "2025-10-15 03:17:14.554015"
+    }
+  ],
+  "experience_recently_started": [
+    {
+      "company_id": 24269554,
+      "company_name": "Notion",
+      "company_url": "https://www.linkedin.com/company/notionhq",
+      "company_shorthand_name": "notionhq",
+      "date_from": "Jan 1900",
+      "date_to": null,
+      "title": "Founder",
+      "identification_date": "2025-08-03 03:46:09.566755"
+    }
+  ],
+  "experience_recently_closed": []
+}
