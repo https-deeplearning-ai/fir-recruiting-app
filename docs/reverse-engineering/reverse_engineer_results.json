@@ -1,0 +1,217 @@
+{
+  "analysis_metadata": {
+    "csv_file": "/Users/gauravsurtani/projects/linkedin_profile_ai_assessor/vocal bridge fir-Linda test - Jon reaching out.csv",
+    "jd_file": "/Users/gauravsurtani/projects/linkedin_profile_ai_assessor/vocal_bridge_fir_job_description.md",
+    "total_candidates": 68,
+    "analysis_date": "2025-10-28"
+  },
+  "pattern_analysis": {
+    "location_clusters": {
+      "Greater Seattle Area": 5,
+      "San Francisco Bay Area": 47,
+      "Ann Arbor": 1,
+      "Burlington": 1,
+      "New York": 6,
+      "Laguna Beach": 1,
+      "Greater Boston": 1,
+      "United States (remote)": 4,
+      "Greater Minneapolis-St. Paul Area": 1,
+      "Houston": 1
+    },
+    "seniority_distribution": {
+      "c_suite": 34,
+      "vp_director": 3,
+      "senior_ic": 14,
+      "mid_level": 12
+    },
+    "company_types": {
+      "Startup / Stealth": 6,
+      "Other": 16,
+      "Voice AI Specialist": 13,
+      "AI Infrastructure / Platform": 15,
+      "Big Tech / FAANG": 10,
+      "Conversational AI / Agentic": 8
+    },
+    "title_keywords": {
+      "ai": 20,
+      "ml": 4,
+      "nlp": 1,
+      "conversational": 1,
+      "llm": 2,
+      "generative": 2,
+      "voice": 1
+    },
+    "top_companies": {
+      "Otter.ai": 6,
+      "Meta": 5,
+      "Sierra": 5,
+      "Together AI": 4,
+      "Anyscale": 4,
+      "Pinecone": 3,
+      "Deepgram": 2,
+      "PlayAI": 2,
+      "Phonic": 2,
+      "Rembrand": 1,
+      "Decagon": 1,
+      "Ockam": 1,
+      "Anysphere": 1,
+      "Lightning AI": 1,
+      "Wayline": 1,
+      "Prove": 1,
+      "AIAIO": 1,
+      "Google": 1,
+      "AKASA": 1,
+      "VOIA": 1
+    }
+  },
+  "generated_queries": [
+    {
+      "tier": 1,
+      "name": "Strict JD Interpretation",
+      "description": "Direct translation of JD requirements",
+      "criteria": {
+        "must_have_location": "United States",
+        "must_have_role_titles": [
+          "Founder",
+          "CEO",
+          "CTO",
+          "Chief",
+          "Co-founder"
+        ],
+        "must_have_industries": [
+          "Technology, Information and Internet",
+          "Software Development"
+        ],
+        "must_have_skills_in_headline": [
+          "AI",
+          "Voice",
+          "ML"
+        ],
+        "must_have_experience_years": 10
+      },
+      "expected_coverage": "Low (30-40%) - Too strict on seniority, too broad on location"
+    },
+    {
+      "tier": 2,
+      "name": "Shortlist-Informed Search",
+      "description": "Incorporates patterns from actual candidate shortlist",
+      "criteria": {
+        "must_have_location": "San Francisco Bay Area",
+        "must_have_role_titles": [
+          "AI",
+          "ML",
+          "Voice",
+          "Speech",
+          "Conversational",
+          "LLM",
+          "CTO",
+          "Founder",
+          "Staff",
+          "Senior",
+          "Director",
+          "VP",
+          "Head"
+        ],
+        "must_have_industries": [
+          "Technology, Information and Internet",
+          "Software Development",
+          "IT Services and IT Consulting"
+        ],
+        "must_have_skills_in_headline": [
+          "AI",
+          "Machine Learning",
+          "Voice",
+          "Speech",
+          "LLM",
+          "NLP",
+          "Generative"
+        ],
+        "must_have_experience_years": 5
+      },
+      "expected_coverage": "Medium (60-80%) - Captures most candidates, some location misses"
+    },
+    {
+      "tier": 3,
+      "name": "Optimized Multi-Location Search",
+      "description": "Expands to all major tech hubs represented in shortlist",
+      "criteria": {
+        "must_have_locations": [
+          "San Francisco Bay Area",
+          "Greater Seattle Area",
+          "New York",
+          "Greater Boston",
+          "United States"
+        ],
+        "must_have_role_titles": [
+          "Voice",
+          "Speech",
+          "Audio",
+          "Conversational",
+          "AI",
+          "ML",
+          "Machine Learning",
+          "LLM",
+          "NLP",
+          "Generative",
+          "CTO",
+          "Founder",
+          "Co-founder",
+          "Chief",
+          "VP",
+          "Director",
+          "Head of",
+          "Staff",
+          "Senior",
+          "Principal",
+          "Lead",
+          "Research Scientist"
+        ],
+        "must_have_industries": [
+          "Technology, Information and Internet",
+          "Software Development",
+          "IT Services and IT Consulting",
+          "Computer Software",
+          "Internet"
+        ],
+        "must_have_skills_in_headline": [
+          "AI",
+          "ML",
+          "Machine Learning",
+          "Voice",
+          "Speech",
+          "Audio",
+          "LLM",
+          "NLP",
+          "Generative AI",
+          "Conversational AI",
+          "Real-time"
+        ],
+        "must_have_experience_years": 5,
+        "nice_to_have_companies": [
+          "Meta",
+          "Google",
+          "Amazon",
+          "Facebook",
+          "Microsoft",
+          "Anthropic",
+          "OpenAI",
+          "Hugging Face",
+          "Together AI",
+          "Anyscale",
+          "LangChain",
+          "Pinecone",
+          "Otter.ai",
+          "Deepgram",
+          "PlayAI",
+          "ElevenLabs",
+          "Phonic",
+          "AssemblyAI",
+          "Vapi",
+          "Sierra",
+          "LiveKit"
+        ]
+      },
+      "expected_coverage": "High (80-90%) - Broad enough to capture edge cases"
+    }
+  ]
+}

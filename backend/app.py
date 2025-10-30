@@ -41,6 +41,14 @@ except ImportError as e:
     print(f"Warning: Could not import ExtensionService: {e}")
     extension_service = None
 
+# Import JD Analyzer routes
+try:
+    from jd_analyzer.api_endpoints import register_jd_analyzer_routes
+    register_jd_analyzer_routes(app)
+    print("✓ JD Analyzer routes registered successfully")
+except ImportError as e:
+    print(f"Warning: Could not import JD Analyzer routes: {e}")
+
 # CoreSignal API configuration
 CORESIGNAL_API_KEY = os.getenv("CORESIGNAL_API_KEY")
 

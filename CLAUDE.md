@@ -51,11 +51,12 @@ See [docs/HEADLINE_FRESHNESS_FIX.md](docs/HEADLINE_FRESHNESS_FIX.md) for full de
 
 **Tier 2b - Claude Agent SDK WebSearch Validation (100% combined accuracy):**
 - Tool: Claude Agent SDK `query()` with WebSearch enabled
+- Model: Claude Haiku 4.5 (`claude-haiku-4-5-20251015`) - 2x faster than Haiku 3.5, Sonnet 4 performance
 - Context: Company description, location, funding details, Tavily candidates
 - Prompt: "Which of these Tavily candidates is the correct Crunchbase profile?"
-- Speed: +2-3 seconds (incremental)
+- Speed: +2-3 seconds (incremental) with Haiku 4.5 optimization
 - Combined Accuracy: 100% (tested on 20 Series A companies)
-- Requires: Python 3.10+ with `claude-agent-sdk` and `anyio`
+- Requires: Python 3.10+ with `claude-agent-sdk` (uses asyncio)
 
 **Tier 3 - Heuristic Fallback (~30% accuracy):**
 - Converts company name to slug: lowercase, hyphens, remove suffixes

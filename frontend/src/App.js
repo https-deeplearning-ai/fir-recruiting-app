@@ -57,6 +57,32 @@ function App() {
   const [aiAnalysisLoading, setAiAnalysisLoading] = useState({}); // Track AI analysis loading state per candidate
   const [autoGenerateAI, setAutoGenerateAI] = useState(false); // Toggle for automatic AI analysis after profile fetch
 
+  // JD Analyzer state
+  const [jdAnalyzerMode, setJdAnalyzerMode] = useState(false); // Toggle for JD Analyzer view
+  const [jdText, setJdText] = useState(''); // Raw job description text
+  const [jdAnalyzing, setJdAnalyzing] = useState(false); // Loading state during JD analysis
+  const [extractedRequirements, setExtractedRequirements] = useState([]); // AI-extracted requirements
+  const [activeJD, setActiveJD] = useState(null); // Currently active JD {title, requirements, timestamp}
+  const [jdTitle, setJdTitle] = useState(''); // User-provided title for the JD
+  const [showWeightedRequirements, setShowWeightedRequirements] = useState(false); // Accordion toggle for weighted requirements
+  const [jdSearching, setJdSearching] = useState(false); // Loading state during JD → CoreSignal search
+  const [jdSearchResults, setJdSearchResults] = useState(null); // Search results from CoreSignal
+  const [jdFullResults, setJdFullResults] = useState(null); // Full 100 candidates from "Search with model" button
+  const [jdCsvData, setJdCsvData] = useState(null); // CSV data for optional download
+  const [currentPage, setCurrentPage] = useState(1); // Pagination for full results
+  const [hoveredProfile, setHoveredProfile] = useState(null); // For tooltip display
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 }); // Tooltip positioning
+
+  // LLM comparison states - 3 separate states for independent loading
+  const [claudeResult, setClaudeResult] = useState(null);
+  const [gptResult, setGptResult] = useState(null);
+  const [geminiResult, setGeminiResult] = useState(null);
+  const [claudeLoading, setClaudeLoading] = useState(false);
+  const [gptLoading, setGptLoading] = useState(false);
+  const [geminiLoading, setGeminiLoading] = useState(false);
+  const [selectedLlmQuery, setSelectedLlmQuery] = useState(null); // 'claude', 'gpt', or 'gemini'
+  const [activeLlmTab, setActiveLlmTab] = useState('claude'); // Which tab is currently visible
+
   // Crunchbase URL validation state
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [validationData, setValidationData] = useState(null); // {companyId, companyName, crunchbaseUrl, source}
@@ -67,6 +93,23 @@ function App() {
       localStorage.setItem('recruiterName', selectedRecruiter);
     }
   }, [selectedRecruiter]);
+
+  // Load active JD from localStorage on mount
+  React.useEffect(() => {
+    const savedJD = localStorage.getItem('activeJD');
+    if (savedJD) {
+      try {
+        const jdData = JSON.parse(savedJD);
+        setActiveJD(jdData);
+        setWeightedRequirements(jdData.requirements || []);
+        setJdTitle(jdData.title || '');
+        console.log('✓ Loaded active JD from localStorage:', jdData.title);
+      } catch (e) {
+        console.error('Error loading active JD:', e);
+        localStorage.removeItem('activeJD');
+      }
+    }
+  }, []);
 
   // Pre-made feedback reasons
   const likeReasons = [
@@ -1710,11 +1753,12 @@ function App() {
 
         <div className="mode-toggle">
           <button
-            className={`mode-btn ${!batchMode && !searchMode && !listsMode ? 'active' : ''}`}
+            className={`mode-btn ${!batchMode && !searchMode && !listsMode && !jdAnalyzerMode ? 'active' : ''}`}
             onClick={() => {
               setBatchMode(false);
               setSearchMode(false);
               setListsMode(false);
+              setJdAnalyzerMode(false);
             }}
           >
             Single Profile
@@ -1725,9 +1769,21 @@ function App() {
               setSearchMode(true);
               setBatchMode(false);
               setListsMode(false);
+              setJdAnalyzerMode(false);
             }}
           >
             Profile Search
+          </button>
+          <button
+            className={`mode-btn ${jdAnalyzerMode ? 'active' : ''}`}
+            onClick={() => {
+              setJdAnalyzerMode(true);
+              setSearchMode(false);
+              setBatchMode(false);
+              setListsMode(false);
+            }}
+          >
+            JD Analyzer {activeJD && '(Active)'}
           </button>
           <button
             className={`mode-btn ${batchMode && !searchMode ? 'active' : ''}`}
@@ -1735,6 +1791,7 @@ function App() {
               setBatchMode(true);
               setSearchMode(false);
               setListsMode(false);
+              setJdAnalyzerMode(false);
             }}
           >
             Batch Processing
@@ -1745,6 +1802,7 @@ function App() {
               setListsMode(true);
               setBatchMode(false);
               setSearchMode(false);
+              setJdAnalyzerMode(false);
             }}
           >
             Lists
@@ -1756,6 +1814,940 @@ function App() {
             recruiterName={selectedRecruiter}
             showNotification={showNotification}
           />
+        ) : jdAnalyzerMode ? (
+          <div className="jd-analyzer-container">
+            <div className="jd-analyzer-header">
+              <h2>📋 JD Analyzer</h2>
+              <p className="jd-analyzer-description">
+                Transform job descriptions into weighted assessment criteria
+              </p>
+            </div>
+
+            {/* Step 1: Input JD */}
+            <div className="jd-input-section">
+              <h3>Step 1: Paste Job Description</h3>
+              <textarea
+                className="jd-textarea"
+                value={jdText}
+                onChange={(e) => setJdText(e.target.value)}
+                placeholder="Paste the full job description here..."
+                rows="12"
+                disabled={jdAnalyzing}
+              />
+              <button
+                className="jd-analyze-btn"
+                onClick={async () => {
+                  if (!jdText.trim()) {
+                    showNotification('Please paste a job description', 'error');
+                    return;
+                  }
+
+                  setJdAnalyzing(true);
+                  try {
+                    const response = await fetch('http://localhost:5001/api/jd/full-analysis', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        jd_text: jdText,
+                        num_requirements: 5
+                      })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                      setExtractedRequirements(data.weighted_requirements);
+                      showNotification('Requirements extracted successfully!', 'success');
+                    } else {
+                      showNotification(`Error: ${data.error}`, 'error');
+                    }
+                  } catch (error) {
+                    console.error('Error analyzing JD:', error);
+                    showNotification('Failed to analyze job description', 'error');
+                  } finally {
+                    setJdAnalyzing(false);
+                  }
+                }}
+                disabled={jdAnalyzing || !jdText.trim()}
+              >
+                {jdAnalyzing ? 'Analyzing...' : 'Analyze JD'}
+              </button>
+
+              <button
+                className="llm-compare-btn"
+                onClick={async () => {
+                  if (!jdText.trim()) {
+                    showNotification('Please paste a job description first', 'error');
+                    return;
+                  }
+
+                  // Reset all results
+                  setClaudeResult(null);
+                  setGptResult(null);
+                  setGeminiResult(null);
+                  setSelectedLlmQuery(null);
+
+                  // Set loading states immediately so button text changes
+                  setClaudeLoading(true);
+                  setGptLoading(true);
+                  setGeminiLoading(true);
+
+                  try {
+                    // First, parse JD to get structured requirements
+                    const parseResponse = await fetch('http://localhost:5001/api/jd/parse', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ jd_text: jdText })
+                    });
+
+                    const parseData = await parseResponse.json();
+
+                    if (!parseData.success) {
+                      showNotification(`Error parsing JD: ${parseData.error}`, 'error');
+                      // Reset loading states on error
+                      setClaudeLoading(false);
+                      setGptLoading(false);
+                      setGeminiLoading(false);
+                      return;
+                    }
+
+                    const requestBody = {
+                      jd_requirements: parseData.requirements,
+                      preview_limit: 20
+                    };
+
+                    // Fire all 3 LLM API calls in parallel - each updates independently
+
+                    // Claude
+                    setClaudeLoading(true);
+                    fetch('http://localhost:5001/api/jd/generate-query-claude', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(requestBody)
+                    })
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.success) setClaudeResult(data);
+                      })
+                      .catch(err => {
+                        console.error('Claude error:', err);
+                        setClaudeResult({
+                          success: true,
+                          model: 'Claude Haiku 4.5',
+                          error: err.message,
+                          query: null,
+                          preview_profiles: [],
+                          total_found: 0
+                        });
+                      })
+                      .finally(() => setClaudeLoading(false));
+
+                    // GPT
+                    setGptLoading(true);
+                    fetch('http://localhost:5001/api/jd/generate-query-gpt', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(requestBody)
+                    })
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.success) setGptResult(data);
+                      })
+                      .catch(err => {
+                        console.error('GPT error:', err);
+                        setGptResult({
+                          success: true,
+                          model: 'GPT-4o',
+                          error: err.message,
+                          query: null,
+                          preview_profiles: [],
+                          total_found: 0
+                        });
+                      })
+                      .finally(() => setGptLoading(false));
+
+                    // Gemini
+                    setGeminiLoading(true);
+                    fetch('http://localhost:5001/api/jd/generate-query-gemini', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(requestBody)
+                    })
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.success) setGeminiResult(data);
+                      })
+                      .catch(err => {
+                        console.error('Gemini error:', err);
+                        setGeminiResult({
+                          success: true,
+                          model: 'Gemini 2.0 Flash',
+                          error: err.message,
+                          query: null,
+                          preview_profiles: [],
+                          total_found: 0
+                        });
+                      })
+                      .finally(() => setGeminiLoading(false));
+
+                    showNotification('Generating queries from Claude Haiku, GPT-4o, and Gemini...', 'success');
+                  } catch (error) {
+                    console.error('Error comparing LLM queries:', error);
+                    showNotification('Failed to start LLM comparison', 'error');
+                    // Reset loading states on error
+                    setClaudeLoading(false);
+                    setGptLoading(false);
+                    setGeminiLoading(false);
+                  }
+                }}
+                disabled={claudeLoading || gptLoading || geminiLoading || !jdText.trim()}
+              >
+                {(claudeLoading || gptLoading || geminiLoading) ? 'Generating...' : 'Generate & Preview Queries (20 candidates each)'}
+              </button>
+            </div>
+
+            {/* LLM Comparison Results - Tabbed Interface */}
+            {(claudeResult || gptResult || geminiResult || claudeLoading || gptLoading || geminiLoading) && (
+              <div className="llm-comparison-section">
+                <h3>LLM Query Comparison</h3>
+                <p className="section-description">
+                  Compare queries generated by Claude Haiku 4.5, GPT-4o, and Gemini 2.0 Flash. Click tabs to switch models.
+                </p>
+
+                <div className="llm-comparison-grid">
+                  {/* Horizontal Tab Headers */}
+                  <div className="llm-tabs-header">
+                    <button
+                      className={`llm-tab-button ${activeLlmTab === 'claude' ? 'active' : ''}`}
+                      onClick={() => setActiveLlmTab('claude')}
+                    >
+                      <span>Claude Haiku 4.5</span>
+                      <span className="tab-badge claude">Anthropic</span>
+                      {claudeLoading && <span className="loading-indicator"></span>}
+                      {claudeResult && !claudeLoading && (
+                        <span className="candidate-count">
+                          {claudeResult.total_found || 0} candidates
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      className={`llm-tab-button ${activeLlmTab === 'gpt' ? 'active' : ''}`}
+                      onClick={() => setActiveLlmTab('gpt')}
+                    >
+                      <span>GPT-4o</span>
+                      <span className="tab-badge openai">OpenAI</span>
+                      {gptLoading && <span className="loading-indicator"></span>}
+                      {gptResult && !gptLoading && (
+                        <span className="candidate-count">
+                          {gptResult.total_found || 0} candidates
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      className={`llm-tab-button ${activeLlmTab === 'gemini' ? 'active' : ''}`}
+                      onClick={() => setActiveLlmTab('gemini')}
+                    >
+                      <span>Gemini 2.0 Flash</span>
+                      <span className="tab-badge google">Google</span>
+                      {geminiLoading && <span className="loading-indicator"></span>}
+                      {geminiResult && !geminiLoading && (
+                        <span className="candidate-count">
+                          {geminiResult.total_found || 0} candidates
+                        </span>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Claude Card */}
+                  {activeLlmTab === 'claude' && (
+                    <div className={`llm-card ${selectedLlmQuery === 'claude' ? 'selected' : ''}`}>
+                      {claudeLoading ? (
+                        <div className="llm-loading">
+                          <div className="spinner"></div>
+                          <p>Claude Haiku 4.5 generating query...</p>
+                        </div>
+                      ) : claudeResult ? (
+                        <>
+                          {claudeResult.error && (
+                            <div className="llm-error">
+                              ❌ Error: {claudeResult.error}
+                            </div>
+                          )}
+
+                          {claudeResult.query && (
+                            <>
+                              <div className="llm-stats">
+                                <span className="stat-item">
+                                  <strong>{claudeResult.total_found || 0}</strong> candidates found
+                                </span>
+                              </div>
+
+                              <div className="llm-reasoning">
+                                <strong>Strategy:</strong> {claudeResult.reasoning}
+                              </div>
+
+                              <details className="llm-query-details">
+                                <summary>View Query JSON</summary>
+                                <pre className="query-json">
+                                  {JSON.stringify(claudeResult.query, null, 2)}
+                                </pre>
+                              </details>
+
+                              {claudeResult.preview_profiles && claudeResult.preview_profiles.length > 0 && (
+                                <div className="llm-preview-candidates">
+                                  <strong>Preview (First {claudeResult.preview_profiles.length}):</strong>
+                                  <div className="preview-list">
+                                    {claudeResult.preview_profiles.map((profile, pIndex) => {
+                                      const linkedinUrl = profile.linkedin_url || profile.professional_network_url || '';
+                                      const headline = profile.headline || profile.generated_headline || 'No headline';
+                                      const location = profile.location || profile.location_full || 'Location N/A';
+
+                                      return (
+                                        <div key={pIndex} className="preview-candidate">
+                                          <div className="preview-name">
+                                            {linkedinUrl ? (
+                                              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="candidate-link">
+                                                🔗 {profile.full_name}
+                                              </a>
+                                            ) : (
+                                              <span className="no-link">❌ {profile.full_name}</span>
+                                            )}
+                                          </div>
+                                          <div className="preview-headline">{headline}</div>
+                                          <div className="preview-meta">
+                                            📍 {location}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                className={`select-query-btn ${selectedLlmQuery === 'claude' ? 'selected' : ''}`}
+                                onClick={() => setSelectedLlmQuery('claude')}
+                              >
+                                {selectedLlmQuery === 'claude' ? 'Selected for Search' : 'Select This Query'}
+                              </button>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <p style={{textAlign: 'center', color: '#999', padding: '40px'}}>
+                          Click "Compare LLM Queries" to generate...
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* GPT Card */}
+                  {activeLlmTab === 'gpt' && (
+                    <div className={`llm-card ${selectedLlmQuery === 'gpt' ? 'selected' : ''}`}>
+                      {gptLoading ? (
+                        <div className="llm-loading">
+                          <div className="spinner"></div>
+                          <p>GPT-4o generating query...</p>
+                        </div>
+                      ) : gptResult ? (
+                        <>
+                          {gptResult.error && (
+                            <div className="llm-error">
+                              ❌ Error: {gptResult.error}
+                            </div>
+                          )}
+
+                          {gptResult.query && (
+                            <>
+                              <div className="llm-stats">
+                                <span className="stat-item">
+                                  <strong>{gptResult.total_found || 0}</strong> candidates found
+                                </span>
+                              </div>
+
+                              <div className="llm-reasoning">
+                                <strong>Strategy:</strong> {gptResult.reasoning}
+                              </div>
+
+                              <details className="llm-query-details">
+                                <summary>View Query JSON</summary>
+                                <pre className="query-json">
+                                  {JSON.stringify(gptResult.query, null, 2)}
+                                </pre>
+                              </details>
+
+                              {gptResult.preview_profiles && gptResult.preview_profiles.length > 0 && (
+                                <div className="llm-preview-candidates">
+                                  <strong>Preview (First {gptResult.preview_profiles.length}):</strong>
+                                  <div className="preview-list">
+                                    {gptResult.preview_profiles.map((profile, pIndex) => {
+                                      const linkedinUrl = profile.linkedin_url || profile.professional_network_url || '';
+                                      const headline = profile.headline || profile.generated_headline || 'No headline';
+                                      const location = profile.location || profile.location_full || 'Location N/A';
+
+                                      return (
+                                        <div key={pIndex} className="preview-candidate">
+                                          <div className="preview-name">
+                                            {linkedinUrl ? (
+                                              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="candidate-link">
+                                                🔗 {profile.full_name}
+                                              </a>
+                                            ) : (
+                                              <span className="no-link">❌ {profile.full_name}</span>
+                                            )}
+                                          </div>
+                                          <div className="preview-headline">{headline}</div>
+                                          <div className="preview-meta">
+                                            📍 {location}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                className={`select-query-btn ${selectedLlmQuery === 'gpt' ? 'selected' : ''}`}
+                                onClick={() => setSelectedLlmQuery('gpt')}
+                              >
+                                {selectedLlmQuery === 'gpt' ? 'Selected for Search' : 'Select This Query'}
+                              </button>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <p style={{textAlign: 'center', color: '#999', padding: '40px'}}>
+                          Click "Compare LLM Queries" to generate...
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Gemini Card */}
+                  {activeLlmTab === 'gemini' && (
+                    <div className={`llm-card ${selectedLlmQuery === 'gemini' ? 'selected' : ''}`}>
+                      {geminiLoading ? (
+                        <div className="llm-loading">
+                          <div className="spinner"></div>
+                          <p>Gemini 2.0 Flash generating query...</p>
+                        </div>
+                      ) : geminiResult ? (
+                        <>
+                          {geminiResult.error && (
+                            <div className="llm-error">
+                              ❌ Error: {geminiResult.error}
+                            </div>
+                          )}
+
+                          {geminiResult.query && (
+                            <>
+                              <div className="llm-stats">
+                                <span className="stat-item">
+                                  <strong>{geminiResult.total_found || 0}</strong> candidates found
+                                </span>
+                              </div>
+
+                              <div className="llm-reasoning">
+                                <strong>Strategy:</strong> {geminiResult.reasoning}
+                              </div>
+
+                              <details className="llm-query-details">
+                                <summary>View Query JSON</summary>
+                                <pre className="query-json">
+                                  {JSON.stringify(geminiResult.query, null, 2)}
+                                </pre>
+                              </details>
+
+                              {geminiResult.preview_profiles && geminiResult.preview_profiles.length > 0 && (
+                                <div className="llm-preview-candidates">
+                                  <strong>Preview (First {geminiResult.preview_profiles.length}):</strong>
+                                  <div className="preview-list">
+                                    {geminiResult.preview_profiles.map((profile, pIndex) => {
+                                      const linkedinUrl = profile.linkedin_url || profile.professional_network_url || '';
+                                      const headline = profile.headline || profile.generated_headline || 'No headline';
+                                      const location = profile.location || profile.location_full || 'Location N/A';
+
+                                      return (
+                                        <div key={pIndex} className="preview-candidate">
+                                          <div className="preview-name">
+                                            {linkedinUrl ? (
+                                              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="candidate-link">
+                                                🔗 {profile.full_name}
+                                              </a>
+                                            ) : (
+                                              <span className="no-link">❌ {profile.full_name}</span>
+                                            )}
+                                          </div>
+                                          <div className="preview-headline">{headline}</div>
+                                          <div className="preview-meta">
+                                            📍 {location}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                className={`select-query-btn ${selectedLlmQuery === 'gemini' ? 'selected' : ''}`}
+                                onClick={() => setSelectedLlmQuery('gemini')}
+                              >
+                                {selectedLlmQuery === 'gemini' ? 'Selected for Search' : 'Select This Query'}
+                              </button>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <p style={{textAlign: 'center', color: '#999', padding: '40px'}}>
+                          Click "Compare LLM Queries" to generate...
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Search with selected query button */}
+                {selectedLlmQuery && (
+                  <div className="llm-action-section">
+                    <button
+                      className="search-with-selected-btn"
+                      onClick={async () => {
+                        const selectedResult = selectedLlmQuery === 'claude' ? claudeResult :
+                                               selectedLlmQuery === 'gpt' ? gptResult : geminiResult;
+
+                        setJdSearching(true);
+                        try {
+                          const response = await fetch(`http://localhost:5001/api/jd/search-candidates`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              query: selectedResult.query,
+                              max_results: 100
+                            })
+                          });
+
+                          const data = await response.json();
+                          if (data.success) {
+                            // Store results for in-app display
+                            setJdFullResults(data.profiles);
+                            setJdCsvData(data.csv_data);
+                            setCurrentPage(1); // Reset to first page
+                            showNotification(`Found ${data.total_found} candidates from ${selectedResult.model}!`, 'success');
+                          } else {
+                            showNotification(data.error || 'Failed to search candidates', 'error');
+                          }
+                        } catch (error) {
+                          console.error('Error searching with selected query:', error);
+                          showNotification('Failed to search with selected query', 'error');
+                        } finally {
+                          setJdSearching(false);
+                        }
+                      }}
+                      disabled={jdSearching}
+                    >
+                      {jdSearching ? 'Fetching candidates...' : `Fetch All 100 Candidates (${selectedLlmQuery === 'claude' ? claudeResult?.model : selectedLlmQuery === 'gpt' ? gptResult?.model : geminiResult?.model})`}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Full Search Results Section */}
+            {jdFullResults && jdFullResults.length > 0 && (
+              <div className="jd-full-results-section">
+                <div className="results-header">
+                  <h3>Search Results ({jdFullResults.length} candidates)</h3>
+                  <div className="results-actions">
+                    <button
+                      className="download-csv-btn"
+                      onClick={() => {
+                        if (jdCsvData) {
+                          const blob = new Blob([jdCsvData], { type: 'text/csv' });
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          const selectedResult = selectedLlmQuery === 'claude' ? claudeResult :
+                                                 selectedLlmQuery === 'gpt' ? gptResult : geminiResult;
+                          a.download = `${selectedResult?.model || 'candidates'}_${Date.now()}.csv`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          window.URL.revokeObjectURL(url);
+                          showNotification('CSV downloaded successfully!', 'success');
+                        }
+                      }}
+                    >
+                      Download CSV
+                    </button>
+                    <button
+                      className="clear-results-btn"
+                      onClick={() => {
+                        setJdFullResults(null);
+                        setJdCsvData(null);
+                        setCurrentPage(1); // Reset page
+                      }}
+                    >
+                      Clear Results
+                    </button>
+                  </div>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="pagination-controls">
+                  <div className="pagination-info">
+                    Showing {Math.min((currentPage - 1) * 20 + 1, jdFullResults.length)} - {Math.min(currentPage * 20, jdFullResults.length)} of {jdFullResults.length} candidates
+                  </div>
+                  <div className="pagination-buttons">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="pagination-btn"
+                    >
+                      ← Previous
+                    </button>
+                    <span className="pagination-pages">
+                      Page {currentPage} of {Math.ceil(jdFullResults.length / 20)}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(Math.ceil(jdFullResults.length / 20), prev + 1))}
+                      disabled={currentPage >= Math.ceil(jdFullResults.length / 20)}
+                      className="pagination-btn"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                </div>
+
+                <div className="results-grid">
+                  {jdFullResults
+                    .slice((currentPage - 1) * 20, currentPage * 20)
+                    .map((profile, idx) => {
+                      const linkedinUrl = profile.linkedin_url || profile.professional_network_url || '';
+                      const headline = profile.headline || profile.generated_headline || 'No headline';
+                      const location = profile.location || profile.location_full || 'Location N/A';
+                      const currentTitle = profile.current_title || profile.active_experience_title || '';
+                      const company = profile.company_name || profile.active_experience_company || '';
+                      const globalIdx = (currentPage - 1) * 20 + idx;
+
+                      return (
+                        <div
+                          key={globalIdx}
+                          className="result-candidate-card"
+                          onMouseEnter={(e) => {
+                            setHoveredProfile(profile);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setTooltipPosition({
+                              x: rect.right + 10,
+                              y: rect.top
+                            });
+                          }}
+                          onMouseLeave={() => setHoveredProfile(null)}
+                        >
+                          <div className="result-candidate-header">
+                            {linkedinUrl ? (
+                              <a
+                                href={linkedinUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="result-candidate-name"
+                              >
+                                🔗 {profile.full_name || 'Unknown'}
+                              </a>
+                            ) : (
+                              <span className="result-candidate-name no-link">❌ {profile.full_name || 'Unknown'}</span>
+                            )}
+                          </div>
+                          <div className="result-candidate-headline">{headline}</div>
+                          <div className="result-candidate-meta">
+                            📍 {location}
+                          </div>
+                          {currentTitle && (
+                            <div className="result-candidate-title">
+                              💼 {currentTitle}{company ? ` at ${company}` : ''}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+
+                {/* Tooltip */}
+                {hoveredProfile && (
+                  <div
+                    className="profile-tooltip"
+                    style={{
+                      position: 'fixed',
+                      left: `${tooltipPosition.x}px`,
+                      top: `${tooltipPosition.y}px`,
+                      zIndex: 10000
+                    }}
+                  >
+                    <div className="tooltip-header">
+                      <strong>{hoveredProfile.full_name || 'Unknown'}</strong>
+                    </div>
+                    <div className="tooltip-body">
+                      <div className="tooltip-section">
+                        <div className="tooltip-label">Current Role:</div>
+                        <div className="tooltip-value">
+                          {hoveredProfile.active_experience_title || hoveredProfile.current_title || 'N/A'}
+                        </div>
+                      </div>
+                      <div className="tooltip-section">
+                        <div className="tooltip-label">Company:</div>
+                        <div className="tooltip-value">
+                          {hoveredProfile.company_name || hoveredProfile.active_experience_company || 'N/A'}
+                        </div>
+                      </div>
+                      <div className="tooltip-section">
+                        <div className="tooltip-label">Location:</div>
+                        <div className="tooltip-value">
+                          {hoveredProfile.location_full || hoveredProfile.location || 'N/A'}
+                        </div>
+                      </div>
+                      {hoveredProfile.active_experience_industry && (
+                        <div className="tooltip-section">
+                          <div className="tooltip-label">Industry:</div>
+                          <div className="tooltip-value">{hoveredProfile.active_experience_industry}</div>
+                        </div>
+                      )}
+                      {hoveredProfile.management_level && (
+                        <div className="tooltip-section">
+                          <div className="tooltip-label">Management Level:</div>
+                          <div className="tooltip-value">{hoveredProfile.management_level}</div>
+                        </div>
+                      )}
+                      {hoveredProfile.inferred_skills && hoveredProfile.inferred_skills.length > 0 && (
+                        <div className="tooltip-section">
+                          <div className="tooltip-label">Skills:</div>
+                          <div className="tooltip-value">
+                            {hoveredProfile.inferred_skills.slice(0, 5).join(', ')}
+                            {hoveredProfile.inferred_skills.length > 5 && '...'}
+                          </div>
+                        </div>
+                      )}
+                      {hoveredProfile.connection_count && (
+                        <div className="tooltip-section">
+                          <div className="tooltip-label">Connections:</div>
+                          <div className="tooltip-value">{hoveredProfile.connection_count.toLocaleString()}</div>
+                        </div>
+                      )}
+                      {hoveredProfile.follower_count && (
+                        <div className="tooltip-section">
+                          <div className="tooltip-label">Followers:</div>
+                          <div className="tooltip-value">{hoveredProfile.follower_count.toLocaleString()}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 2: Review & Edit Requirements */}
+            {extractedRequirements.length > 0 && (
+              <div className="jd-requirements-section">
+                <h3>Step 2: Review & Adjust Requirements</h3>
+                <p className="section-description">
+                  AI extracted {extractedRequirements.length} requirements. Adjust weights as needed.
+                </p>
+
+                <div className="requirements-list">
+                  {extractedRequirements.map((req, index) => (
+                    <div key={index} className="requirement-card">
+                      <div className="requirement-header">
+                        <span className="requirement-number">{index + 1}.</span>
+                        <input
+                          type="text"
+                          className="requirement-name"
+                          value={req.requirement}
+                          onChange={(e) => {
+                            const newReqs = [...extractedRequirements];
+                            newReqs[index].requirement = e.target.value;
+                            setExtractedRequirements(newReqs);
+                          }}
+                        />
+                        <input
+                          type="number"
+                          className="requirement-weight"
+                          value={req.weight}
+                          min="0"
+                          max="100"
+                          onChange={(e) => {
+                            const newReqs = [...extractedRequirements];
+                            newReqs[index].weight = parseInt(e.target.value) || 0;
+                            setExtractedRequirements(newReqs);
+                          }}
+                        />
+                        <span className="weight-label">%</span>
+                        <button
+                          className="remove-req-btn"
+                          onClick={() => {
+                            setExtractedRequirements(extractedRequirements.filter((_, i) => i !== index));
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {req.description && (
+                        <p className="requirement-description">{req.description}</p>
+                      )}
+                    </div>
+                  ))}
+
+                  <div className="requirement-card general-fit">
+                    <div className="requirement-header">
+                      <span className="requirement-number">⚪</span>
+                      <span className="requirement-name">General Fit (auto-calculated)</span>
+                      <span className="requirement-weight">
+                        {100 - extractedRequirements.reduce((sum, req) => sum + (req.weight || 0), 0)}
+                      </span>
+                      <span className="weight-label">%</span>
+                    </div>
+                    <p className="requirement-description">
+                      Overall alignment with role, cultural fit, communication skills
+                    </p>
+                  </div>
+                </div>
+
+                <div className="total-weight">
+                  Total: {extractedRequirements.reduce((sum, req) => sum + (req.weight || 0), 0) +
+                    (100 - extractedRequirements.reduce((sum, req) => sum + (req.weight || 0), 0))}%
+                  {extractedRequirements.reduce((sum, req) => sum + (req.weight || 0), 0) === 100 ?
+                    ' (Warning: No room for General Fit)' : ''}
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Activate */}
+            {extractedRequirements.length > 0 && (
+              <div className="jd-activate-section">
+                <h3>Step 3: Name & Activate</h3>
+                <div className="jd-title-input">
+                  <label htmlFor="jdTitle">JD Title (optional):</label>
+                  <input
+                    id="jdTitle"
+                    type="text"
+                    value={jdTitle}
+                    onChange={(e) => setJdTitle(e.target.value)}
+                    placeholder="e.g., Senior PM - Fintech"
+                  />
+                </div>
+
+                <div className="jd-actions">
+                  <button
+                    className="activate-jd-btn"
+                    onClick={() => {
+                      const jdData = {
+                        title: jdTitle || 'Untitled JD',
+                        requirements: extractedRequirements.map(req => ({
+                          id: Date.now() + Math.random(),
+                          text: req.requirement,
+                          weight: req.weight,
+                          description: req.description,
+                          scoring_criteria: req.scoring_criteria
+                        })),
+                        timestamp: Date.now()
+                      };
+
+                      setActiveJD(jdData);
+                      setWeightedRequirements(jdData.requirements);
+                      localStorage.setItem('activeJD', JSON.stringify(jdData));
+                      showNotification(`JD "${jdData.title}" activated for all assessments!`, 'success');
+                    }}
+                  >
+                    Set as Active JD
+                  </button>
+
+                  <button
+                    className="search-candidates-btn"
+                    onClick={async () => {
+                      if (!jdText.trim()) {
+                        showNotification('Please provide a job description first', 'error');
+                        return;
+                      }
+
+                      setJdSearching(true);
+                      try {
+                        // First, parse JD to get structured requirements
+                        const parseResponse = await fetch('http://localhost:5001/api/jd/parse', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ jd_text: jdText })
+                        });
+
+                        const parseData = await parseResponse.json();
+
+                        if (!parseData.success) {
+                          showNotification(`Error parsing JD: ${parseData.error}`, 'error');
+                          return;
+                        }
+
+                        // Now search CoreSignal with parsed requirements
+                        const searchResponse = await fetch('http://localhost:5001/api/jd/search-candidates', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            jd_requirements: parseData.requirements,
+                            max_results: 100
+                          })
+                        });
+
+                        const searchData = await searchResponse.json();
+
+                        if (searchData.success) {
+                          setJdSearchResults(searchData);
+
+                          // Download CSV
+                          const blob = new Blob([searchData.csv_data], { type: 'text/csv' });
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `jd_search_${jdTitle || 'results'}_${Date.now()}.csv`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          window.URL.revokeObjectURL(url);
+
+                          showNotification(`Found ${searchData.total_found} matching candidates! CSV downloaded.`, 'success');
+                        } else {
+                          showNotification(`Error: ${searchData.error}`, 'error');
+                        }
+                      } catch (error) {
+                        console.error('Error searching candidates:', error);
+                        showNotification('Failed to search for candidates', 'error');
+                      } finally {
+                        setJdSearching(false);
+                      }
+                    }}
+                    disabled={jdSearching || !jdText.trim()}
+                  >
+                    {jdSearching ? 'Searching CoreSignal...' : 'Search Candidates'}
+                  </button>
+
+                  <button
+                    className="clear-jd-btn"
+                    onClick={() => {
+                      setJdText('');
+                      setExtractedRequirements([]);
+                      setJdTitle('');
+                      setJdSearchResults(null);
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <p className="activation-note">
+                  💡 Once activated, these requirements will be used for all profile assessments
+                  in Single Profile and Batch modes until you clear or change them.
+                </p>
+              </div>
+            )}
+          </div>
         ) : searchMode ? (
           <div className="search-form">
             <div className="form-group">
@@ -1834,25 +2826,29 @@ function App() {
           </div>
 
           <div className="form-group">
-            <label>Weighted Requirements (Optional):</label>
-            <div className="weighted-requirements">
-              <div className="add-requirement">
-                <input
-                  type="text"
-                  value={newRequirement}
-                  onChange={(e) => setNewRequirement(e.target.value)}
-                  placeholder="Enter a specific requirement (e.g., 'Startup experience')"
-                  onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
-                />
-                <button 
-                  type="button" 
-                  onClick={addRequirement}
-                  disabled={!newRequirement.trim() || weightedRequirements.length >= 5 || weightedRequirements.reduce((sum, req) => sum + req.weight, 0) >= 100}
-                  className="add-btn"
-                >
-                  Add
-                </button>
-              </div>
+            <div className="accordion-header" onClick={() => setShowWeightedRequirements(!showWeightedRequirements)}>
+              <label>Advanced: Custom Weighted Requirements</label>
+              <span className="accordion-toggle">{showWeightedRequirements ? '−' : '+'}</span>
+            </div>
+            {showWeightedRequirements && (
+              <div className="weighted-requirements">
+                <div className="add-requirement">
+                  <input
+                    type="text"
+                    value={newRequirement}
+                    onChange={(e) => setNewRequirement(e.target.value)}
+                    placeholder="Enter a specific requirement (e.g., 'Startup experience')"
+                    onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
+                  />
+                  <button
+                    type="button"
+                    onClick={addRequirement}
+                    disabled={!newRequirement.trim() || weightedRequirements.length >= 5 || weightedRequirements.reduce((sum, req) => sum + req.weight, 0) >= 100}
+                    className="add-btn"
+                  >
+                    Add
+                  </button>
+                </div>
               
               {weightedRequirements.reduce((sum, req) => sum + req.weight, 0) >= 100 && (
                 <div className="total-warning">
@@ -1907,7 +2903,8 @@ function App() {
                   <span className="weight-value">{getGeneralFitWeight()}%</span>
                 </div>
               </div>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* HIDDEN: Company Enrichment Toggle - Keep code for future use */}
@@ -2089,17 +3086,21 @@ function App() {
             </div>
 
             <div className="form-group">
-              <label>Weighted Requirements (Optional):</label>
-              <div className="weighted-requirements">
-                <div className="add-requirement">
-                  <input
-                    type="text"
-                    value={newRequirement}
-                    onChange={(e) => setNewRequirement(e.target.value)}
-                    placeholder="Enter a specific requirement (e.g., 'Startup experience')"
-                    onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
-                  />
-                  <button 
+              <div className="accordion-header" onClick={() => setShowWeightedRequirements(!showWeightedRequirements)}>
+                <label>Advanced: Custom Weighted Requirements</label>
+                <span className="accordion-toggle">{showWeightedRequirements ? '−' : '+'}</span>
+              </div>
+              {showWeightedRequirements && (
+                <div className="weighted-requirements">
+                  <div className="add-requirement">
+                    <input
+                      type="text"
+                      value={newRequirement}
+                      onChange={(e) => setNewRequirement(e.target.value)}
+                      placeholder="Enter a specific requirement (e.g., 'Startup experience')"
+                      onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
+                    />
+                    <button 
                     type="button" 
                     onClick={addRequirement}
                     disabled={!newRequirement.trim() || weightedRequirements.length >= 5 || weightedRequirements.reduce((sum, req) => sum + req.weight, 0) >= 100}
@@ -2162,7 +3163,8 @@ function App() {
                     <span className="weight-value">{getGeneralFitWeight()}%</span>
                   </div>
                 </div>
-              </div>
+                </div>
+              )}
             </div>
 
             <div className="button-group">

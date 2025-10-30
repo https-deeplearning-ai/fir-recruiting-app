@@ -38,11 +38,22 @@ Thumbs.db
 
 # Logs
 *.log
+backend/logs/
+backend/scripts/test_output.log
 
 # Test files
 test.csv
 *.csv
 !requirements.txt
+test_*.py
+*_test.py
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*~
 
 # Frontend build (uncomment if you want to rebuild on Render)
 # frontend/build/
