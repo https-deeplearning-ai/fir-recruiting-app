@@ -3729,3 +3729,425 @@ span.result-candidate-name.no-link {
     flex: 1;
   }
 }
+
+/* ========================================
+   Company Research Agent Styles
+   ======================================== */
+
+.company-research-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.company-research-header {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.company-research-header h2 {
+  color: #1a1a1a;
+  margin-bottom: 10px;
+  font-size: 28px;
+}
+
+.company-research-description {
+  color: #666;
+  font-size: 16px;
+}
+
+.company-jd-input-section {
+  background: #f5f5f5;
+  padding: 25px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+.company-jd-input-section h3 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.company-jd-textarea {
+  width: 100%;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  resize: vertical;
+  margin-bottom: 15px;
+}
+
+.company-jd-textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.company-research-btn {
+  background: #6366f1;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.company-research-btn:hover:not(:disabled) {
+  background: #5558e3;
+  transform: translateY(-1px);
+}
+
+.company-research-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.research-status-section {
+  background: #fff3cd;
+  padding: 25px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+.research-status-section h3 {
+  margin: 0 0 20px 0;
+  color: #856404;
+}
+
+/* Phase Indicators */
+.phase-indicators {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 0 10px;
+}
+
+.phase-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.4;
+  transition: all 0.3s;
+}
+
+.phase-item.active {
+  opacity: 1;
+}
+
+.phase-item.completed {
+  opacity: 0.8;
+}
+
+.phase-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+
+.phase-item.active .phase-icon {
+  background: #6366f1;
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.phase-item.completed .phase-icon {
+  background: #28a745;
+  color: white;
+}
+
+.phase-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+}
+
+.phase-item.active .phase-label {
+  color: #6366f1;
+  font-weight: 600;
+}
+
+.phase-divider {
+  flex: 1;
+  height: 2px;
+  background: #e0e0e0;
+  margin: 0 15px;
+  margin-bottom: 24px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+  }
+}
+
+/* Current Action */
+.current-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 6px;
+  margin: 15px 0;
+  font-size: 14px;
+  color: #333;
+  border-left: 3px solid #6366f1;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Research Metrics */
+.research-metrics {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 15px 0;
+}
+
+.metric {
+  font-size: 14px;
+  color: #666;
+}
+
+.metric strong {
+  color: #333;
+  margin-right: 5px;
+}
+
+/* Discovered Companies */
+.discovered-companies {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+.discovered-companies h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #856404;
+  font-weight: 600;
+}
+
+.company-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.company-chip {
+  background: white;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  color: #333;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s;
+}
+
+.company-chip:hover {
+  border-color: #6366f1;
+  background: #f5f5ff;
+}
+
+.company-chip.more {
+  background: #6366f1;
+  color: white;
+  border-color: #6366f1;
+  font-weight: 500;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 15px 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #66bb6a);
+  transition: width 0.3s ease;
+}
+
+.research-results-section {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.results-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.export-csv-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-csv-btn:hover {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+.results-summary {
+  background: #e8f5e9;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 25px;
+  display: flex;
+  gap: 30px;
+}
+
+.results-summary p {
+  margin: 0;
+  font-size: 15px;
+  color: #2e7d32;
+}
+
+.category-section {
+  margin: 30px 0;
+}
+
+.category-section h4 {
+  color: #333;
+  border-bottom: 2px solid #6366f1;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  font-size: 18px;
+}
+
+.company-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.company-card {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  transition: all 0.2s;
+}
+
+.company-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-color: #6366f1;
+}
+
+.company-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.company-header h5 {
+  margin: 0;
+  color: #212529;
+  font-size: 18px;
+  flex: 1;
+}
+
+.score-badge {
+  background: #6366f1;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 14px;
+  white-space: nowrap;
+  margin-left: 10px;
+}
+
+.reasoning {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 12px 0;
+  min-height: 60px;
+}
+
+.company-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #6c757d;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.company-meta span {
+  background: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Responsive adjustments for Company Research */
+@media (max-width: 768px) {
+  .company-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .results-summary {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .results-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .export-csv-btn {
+    width: 100%;
+  }
+}

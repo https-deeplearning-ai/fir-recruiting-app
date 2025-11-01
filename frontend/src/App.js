@@ -61,6 +61,14 @@ function App() {
   const [jdAnalyzerMode, setJdAnalyzerMode] = useState(false); // Toggle for JD Analyzer view
   const [jdText, setJdText] = useState(''); // Raw job description text
   const [jdAnalyzing, setJdAnalyzing] = useState(false); // Loading state during JD analysis
+
+  // Company Research Agent state
+  const [companyResearchMode, setCompanyResearchMode] = useState(false); // Toggle for Company Research view
+  const [companyJdText, setCompanyJdText] = useState(''); // JD text for company research
+  const [companyResearching, setCompanyResearching] = useState(false); // Loading state during research
+  const [companySessionId, setCompanySessionId] = useState(null); // Current research session ID
+  const [companyResearchStatus, setCompanyResearchStatus] = useState(null); // Session status
+  const [companyResearchResults, setCompanyResearchResults] = useState(null); // Research results
   const [extractedRequirements, setExtractedRequirements] = useState([]); // AI-extracted requirements
   const [activeJD, setActiveJD] = useState(null); // Currently active JD {title, requirements, timestamp}
   const [jdTitle, setJdTitle] = useState(''); // User-provided title for the JD
@@ -1753,12 +1761,13 @@ function App() {
 
         <div className="mode-toggle">
           <button
-            className={`mode-btn ${!batchMode && !searchMode && !listsMode && !jdAnalyzerMode ? 'active' : ''}`}
+            className={`mode-btn ${!batchMode && !searchMode && !listsMode && !jdAnalyzerMode && !companyResearchMode ? 'active' : ''}`}
             onClick={() => {
               setBatchMode(false);
               setSearchMode(false);
               setListsMode(false);
               setJdAnalyzerMode(false);
+              setCompanyResearchMode(false);
             }}
           >
             Single Profile
@@ -1770,6 +1779,7 @@ function App() {
               setBatchMode(false);
               setListsMode(false);
               setJdAnalyzerMode(false);
+              setCompanyResearchMode(false);
             }}
           >
             Profile Search
@@ -1781,9 +1791,22 @@ function App() {
               setSearchMode(false);
               setBatchMode(false);
               setListsMode(false);
+              setCompanyResearchMode(false);
             }}
           >
             JD Analyzer {activeJD && '(Active)'}
+          </button>
+          <button
+            className={`mode-btn ${companyResearchMode ? 'active' : ''}`}
+            onClick={() => {
+              setCompanyResearchMode(true);
+              setJdAnalyzerMode(false);
+              setSearchMode(false);
+              setBatchMode(false);
+              setListsMode(false);
+            }}
+          >
+            Company Research
           </button>
           <button
             className={`mode-btn ${batchMode && !searchMode ? 'active' : ''}`}
@@ -1792,6 +1815,7 @@ function App() {
               setSearchMode(false);
               setListsMode(false);
               setJdAnalyzerMode(false);
+              setCompanyResearchMode(false);
             }}
           >
             Batch Processing
@@ -1803,6 +1827,7 @@ function App() {
               setBatchMode(false);
               setSearchMode(false);
               setJdAnalyzerMode(false);
+              setCompanyResearchMode(false);
             }}
           >
             Lists
@@ -2745,6 +2770,336 @@ function App() {
                   💡 Once activated, these requirements will be used for all profile assessments
                   in Single Profile and Batch modes until you clear or change them.
                 </p>
+              </div>
+            )}
+          </div>
+        ) : companyResearchMode ? (
+          <div className="company-research-container">
+            <div className="company-research-header">
+              <h2>🏢 Company Research Agent</h2>
+              <p className="company-research-description">
+                Discover companies where the best candidates for your role currently work
+              </p>
+            </div>
+
+            {/* Step 1: Input JD */}
+            <div className="company-jd-input-section">
+              <h3>Step 1: Paste Job Description</h3>
+              <textarea
+                className="company-jd-textarea"
+                value={companyJdText}
+                onChange={(e) => setCompanyJdText(e.target.value)}
+                placeholder="Paste the full job description here..."
+                rows="12"
+                disabled={companyResearching}
+              />
+              <button
+                className="company-research-btn"
+                onClick={async () => {
+                  if (!companyJdText.trim()) {
+                    showNotification('Please paste a job description', 'error');
+                    return;
+                  }
+
+                  setCompanyResearching(true);
+                  try {
+                    // Step 1: Parse JD to extract structured requirements
+                    showNotification('Analyzing job description...', 'info');
+
+                    const parseResponse = await fetch('http://localhost:5001/api/jd/parse', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ jd_text: companyJdText })
+                    });
+
+                    if (!parseResponse.ok) {
+                      throw new Error('Failed to parse job description');
+                    }
+
+                    const parseData = await parseResponse.json();
+                    console.log('Parsed JD:', parseData);
+
+                    // Step 2: Extract company mentions from JD text
+                    // More robust extraction: find ALL capitalized names that look like companies
+                    const mentionedCompanies = [];
+
+                    // Pattern 1: After trigger phrases like "companies like X, Y, and Z"
+                    const triggerPhrases = [
+                      /(?:companies like|similar to|work at|admire companies|companies such as|examples include)\s+([^.]+)/gi,
+                      /(?:experience at)\s+([A-Z][a-z]+(?:[A-Z][a-z]+)?)/g
+                    ];
+
+                    triggerPhrases.forEach(regex => {
+                      let match;
+                      while ((match = regex.exec(companyJdText)) !== null) {
+                        const phrase = match[1];
+                        // Extract individual company names from comma/and-separated list
+                        const companyNames = phrase.split(/,|\s+and\s+|\s+or\s+/)
+                          .map(s => s.trim())
+                          .filter(s => s.length > 0 && /^[A-Z]/.test(s))  // Must start with capital
+                          .map(s => s.replace(/[^a-zA-Z\s]/g, '').trim())  // Remove punctuation
+                          .filter(s => s.length > 2);  // At least 3 chars
+
+                        mentionedCompanies.push(...companyNames);
+                      }
+                    });
+
+                    // Deduplicate and clean
+                    const uniqueCompanies = [...new Set(mentionedCompanies)]
+                      .filter(c => c && c.length >= 3)
+                      .slice(0, 10);  // Limit to 10 companies
+
+                    // Step 3: Build structured research request
+                    // Note: For competitive intelligence, we don't filter by company stage
+                    // We want ALL competitors regardless of funding stage
+                    const jdData = {
+                      title: parseData.role_title || "Engineering Role",
+                      company: "YourCompany",
+                      company_stage: parseData.company_stage || "",  // Use actual company stage from JD, not seniority level
+                      industries: parseData.domain_expertise && parseData.domain_expertise.length > 0
+                                  ? parseData.domain_expertise
+                                  : ["tech"],
+                      requirements: {
+                        technical_skills: parseData.technical_skills || [],
+                        domain: parseData.domain_expertise && parseData.domain_expertise[0]
+                                ? parseData.domain_expertise[0]
+                                : "technology"
+                      },
+                      target_companies: {
+                        mentioned_companies: uniqueCompanies.length > 0
+                                            ? uniqueCompanies
+                                            : [],
+                        industry_context: parseData.domain_expertise
+                                          ? parseData.domain_expertise.join(" ")
+                                          : "tech"
+                      }
+                    };
+
+                    console.log('Research request:', jdData);
+                    showNotification('Starting company research...', 'info');
+
+                    // Step 4: Start company research
+                    const response = await fetch('http://localhost:5001/research-companies', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        jd_data: jdData,
+                        config: {
+                          max_companies: 50,
+                          min_relevance_score: 5.0,
+                          use_gpt5_deep_research: true
+                        }
+                      })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                      setCompanySessionId(data.session_id);
+                      setCompanyResearchStatus({ status: 'running', progress_percentage: 0 });
+                      showNotification('Company research started!', 'success');
+
+                      // Use Server-Sent Events for real-time streaming
+                      const eventSource = new EventSource(`http://localhost:5001/research-companies/${data.session_id}/stream`);
+
+                      eventSource.onmessage = async (event) => {
+                        const streamData = JSON.parse(event.data);
+
+                        if (streamData.error) {
+                          console.error('Stream error:', streamData.error);
+                          eventSource.close();
+                          showNotification('Stream error: ' + streamData.error, 'error');
+                          setCompanyResearching(false);
+                          return;
+                        }
+
+                        if (streamData.success && streamData.session) {
+                          setCompanyResearchStatus(streamData.session);
+
+                          if (streamData.session.status === 'completed') {
+                            eventSource.close();
+                            // Fetch results
+                            const resultsResponse = await fetch(`http://localhost:5001/research-companies/${data.session_id}/results`);
+                            const resultsData = await resultsResponse.json();
+
+                            if (resultsData.success) {
+                              setCompanyResearchResults(resultsData.results);
+                              showNotification('Research completed!', 'success');
+                            }
+                            setCompanyResearching(false);
+                          } else if (streamData.session.status === 'failed') {
+                            eventSource.close();
+                            showNotification('Research failed: ' + streamData.session.error_message, 'error');
+                            setCompanyResearching(false);
+                          }
+                        }
+                      };
+
+                      eventSource.onerror = (error) => {
+                        console.error('EventSource error:', error);
+                        eventSource.close();
+                        showNotification('Connection error. Please try again.', 'error');
+                        setCompanyResearching(false);
+                      };
+                    } else {
+                      showNotification('Failed to start research: ' + data.error, 'error');
+                      setCompanyResearching(false);
+                    }
+                  } catch (error) {
+                    showNotification('Error: ' + error.message, 'error');
+                    setCompanyResearching(false);
+                  }
+                }}
+                disabled={companyResearching || !companyJdText.trim()}
+              >
+                {companyResearching ? 'Researching...' : 'Start Research'}
+              </button>
+            </div>
+
+            {/* Progress Indicator */}
+            {companyResearchStatus && (
+              <div className="research-status-section">
+                <h3>Research Progress</h3>
+
+                {/* Phase Indicators */}
+                <div className="phase-indicators">
+                  <div className={`phase-item ${
+                    companyResearchStatus.search_config?.current_phase === 'discovery' ? 'active' :
+                    ['screening', 'deep_research'].includes(companyResearchStatus.search_config?.current_phase) ? 'completed' : ''
+                  }`}>
+                    <span className="phase-icon">{
+                      ['screening', 'deep_research'].includes(companyResearchStatus.search_config?.current_phase) ? '✓' : '1'
+                    }</span>
+                    <span className="phase-label">Discovery</span>
+                  </div>
+                  <div className="phase-divider"></div>
+                  <div className={`phase-item ${
+                    companyResearchStatus.search_config?.current_phase === 'screening' ? 'active' :
+                    companyResearchStatus.search_config?.current_phase === 'deep_research' ? 'completed' : ''
+                  }`}>
+                    <span className="phase-icon">{
+                      companyResearchStatus.search_config?.current_phase === 'deep_research' ? '✓' : '2'
+                    }</span>
+                    <span className="phase-label">Screening</span>
+                  </div>
+                  <div className="phase-divider"></div>
+                  <div className={`phase-item ${
+                    companyResearchStatus.search_config?.current_phase === 'deep_research' ? 'active' : ''
+                  }`}>
+                    <span className="phase-icon">3</span>
+                    <span className="phase-label">Deep Research</span>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${companyResearchStatus.progress_percentage || 0}%` }}
+                  />
+                </div>
+
+                {/* Current Action */}
+                {companyResearchStatus.search_config?.current_action && (
+                  <div className="current-action">
+                    <span className="spinner"></span>
+                    <span>{companyResearchStatus.search_config.current_action}</span>
+                  </div>
+                )}
+
+                {/* Metrics */}
+                <div className="research-metrics">
+                  {companyResearchStatus.total_discovered > 0 && (
+                    <span className="metric">
+                      <strong>Discovered:</strong> {companyResearchStatus.total_discovered}
+                    </span>
+                  )}
+                  {companyResearchStatus.total_evaluated > 0 && (
+                    <span className="metric">
+                      <strong>Evaluated:</strong> {companyResearchStatus.total_evaluated}
+                    </span>
+                  )}
+                  {companyResearchStatus.total_selected > 0 && (
+                    <span className="metric">
+                      <strong>Selected:</strong> {companyResearchStatus.total_selected}
+                    </span>
+                  )}
+                </div>
+
+                {/* Discovered Companies List */}
+                {companyResearchStatus.search_config?.discovered_companies &&
+                 companyResearchStatus.search_config.discovered_companies.length > 0 && (
+                  <div className="discovered-companies">
+                    <h4>Companies Found:</h4>
+                    <div className="company-chips">
+                      {companyResearchStatus.search_config.discovered_companies.slice(0, 15).map((name, idx) => (
+                        <span key={idx} className="company-chip">{name}</span>
+                      ))}
+                      {companyResearchStatus.search_config.discovered_companies.length > 15 && (
+                        <span className="company-chip more">
+                          +{companyResearchStatus.search_config.discovered_companies.length - 15} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Results Display */}
+            {companyResearchResults && (
+              <div className="research-results-section">
+                <div className="results-header">
+                  <h3>Research Results</h3>
+                  <button
+                    className="export-csv-btn"
+                    onClick={async () => {
+                      const response = await fetch(`http://localhost:5001/research-companies/${companySessionId}/export-csv`);
+                      const data = await response.json();
+                      if (data.success) {
+                        const blob = new Blob([data.csv_data], { type: 'text/csv' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = data.filename;
+                        a.click();
+                        showNotification('CSV exported!', 'success');
+                      }
+                    }}
+                  >
+                    Export CSV
+                  </button>
+                </div>
+
+                <div className="results-summary">
+                  <p>Total Companies: {companyResearchResults.summary.total_companies}</p>
+                  <p>Average Score: {companyResearchResults.summary.avg_relevance_score}</p>
+                  <p>Top Company: {companyResearchResults.summary.top_company}</p>
+                </div>
+
+                {Object.entries(companyResearchResults.companies_by_category).map(([category, companies]) => (
+                  companies.length > 0 && (
+                    <div key={category} className="category-section">
+                      <h4>{category.replace('_', ' ').toUpperCase()} ({companies.length})</h4>
+                      <div className="company-cards">
+                        {companies.map((company, idx) => (
+                          <div key={idx} className="company-card">
+                            <div className="company-header">
+                              <h5>{company.company_name}</h5>
+                              <span className="score-badge">{company.relevance_score}/10</span>
+                            </div>
+                            <p className="reasoning">{company.relevance_reasoning}</p>
+                            <div className="company-meta">
+                              <span>{company.industry}</span>
+                              {company.employee_count && <span>{company.employee_count} employees</span>}
+                              {company.funding_stage && <span>{company.funding_stage}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                ))}
               </div>
             )}
           </div>
@@ -3718,7 +4073,7 @@ function App() {
       {/* Notification */}
       {notification.show && (
         <div className={`notification ${notification.type}`}>
-          {notification.type === 'success' ? '✅' : '❌'} {notification.message}
+          {notification.type === 'success' ? '✅' : notification.type === 'info' ? 'ℹ️' : '❌'} {notification.message}
       </div>
       )}
 

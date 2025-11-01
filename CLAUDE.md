@@ -4,7 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A full-stack LinkedIn profile assessment application that combines CoreSignal API for profile data with Claude AI for intelligent candidate evaluation. The system supports single profile assessment, batch processing via CSV, intelligent profile search with natural language queries, and a comprehensive recruiter feedback system with viewport-aware UI.
+A full-stack LinkedIn profile assessment application that combines CoreSignal API for profile data with Claude AI for intelligent candidate evaluation. The system supports:
+- Single profile assessment with weighted scoring
+- Batch processing via CSV upload
+- Intelligent profile search with natural language queries
+- **Job Description (JD) Analyzer** - Auto-extract weighted assessment criteria from job descriptions
+- Reverse-engineering implicit hiring criteria from candidate shortlists
+- Comprehensive recruiter feedback system with viewport-aware UI
 
 ## Tech Stack
 
@@ -122,17 +128,41 @@ cd .. && cp -r frontend/build/. backend/
 1. **Single Profile:** User submits LinkedIn URL → `/fetch-profile` (CoreSignal) → `/assess-profile` (Claude AI) → Display results
 2. **Batch Processing:** CSV upload → Parse URLs → Parallel fetch + assess via `/batch-assess-profiles` → Sorted results
 3. **Profile Search:** Natural language query → `/search-profiles` → AI extracts criteria → CoreSignal search → Download CSV
-4. **Recruiter Feedback:** User actions → `/save-feedback` (Supabase) → `/get-feedback/<url>` (Load history) → Display in drawer
+4. **JD Analyzer:** User pastes JD → `/api/jd/full-analysis` → Extract requirements + generate weights → Auto-populate assessment criteria
+5. **Shortlist Analysis:** CSV upload → `/api/jd/analyze-shortlist` → Discover implicit criteria → Compare to stated JD requirements
+6. **Recruiter Feedback:** User actions → `/save-feedback` (Supabase) → `/get-feedback/<url>` (Load history) → Display in drawer
 
 ### Key Backend Components
 
-**app.py (1317 lines):** Main Flask application
+**app.py (2630 lines):** Main Flask application
 - `/fetch-profile`: Fetches LinkedIn data from CoreSignal by URL
 - `/assess-profile`: AI assessment using Claude with weighted scoring
 - `/batch-assess-profiles`: High-concurrency parallel processing (15-50 workers based on deployment)
 - `/search-profiles`: Natural language search → CoreSignal query → CSV export
 - `/save-assessment`, `/load-assessments`: Supabase database operations for assessments
-- `/save-feedback`, `/get-feedback/<url>`, `/clear-feedback`: Recruiter feedback system (NEW)
+- `/save-feedback`, `/get-feedback/<url>`, `/clear-feedback`: Recruiter feedback system
+- **JD Analyzer endpoints** (registered from `jd_analyzer.api_endpoints`):
+  - `/api/jd/parse`: Extract structured requirements from JD text
+  - `/api/jd/generate-weights`: Generate weighted assessment criteria
+  - `/api/jd/full-analysis`: Complete pipeline (parse + weights + keywords)
+  - `/api/jd/analyze-shortlist`: Reverse-engineer criteria from CSV shortlist
+  - `/api/jd/extract-keywords`: Extract CoreSignal search keywords
+
+**jd_analyzer/** JD analysis module for auto-extracting weighted criteria
+- `jd_parser.py`: Two-stage AI pipeline using Claude Sonnet 4.5 (temp 0.2 for parsing)
+  - Stage 1: JD text → structured requirements (must-have, nice-to-have, skills, seniority)
+  - Returns: `JDRequirements` Pydantic model with validation
+- `weight_generator.py`: Requirements → weighted assessment criteria (temp 0.3)
+  - Generates 1-5 custom requirements with % weights (total ~95%, leaving ~5% for General Fit)
+  - Includes scoring rubrics (1-10 scale) for each requirement
+- `shortlist_analyzer.py`: Reverse-engineer implicit criteria from candidate CSV
+  - Analyzes location distribution, seniority patterns, company pedigree, domain clustering
+  - Compares actual shortlist patterns to stated JD requirements
+  - Discovers gaps (e.g., "JD says remote, but 69% are Bay Area")
+- `query_builder.py`: Requirements → CoreSignal search query with 3-tier coverage strategy
+- `llm_query_generator.py`: Multi-LLM query generation (Claude, GPT, Gemini comparison)
+- `models.py`: Pydantic models for type-safe API responses
+- `debug_logger.py`: Structured logging with configurable verbosity
 
 **coresignal_service.py:** CoreSignal API integration
 - `fetch_linkedin_profile()`: Two-step process (search by URL → fetch full profile by ID)
@@ -164,18 +194,39 @@ cd .. && cp -r frontend/build/. backend/
 
 ### Frontend Architecture
 
-**App.js (2300+ lines):** Single-page React application with three modes
+**App.js (3740 lines):** Single-page React application with four modes
 - **Core Features:** Single Profile, Profile Search, Batch Processing
-- **NEW: Recruiter Feedback System:** Sliding drawer with voice notes, quick actions, history
-- **NEW: Viewport Detection:** Intersection Observer API for smart accordion management
+- **JD Analyzer Mode:** Job description input → auto-populate weighted criteria → search integration
+- **Recruiter Feedback System:** Sliding drawer with voice notes, quick actions, history
+- **Viewport Detection:** Intersection Observer API for smart accordion management
 
-**Key State Management:**
+**Key State Management (60+ state variables):**
+
+*Assessment State:*
 - `singleProfileResults`, `batchResults`, `savedAssessments`: Assessment data arrays
+- `weightedRequirements`: Array of requirement objects with weights (auto-populated by JD Analyzer)
+- `generalFitWeight`: Auto-calculated from 100% - sum(custom weights)
+
+*JD Analyzer State:*
+- `jdAnalyzerMode`: Toggle for JD analyzer view
+- `jdText`: Raw job description input (textarea)
+- `jdAnalyzing`: Loading state during AI analysis
+- `activeJD`: Currently active JD with parsed requirements
+- `jdSearchResults`: CoreSignal search results from JD keywords
+- `jdFullResults`: Full 100 candidate results
+- Multi-LLM states: `claudeResult`, `gptResult`, `geminiResult` (independent loading)
+
+*Feedback State:*
 - `drawerOpen`: Map of which candidates have feedback drawers expanded
 - `activeCandidate`: Currently active candidate for feedback
+- `feedbackHistory`: All feedback loaded from database per candidate
+- `selectedRecruiter`: Current recruiter name (e.g., "Jon", "Mary")
+- `isRecording[linkedinUrl]`: Voice recording state per candidate
+
+*UI State:*
 - `openAccordionId`: Which accordion is currently open (single-accordion mode)
 - `candidateVisibility`: Viewport visibility ratio (0-1) for each candidate (Intersection Observer)
-- `feedbackHistory`: All feedback loaded from database per candidate
+- `validationModalOpen`: Crunchbase URL validation modal state
 
 **Component Architecture:**
 - `WorkExperienceCard.js`: Individual job card with company logo and enriched data
@@ -231,6 +282,97 @@ See [docs/SUPABASE_SCHEMA.sql](docs/SUPABASE_SCHEMA.sql) for complete schema.
 - Supports location variations (Bay Area, NYC, etc.) with wildcard matching
 - Industry mapping to CoreSignal's exact taxonomy
 - Management level, department, role title, skills filtering
+
+## JD Analyzer Workflow
+
+The JD Analyzer module automates the creation of weighted assessment criteria from job descriptions and can reverse-engineer implicit hiring criteria from candidate shortlists.
+
+### Two-Stage AI Pipeline
+
+**Stage 1: JD Parsing (Claude Sonnet 4.5, temp 0.2)**
+```
+Raw JD Text
+    ↓
+JDParser.parse(jd_text)
+    ↓
+JDRequirements Model
+    ├─ role_title: "Senior ML Engineer"
+    ├─ seniority_level: "senior"
+    ├─ must_have: ["5+ years ML", "Python", "LLMs"]
+    ├─ nice_to_have: ["Voice AI experience"]
+    ├─ technical_skills: ["Python", "PyTorch", "LLMs"]
+    ├─ domain_expertise: ["NLP", "Voice AI"]
+    ├─ experience_years: {"minimum": 5, "preferred": 8}
+    ├─ location: "San Francisco Bay Area"
+    └─ implicit_criteria: {...}
+```
+
+**Stage 2: Weight Generation (Claude Sonnet 4.5, temp 0.3)**
+```
+JDRequirements
+    ↓
+WeightGenerator.generate_weighted_requirements(requirements, num=5)
+    ↓
+Weighted Requirements Array
+    ├─ Requirement 1: "Voice AI / Real-time Systems Expertise" (35%)
+    ├─ Requirement 2: "AI/ML Infrastructure & LLMs" (25%)
+    ├─ Requirement 3: "0→1 Product Leadership" (20%)
+    ├─ Requirement 4: "Developer Tools / Platform Engineering" (10%)
+    ├─ Requirement 5: "Fundraising & GTM Experience" (10%)
+    └─ General Fit: Auto-calculated (0% in this case)
+```
+
+Each requirement includes:
+- `requirement`: Short descriptive name
+- `weight`: Percentage (0-100)
+- `description`: Detailed explanation of what to assess
+- `scoring_criteria`: 1-10 rubric (e.g., "10 = Built production voice AI systems; 5 = Used voice APIs; 1 = No experience")
+
+### Reverse-Engineering Implicit Criteria
+
+**Use Case:** Discover unstated hiring preferences by analyzing a recruiter's hand-selected candidate shortlist
+
+**Workflow:**
+1. Upload CSV with columns: Profile URL, Current Title, Current Company, Location
+2. `ShortlistAnalyzer` extracts patterns:
+   - Location distribution (e.g., 69% Bay Area despite "Remote" JD)
+   - Seniority distribution (e.g., 50% C-Suite, 21% Senior IC)
+   - Company pedigree (e.g., 37% from Big Tech + AI Infrastructure)
+   - Domain clustering (e.g., 19% from Voice AI specialists)
+3. Compare to stated JD requirements to discover gaps
+4. Generate post-search ranking model with scoring weights
+
+**Example Output (Voice AI Role Case Study):**
+- **Location Gap:** JD states "United States, Remote" → Reality: 69% Bay Area
+- **Domain Importance:** JD lists Voice AI as "nice to have" → Reality: 19% from Voice AI companies (6x higher than random)
+- **Company Pedigree:** Not mentioned in JD → Reality: 15% Big Tech, 22% AI Infrastructure
+- **Seniority Flexibility:** CEO role title → Reality: 50% C-Suite, 21% Senior IC (open to diverse levels)
+
+See `docs/reverse-engineering/REVERSE_ENGINEERING_REPORT.md` for full 15-page analysis.
+
+### Integration with CoreSignal Search
+
+**Keyword Extraction:**
+```python
+POST /api/jd/extract-keywords
+{
+  "jd_text": "Senior ML Engineer with voice AI experience..."
+}
+
+Returns:
+{
+  "keywords": ["machine learning", "voice AI", "speech recognition", "NLP"],
+  "role_titles": ["ML Engineer", "AI Engineer", "Research Scientist"],
+  "companies": ["Otter.ai", "Deepgram", "AssemblyAI"]
+}
+```
+
+**3-Tier Query Generation:**
+- **Tier 1:** Strict query matching all must-have requirements (narrow, high precision)
+- **Tier 2:** Relaxed query with OR conditions for some requirements (balanced)
+- **Tier 3:** Broad query focusing on role title and seniority (wide, high recall)
+
+Each tier estimates coverage (e.g., Tier 1: ~20 candidates, Tier 2: ~60, Tier 3: ~100+)
 
 ## Important Implementation Details
 
@@ -370,14 +512,40 @@ Robust parser handles:
    - ❌ Don't create unnecessary markdown (.md) files
    - ✅ Only create documentation when explicitly required by the user
 
+7. **JD Analyzer Integration:**
+   - ❌ Don't manually create weighted requirements when JD text is available
+   - ✅ Use `/api/jd/full-analysis` to auto-extract criteria from JD
+   - ❌ Don't assume weights must sum to exactly 100%
+   - ✅ Allow ~95% for custom requirements, ~5% auto-calculated for General Fit
+   - ❌ Don't use arbitrary temperature for JD parsing
+   - ✅ Use temp 0.2 for parsing (deterministic), temp 0.3 for weight generation (slightly creative)
+
+8. **Pydantic Model Validation:**
+   - ❌ Don't access dict keys directly on Pydantic models
+   - ✅ Use `Model.from_dict()` or `Model.model_validate()` for safe conversion
+   - ❌ Don't ignore validation errors
+   - ✅ Handle edge cases like `experience_years` being int/list/dict
+
 ## Documentation Structure
 
 - `docs/SUPABASE_SCHEMA.sql` - Complete database schema
+- `docs/JD_ANALYZER_INTEGRATION.md` - Frontend integration guide for JD Analyzer (17 pages)
+- `docs/JD_ANALYZER_PROMPT_ANALYSIS.md` - Prompt engineering analysis (16 pages)
+- `docs/reverse-engineering/` - Real-world case study: Voice AI role (68 candidates analyzed)
+  - `REVERSE_ENGINEERING_REPORT.md` - 15-page comprehensive report
+  - Discovers 5 major gaps between stated JD requirements and actual recruiter selection
+  - Post-search ranking model with scoring weights
+  - 3-tier CoreSignal search query generation with coverage analysis
+- `docs/evidence/` - Multi-source API evaluation data
+  - `coresignal_multi_source_employee_data_dictionary.md` - Complete API field reference
+  - `coresignal_search_api_reference.md` - Search endpoint documentation
 - `docs/archived/` - Historical documentation and analysis
 - `docs/investigations/` - Research reports (company data, API comparisons)
 - `docs/technical-decisions/` - Architecture decisions with evidence
   - `company-base-vs-clean/` - Why we use company_base endpoint
   - `WHY_SEARCH_API_DOESNT_WORK.md` - Search API limitations
+- `backend/jd_analyzer/README.md` - JD Analyzer module documentation
+- `backend/jd_analyzer/CORESIGNAL_FIELD_REFERENCE.md` - Complete CoreSignal field mappings
 
 [byterover-mcp]
 

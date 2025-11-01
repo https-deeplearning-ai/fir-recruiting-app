@@ -72,7 +72,26 @@ def register_jd_analyzer_routes(app):
                     "error": "No job description text provided"
                 }), 400
 
+            # ============= DEBUG LOGGING =============
+            print(f"\n{'='*100}")
+            print(f"[JD PARSER INPUT] Received JD text (length={len(jd_text)} chars)")
+            print(f"[JD PARSER INPUT] First 300 chars:")
+            print(f"{jd_text[:300]}...")
+            print(f"{'='*100}\n")
+            # =========================================
+
             requirements = jd_parser.parse(jd_text)
+
+            # ============= DEBUG LOGGING =============
+            print(f"\n{'='*100}")
+            print(f"[JD PARSER OUTPUT] Extracted requirements:")
+            print(f"  - role_title: {requirements.role_title}")
+            print(f"  - seniority_level: {requirements.seniority_level}")
+            print(f"  - domain_expertise: {requirements.domain_expertise}")
+            print(f"  - technical_skills: {requirements.technical_skills[:5] if len(requirements.technical_skills) > 5 else requirements.technical_skills}")
+            print(f"  - location: {requirements.location}")
+            print(f"{'='*100}\n")
+            # =========================================
 
             return jsonify({
                 "success": True,
@@ -80,6 +99,7 @@ def register_jd_analyzer_routes(app):
             })
 
         except Exception as e:
+            print(f"[JD PARSER ERROR] {str(e)}")
             return jsonify({
                 "success": False,
                 "error": str(e)
