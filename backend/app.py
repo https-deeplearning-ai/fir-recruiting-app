@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import json
 import os
@@ -2587,6 +2587,379 @@ def export_list_to_csv(list_id):
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Failed to export CSV: {str(e)}'}), 500
+
+# ========================================
+# Company Research Endpoints
+# ========================================
+
+# Initialize company research service (lazy loading)
+company_research_service = None
+
+def get_company_research_service():
+    """Lazy load company research service"""
+    global company_research_service
+    if company_research_service is None:
+        try:
+            from company_research_service import CompanyResearchService
+            company_research_service = CompanyResearchService()
+            print("✓ Company Research Service initialized")
+        except Exception as e:
+            print(f"Warning: Could not initialize Company Research Service: {e}")
+    return company_research_service
+
+@app.route('/research-companies', methods=['POST'])
+def research_companies_endpoint():
+    """
+    Start company research for a job description.
+
+    Request Body:
+    {
+        "jd_id": "unique_id",  # Optional, will generate if not provided
+        "jd_data": {
+            "title": "Senior ML Engineer",
+            "company": "TechCorp",
+            "company_stage": "series_b",
+            "requirements": {...},
+            "target_companies": {
+                "mentioned_companies": ["Stripe", "Square"],
+                "industry_context": "fintech"
+            }
+        },
+        "config": {
+            "max_companies": 50,
+            "min_relevance_score": 5.0,
+            "include_competitors": true,
+            "use_gpt5_deep_research": true
+        }
+    }
+    """
+    try:
+        service = get_company_research_service()
+        if not service:
+            return jsonify({'error': 'Company research service not available'}), 503
+
+        data = request.get_json()
+
+        # Generate JD ID if not provided
+        import uuid
+        jd_id = data.get('jd_id', str(uuid.uuid4()))
+        jd_data = data.get('jd_data')
+        config = data.get('config', {})
+
+        if not jd_data:
+            return jsonify({'error': 'jd_data is required'}), 400
+
+        # ============= DEBUG LOGGING =============
+        print(f"\n{'='*100}")
+        print(f"[RESEARCH REQUEST] Received research request")
+        print(f"[RESEARCH REQUEST] JD ID: {jd_id}")
+        print(f"[RESEARCH REQUEST] JD Data:")
+        print(f"  - title: {jd_data.get('title')}")
+        print(f"  - company_stage: {jd_data.get('company_stage')}")
+        print(f"  - industries: {jd_data.get('industries')}")
+        print(f"  - requirements.domain: {jd_data.get('requirements', {}).get('domain')}")
+        print(f"  - requirements.technical_skills: {jd_data.get('requirements', {}).get('technical_skills')}")
+        print(f"  - target_companies.mentioned_companies: {jd_data.get('target_companies', {}).get('mentioned_companies')}")
+        print(f"  - target_companies.industry_context: {jd_data.get('target_companies', {}).get('industry_context')}")
+        print(f"[RESEARCH REQUEST] Config: {config}")
+        print(f"{'='*100}\n")
+        # =========================================
+
+        # Check for existing session
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        existing = supabase.table("company_research_sessions").select("*").eq(
+            "jd_id", jd_id
+        ).execute()
+
+        if existing.data and existing.data[0].get('status') == 'running':
+            return jsonify({
+                'success': False,
+                'error': 'Research already in progress for this JD'
+            }), 409
+
+        # Start async research in background
+        async def run_research():
+            await service.research_companies_for_jd(jd_id, jd_data, config)
+
+        # Create new event loop for this task
+        import threading
+        def background_task():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(run_research())
+            loop.close()
+
+        thread = threading.Thread(target=background_task)
+        thread.start()
+
+        return jsonify({
+            'success': True,
+            'session_id': jd_id,
+            'status': 'running',
+            'message': 'Company research started in background'
+        })
+
+    except Exception as e:
+        print(f"Research error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/research-companies/<jd_id>/status', methods=['GET'])
+def get_research_status(jd_id):
+    """Get research session status and progress."""
+    try:
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        result = supabase.table("company_research_sessions").select("*").eq(
+            "jd_id", jd_id
+        ).execute()
+
+        if not result.data:
+            return jsonify({'error': 'Session not found'}), 404
+
+        session = result.data[0]
+
+        # Calculate progress percentage
+        if session['status'] == 'completed':
+            progress = 100
+        elif session['status'] == 'failed':
+            progress = 0
+        else:
+            # Estimate based on companies evaluated
+            total_expected = session.get('max_companies', 50)
+            evaluated = session.get('total_evaluated', 0)
+            progress = min(int((evaluated / total_expected) * 100), 99)
+
+        session['progress_percentage'] = progress
+
+        return jsonify({
+            'success': True,
+            'session': session
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/research-companies/<jd_id>/stream', methods=['GET'])
+def stream_research_status(jd_id):
+    """
+    Stream research session status in real-time using Server-Sent Events (SSE).
+
+    This provides much better UX than polling:
+    - Updates every 500ms (vs 2 seconds)
+    - Shows detailed progress (phase, current action, company being evaluated)
+    - Lower server load
+    - Professional streaming experience
+    """
+    def generate():
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        last_status = None
+        retry_count = 0
+        max_retries = 10  # Wait up to 5 seconds for session to be created
+
+        while True:
+            try:
+                # Fetch current status
+                result = supabase.table("company_research_sessions").select("*").eq(
+                    "jd_id", jd_id
+                ).execute()
+
+                if not result.data:
+                    # Session not found - might be race condition during creation
+                    retry_count += 1
+                    if retry_count >= max_retries:
+                        yield f"data: {json.dumps({'error': 'Session not found after retries'})}\n\n"
+                        break
+                    # Wait and retry
+                    time.sleep(0.5)
+                    continue
+
+                session = result.data[0]
+                status = session['status']
+
+                # Calculate progress
+                if status == 'completed':
+                    progress = 100
+                elif status == 'failed':
+                    progress = 0
+                else:
+                    total_expected = session.get('max_companies', 50)
+                    evaluated = session.get('total_evaluated', 0)
+                    progress = min(int((evaluated / total_expected) * 100), 99)
+
+                session['progress_percentage'] = progress
+
+                # Only send update if status changed
+                current_status = json.dumps(session)
+                if current_status != last_status:
+                    yield f"data: {json.dumps({'success': True, 'session': session})}\n\n"
+                    last_status = current_status
+
+                # Stop streaming if completed or failed
+                if status in ['completed', 'failed']:
+                    break
+
+                # Stream every 500ms
+                time.sleep(0.5)
+
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                break
+
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
+    })
+
+
+@app.route('/research-companies/<jd_id>/results', methods=['GET'])
+def get_research_results(jd_id):
+    """Get research results for a JD."""
+    try:
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        # Get query parameters
+        min_score = request.args.get('min_score', type=float)
+        category = request.args.get('category')
+        limit = request.args.get('limit', 50, type=int)
+
+        # Check session status
+        session_result = supabase.table("company_research_sessions").select("*").eq(
+            "jd_id", jd_id
+        ).execute()
+
+        if not session_result.data:
+            return jsonify({'error': 'Session not found'}), 404
+
+        session = session_result.data[0]
+
+        if session['status'] not in ['completed', 'running']:
+            return jsonify({
+                'error': f"Research {session['status']}. Cannot retrieve results."
+            }), 400
+
+        # Build query
+        query = supabase.table("target_companies").select("*").eq("jd_id", jd_id)
+
+        if min_score:
+            query = query.gte("relevance_score", min_score)
+
+        if category:
+            query = query.eq("category", category)
+
+        # Execute query
+        result = query.order("relevance_score", desc=True).limit(limit).execute()
+
+        companies = result.data
+
+        # Group by category
+        categorized = {
+            "direct_competitor": [],
+            "adjacent_company": [],
+            "similar_stage": [],
+            "talent_pool": []
+        }
+
+        for company in companies:
+            cat = company.get("category", "talent_pool")
+            if cat in categorized:
+                categorized[cat].append(company)
+
+        # Calculate summary
+        total = len(companies)
+        avg_score = sum(c.get("relevance_score", 0) for c in companies) / total if total > 0 else 0
+        top_company = companies[0]["company_name"] if companies else None
+
+        return jsonify({
+            'success': True,
+            'results': {
+                'companies_by_category': categorized,
+                'summary': {
+                    'total_companies': total,
+                    'avg_relevance_score': round(avg_score, 2),
+                    'top_company': top_company
+                }
+            }
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/research-companies/<jd_id>/export-csv', methods=['GET'])
+def export_research_csv(jd_id):
+    """Export research results as CSV."""
+    try:
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        # Get all companies for this JD
+        result = supabase.table("target_companies").select("*").eq(
+            "jd_id", jd_id
+        ).order("relevance_score", desc=True).execute()
+
+        if not result.data:
+            return jsonify({'error': 'No results found'}), 404
+
+        companies = result.data
+
+        # Build CSV
+        import csv
+        import io
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # Header
+        writer.writerow([
+            'Company Name',
+            'Relevance Score',
+            'Category',
+            'Industry',
+            'Employee Count',
+            'Funding Stage',
+            'Headquarters',
+            'Why Relevant',
+            'Discovered Via'
+        ])
+
+        # Data rows
+        for company in companies:
+            writer.writerow([
+                company.get('company_name', ''),
+                company.get('relevance_score', ''),
+                company.get('category', ''),
+                company.get('industry', ''),
+                company.get('employee_count', ''),
+                company.get('funding_stage', ''),
+                company.get('headquarters_location', ''),
+                company.get('relevance_reasoning', ''),
+                company.get('discovered_via', '')
+            ])
+
+        csv_data = output.getvalue()
+
+        return jsonify({
+            'success': True,
+            'csv_data': csv_data,
+            'filename': f'company_research_{jd_id[:8]}.csv'
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/health', methods=['GET'])
 def health_check():

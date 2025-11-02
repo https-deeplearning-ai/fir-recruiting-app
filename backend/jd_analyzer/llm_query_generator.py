@@ -9,10 +9,17 @@ import os
 from typing import Dict, List, Any, Optional
 import anthropic
 import openai
-import google.generativeai as genai
 import json
 from .llm_configs import get_config
 from .debug_logger import debug_log
+
+# Optional Gemini import (not required for basic JD parsing)
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    genai = None
+    GEMINI_AVAILABLE = False
 
 class MultiLLMQueryGenerator:
     """
@@ -25,7 +32,10 @@ class MultiLLMQueryGenerator:
             api_key=os.getenv("ANTHROPIC_API_KEY")
         )
         openai.api_key = os.getenv("OPENAI_API_KEY")
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+        # Configure Gemini only if available
+        if GEMINI_AVAILABLE and genai:
+            genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
         # Load model configurations
         self.claude_config = get_config("claude")
