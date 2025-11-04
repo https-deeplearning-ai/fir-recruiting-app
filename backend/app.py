@@ -43,7 +43,7 @@ except ImportError as e:
 
 # Import JD Analyzer routes
 try:
-    from jd_analyzer.api_endpoints import register_jd_analyzer_routes
+    from jd_analyzer.api.endpoints import register_jd_analyzer_routes
     register_jd_analyzer_routes(app)
     print("✓ JD Analyzer routes registered successfully")
 except ImportError as e:
@@ -2708,6 +2708,59 @@ def research_companies_endpoint():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/evaluate-more-companies', methods=['POST'])
+def evaluate_more_companies_endpoint():
+    """
+    Evaluate additional companies from the discovered list.
+
+    Request Body:
+    {
+        "session_id": "jd_123",
+        "start_index": 25,  # Start from company 25
+        "count": 25         # Evaluate next 25
+    }
+    """
+    try:
+        service = get_company_research_service()
+        if not service:
+            return jsonify({'error': 'Company research service not available'}), 503
+
+        data = request.get_json()
+        session_id = data.get('session_id')
+        start_index = data.get('start_index', 25)
+        count = data.get('count', 25)
+
+        if not session_id:
+            return jsonify({'error': 'session_id is required'}), 400
+
+        # Run evaluation in background
+        async def run_evaluation():
+            return await service.evaluate_additional_companies(session_id, start_index, count)
+
+        # Create new event loop for this task
+        import threading
+        result_container = {}
+
+        def background_task():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            result = loop.run_until_complete(run_evaluation())
+            result_container['result'] = result
+            loop.close()
+
+        thread = threading.Thread(target=background_task)
+        thread.start()
+        thread.join()  # Wait for completion (evaluations are faster than discovery)
+
+        return jsonify(result_container.get('result', {'error': 'Evaluation failed'}))
+
+    except Exception as e:
+        print(f"Evaluate more error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/research-companies/<jd_id>/status', methods=['GET'])
 def get_research_status(jd_id):
     """Get research session status and progress."""
@@ -2830,7 +2883,7 @@ def get_research_results(jd_id):
         # Get query parameters
         min_score = request.args.get('min_score', type=float)
         category = request.args.get('category')
-        limit = request.args.get('limit', 50, type=int)
+        limit = request.args.get('limit', 500, type=int)  # Increased to show ALL companies
 
         # Check session status
         session_result = supabase.table("company_research_sessions").select("*").eq(
@@ -2861,12 +2914,14 @@ def get_research_results(jd_id):
 
         companies = result.data
 
-        # Group by category
+        # Group by category (include ALL competitive intelligence categories)
         categorized = {
             "direct_competitor": [],
             "adjacent_company": [],
-            "similar_stage": [],
-            "talent_pool": []
+            "same_category": [],      # Competitive intelligence category
+            "tangential": [],          # Competitive intelligence category
+            "similar_stage": [],       # Legacy category
+            "talent_pool": []          # Legacy category
         }
 
         for company in companies:
@@ -2879,14 +2934,32 @@ def get_research_results(jd_id):
         avg_score = sum(c.get("relevance_score", 0) for c in companies) / total if total > 0 else 0
         top_company = companies[0]["company_name"] if companies else None
 
+        # Extract discovered and screened companies from session metadata
+        search_config = session.get('search_config') or {}
+        screened_companies = search_config.get('screened_companies', [])
+        discovered_companies_list = search_config.get('discovered_companies_list', [])
+
+        # Get total metrics from session
+        total_discovered = session.get('total_discovered', len(discovered_companies_list))
+        total_evaluated = session.get('total_evaluated', total)
+
         return jsonify({
             'success': True,
             'results': {
                 'companies_by_category': categorized,
+                'discovered_companies': discovered_companies_list[:100],  # All discovered (up to 100) with full objects
+                'screened_companies': screened_companies[:100],    # Screened/ranked companies
+                'evaluated_companies': companies,                   # Evaluated companies from DB
                 'summary': {
                     'total_companies': total,
                     'avg_relevance_score': round(avg_score, 2),
-                    'top_company': top_company
+                    'top_company': top_company,
+                    'total_discovered': total_discovered,
+                    'total_evaluated': total_evaluated,
+                    'evaluation_progress': {
+                        'evaluated_count': total_evaluated,
+                        'remaining_count': len(screened_companies) - total_evaluated
+                    }
                 }
             }
         })
@@ -2961,6 +3034,145 @@ def export_research_csv(jd_id):
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+# ============================================
+# COMPANY LISTS ENDPOINTS
+# ============================================
+
+@app.route('/company-lists', methods=['POST'])
+def save_company_list():
+    """Save companies from research results as a reusable list."""
+    try:
+        data = request.json
+        list_name = data.get('list_name')
+        description = data.get('description', '')
+        jd_title = data.get('jd_title', '')
+        jd_session_id = data.get('jd_session_id', '')
+        companies = data.get('companies', [])
+
+        if not list_name or not companies:
+            return jsonify({'error': 'list_name and companies are required'}), 400
+
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        # Create the list
+        list_data = {
+            'list_name': list_name,
+            'description': description,
+            'jd_title': jd_title,
+            'jd_session_id': jd_session_id,
+            'total_companies': len(companies)
+        }
+
+        list_result = supabase.table('company_lists').insert(list_data).execute()
+
+        if not list_result.data:
+            return jsonify({'error': 'Failed to create list'}), 500
+
+        list_id = list_result.data[0]['id']
+
+        # Add all companies to the list
+        company_items = []
+        for company in companies:
+            company_items.append({
+                'list_id': list_id,
+                'company_name': company.get('company_name', ''),
+                'company_domain': company.get('company_domain', ''),
+                'category': company.get('category', ''),
+                'relevance_score': company.get('relevance_score', 0),
+                'relevance_reasoning': company.get('relevance_reasoning', ''),
+                'industry': company.get('industry', ''),
+                'employee_count': company.get('employee_count'),
+                'funding_stage': company.get('funding_stage', ''),
+                'company_metadata': company  # Store full company object
+            })
+
+        # Batch insert companies
+        items_result = supabase.table('company_list_items').insert(company_items).execute()
+
+        return jsonify({
+            'success': True,
+            'list_id': list_id,
+            'list_name': list_name,
+            'total_companies': len(companies)
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/company-lists', methods=['GET'])
+def get_company_lists():
+    """Get all saved company lists."""
+    try:
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        result = supabase.table('company_lists').select('*').order('created_at', desc=True).execute()
+
+        return jsonify({
+            'success': True,
+            'lists': result.data
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/company-lists/<int:list_id>', methods=['GET'])
+def get_company_list(list_id):
+    """Get a specific company list with all its companies."""
+    try:
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        # Get list metadata
+        list_result = supabase.table('company_lists').select('*').eq('id', list_id).execute()
+
+        if not list_result.data:
+            return jsonify({'error': 'List not found'}), 404
+
+        # Get all companies in the list
+        companies_result = supabase.table('company_list_items').select('*').eq(
+            'list_id', list_id
+        ).order('relevance_score', desc=True).execute()
+
+        return jsonify({
+            'success': True,
+            'list': list_result.data[0],
+            'companies': companies_result.data
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/company-lists/<int:list_id>', methods=['DELETE'])
+def delete_company_list(list_id):
+    """Delete a company list (cascade deletes all companies in the list)."""
+    try:
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        # Delete the list (cascade will delete all items)
+        result = supabase.table('company_lists').delete().eq('id', list_id).execute()
+
+        return jsonify({
+            'success': True,
+            'message': 'List deleted successfully'
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy'})
@@ -2996,9 +3208,138 @@ def serve_frontend():
         </html>
         """
 
+@app.route('/search-by-company-list', methods=['POST'])
+def search_by_company_list():
+    """
+    Search for people at a list of companies using CoreSignal.
+
+    Request Body:
+    {
+        "company_names": ["Deepgram", "AssemblyAI", "ElevenLabs"],
+        "filters": {
+            "title": "engineer",  # Optional
+            "seniority": "senior",  # Optional
+            "location": "San Francisco"  # Optional
+        },
+        "max_per_company": 20  # Optional, default 20
+    }
+
+    Returns:
+        {
+            "success": true,
+            "company_matches": [
+                {
+                    "company_name": "Deepgram",
+                    "coresignal_id": "12345",
+                    "confidence": 0.95,
+                    "people_found": 15
+                },
+                ...
+            ],
+            "total_people": 45,
+            "search_time_seconds": 5.2
+        }
+    """
+    try:
+        import time
+        start_time = time.time()
+
+        data = request.get_json()
+        company_names = data.get("company_names", [])
+        filters = data.get("filters", {})
+        max_per_company = data.get("max_per_company", 20)
+
+        if not company_names:
+            return jsonify({'error': 'company_names is required'}), 400
+
+        print(f"\n{'='*100}")
+        print(f"[COMPANY SEARCH] Searching for people at {len(company_names)} companies")
+        print(f"[COMPANY SEARCH] Filters: {filters}")
+        print(f"{'='*100}\n")
+
+        # Step 1: Look up CoreSignal company IDs
+        from coresignal_company_lookup import CoreSignalCompanyLookup
+        lookup_service = CoreSignalCompanyLookup()
+
+        company_matches = []
+        coresignal_company_ids = []
+
+        for company_name in company_names:
+            match = lookup_service.get_best_match(company_name, confidence_threshold=0.7)
+
+            if match:
+                company_matches.append({
+                    "company_name": company_name,
+                    "coresignal_name": match["name"],
+                    "coresignal_id": match["company_id"],
+                    "confidence": match["confidence"],
+                    "website": match.get("website"),
+                    "employee_count": match.get("employee_count")
+                })
+                coresignal_company_ids.append(match["company_id"])
+                print(f"✓ {company_name} → {match['name']} (ID: {match['company_id']}, confidence: {match['confidence']})")
+            else:
+                print(f"✗ {company_name} → No match found")
+                company_matches.append({
+                    "company_name": company_name,
+                    "coresignal_id": None,
+                    "confidence": 0.0,
+                    "error": "No matching company found"
+                })
+
+        if not coresignal_company_ids:
+            return jsonify({
+                'success': False,
+                'error': 'No matching companies found in CoreSignal database',
+                'company_matches': company_matches
+            }), 404
+
+        # Step 2: Search for people at these companies via CoreSignal
+        from coresignal_service import search_profiles_by_company_ids
+
+        people = search_profiles_by_company_ids(
+            company_ids=coresignal_company_ids,
+            title=filters.get("title"),
+            seniority=filters.get("seniority"),
+            location=filters.get("location"),
+            max_per_company=max_per_company
+        )
+
+        # Add people_found count to each company match
+        for match in company_matches:
+            if match.get("coresignal_id"):
+                match["people_found"] = len([
+                    p for p in people
+                    if p.get("company_id") == match["coresignal_id"]
+                ])
+
+        search_time = time.time() - start_time
+
+        print(f"\n{'='*100}")
+        print(f"[COMPANY SEARCH] Search complete")
+        print(f"[COMPANY SEARCH] Companies matched: {len([m for m in company_matches if m.get('coresignal_id')])}/{len(company_names)}")
+        print(f"[COMPANY SEARCH] Total people found: {len(people)}")
+        print(f"[COMPANY SEARCH] Time: {search_time:.1f}s")
+        print(f"{'='*100}\n")
+
+        return jsonify({
+            'success': True,
+            'company_matches': company_matches,
+            'people': people,
+            'total_people': len(people),
+            'search_time_seconds': round(search_time, 2)
+        })
+
+    except Exception as e:
+        print(f"[COMPANY SEARCH] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     # Check if API key is set
     if not os.getenv("ANTHROPIC_API_KEY"):
         print("Warning: ANTHROPIC_API_KEY environment variable not set!")
-    
+
     app.run(debug=True, host='0.0.0.0', port=5001)

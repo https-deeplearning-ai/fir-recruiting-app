@@ -11,13 +11,13 @@ This module provides:
 - Shortlist reverse-engineering (discover implicit criteria from existing candidates)
 """
 
-from .jd_parser import JDParser
-from .weight_generator import WeightGenerator
-from .shortlist_analyzer import ShortlistAnalyzer
-from .query_builder import JDToQueryBuilder
-from .llm_query_generator import MultiLLMQueryGenerator
-from .models import JDRequirements, ExperienceYears, LLMQueryResult, LLMComparisonResult
-from .coresignal_taxonomies import (
+from jd_analyzer.core.jd_parser import JDParser
+from jd_analyzer.core.weight_generator import WeightGenerator
+from jd_analyzer.core.shortlist_analyzer import ShortlistAnalyzer
+from jd_analyzer.query.query_builder import JDToQueryBuilder
+from jd_analyzer.query.llm_query_generator import MultiLLMQueryGenerator
+from jd_analyzer.core.models import JDRequirements, ExperienceYears, LLMQueryResult, LLMComparisonResult
+from jd_analyzer.utils.coresignal_taxonomies import (
     normalize_seniority,
     expand_location,
     infer_department

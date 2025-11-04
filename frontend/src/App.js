@@ -69,9 +69,22 @@ function App() {
   const [companySessionId, setCompanySessionId] = useState(null); // Current research session ID
   const [companyResearchStatus, setCompanyResearchStatus] = useState(null); // Session status
   const [companyResearchResults, setCompanyResearchResults] = useState(null); // Research results
+  const [expandedCategories, setExpandedCategories] = useState({
+    direct_competitor: true,    // Expanded by default (highest priority)
+    adjacent_company: true,      // Expanded by default
+    same_category: false,        // Collapsed by default
+    tangential: false,           // Collapsed by default
+    similar_stage: false,        // Collapsed by default
+    talent_pool: false           // Collapsed by default
+  }); // Track which categories are expanded/collapsed
   const [extractedRequirements, setExtractedRequirements] = useState([]); // AI-extracted requirements
   const [activeJD, setActiveJD] = useState(null); // Currently active JD {title, requirements, timestamp}
   const [jdTitle, setJdTitle] = useState(''); // User-provided title for the JD
+  const [excludedCompanies, setExcludedCompanies] = useState([]); // Companies excluded from research (DLAI, AI Fund, etc.)
+  const [discoveredCompanies, setDiscoveredCompanies] = useState([]); // All discovered companies (up to 100)
+  const [screenedCompanies, setScreenedCompanies] = useState([]); // Screened/ranked companies
+  const [evaluatedCount, setEvaluatedCount] = useState(25); // Number of companies evaluated so far
+  const [evaluatingMore, setEvaluatingMore] = useState(false); // Loading state for "Evaluate More"
   const [showWeightedRequirements, setShowWeightedRequirements] = useState(false); // Accordion toggle for weighted requirements
   const [jdSearching, setJdSearching] = useState(false); // Loading state during JD → CoreSignal search
   const [jdSearchResults, setJdSearchResults] = useState(null); // Search results from CoreSignal
@@ -91,9 +104,33 @@ function App() {
   const [selectedLlmQuery, setSelectedLlmQuery] = useState(null); // 'claude', 'gpt', or 'gemini'
   const [activeLlmTab, setActiveLlmTab] = useState('claude'); // Which tab is currently visible
 
+  // Company List state (Save as Company List functionality)
+  const [showSaveListModal, setShowSaveListModal] = useState(false); // Modal visibility
+  const [saveListName, setSaveListName] = useState(''); // List name input
+  const [saveListDescription, setSaveListDescription] = useState(''); // List description input
+  const [selectedCategories, setSelectedCategories] = useState({
+    direct_competitor: true,
+    adjacent_company: true,
+    same_category: true,
+    tangential: false,
+    similar_stage: false,
+    talent_pool: false
+  }); // Which categories to include in saved list
+  const [savingList, setSavingList] = useState(false); // Loading state during save
+
   // Crunchbase URL validation state
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [validationData, setValidationData] = useState(null); // {companyId, companyName, crunchbaseUrl, source}
+
+  // Company Search state (Phase 3: Search for people at companies)
+  const [selectedCompanies, setSelectedCompanies] = useState([]); // Company names selected for people search
+  const [companySearchFilters, setCompanySearchFilters] = useState({
+    title: '',
+    seniority: '',
+    location: ''
+  });
+  const [companySearchResults, setCompanySearchResults] = useState(null); // {company_matches: [], people: []}
+  const [searchingCompanies, setSearchingCompanies] = useState(false); // Loading state
 
   // Save recruiter name to localStorage whenever it changes
   React.useEffect(() => {
@@ -523,6 +560,173 @@ function App() {
     await loadFeedbackHistory(linkedinUrl);
 
     showNotification(`Feedback saved: ${reason}`);
+  };
+
+  // Company Research Category Toggle Functions
+  const toggleCategory = (category) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
+
+  const expandAllCategories = () => {
+    setExpandedCategories({
+      direct_competitor: true,
+      adjacent_company: true,
+      same_category: true,
+      tangential: true,
+      similar_stage: true,
+      talent_pool: true
+    });
+  };
+
+  const collapseAllCategories = () => {
+    setExpandedCategories({
+      direct_competitor: false,
+      adjacent_company: false,
+      same_category: false,
+      tangential: false,
+      similar_stage: false,
+      talent_pool: false
+    });
+  };
+
+  // Evaluate More Companies (Progressive Evaluation)
+  const evaluateMoreCompanies = async () => {
+    if (!companySessionId) {
+      showNotification('No active research session', 'error');
+      return;
+    }
+
+    setEvaluatingMore(true);
+
+    try {
+      const response = await fetch('http://localhost:5001/evaluate-more-companies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: companySessionId,
+          start_index: evaluatedCount,
+          count: 25
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to evaluate more companies');
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Merge newly evaluated companies with existing results
+        const updatedResults = { ...companyResearchResults };
+
+        // Update companies_by_category with new evaluations
+        Object.entries(data.companies_by_category).forEach(([category, newCompanies]) => {
+          if (updatedResults.companies_by_category[category]) {
+            updatedResults.companies_by_category[category].push(...newCompanies);
+          } else {
+            updatedResults.companies_by_category[category] = newCompanies;
+          }
+        });
+
+        // Update summary
+        if (updatedResults.summary) {
+          updatedResults.summary.total_evaluated = data.evaluation_progress.evaluated_count;
+        }
+
+        setCompanyResearchResults(updatedResults);
+        setEvaluatedCount(data.evaluation_progress.evaluated_count);
+
+        showNotification(`Evaluated ${data.evaluated_companies.length} more companies!`, 'success');
+      }
+    } catch (error) {
+      console.error('Evaluate more error:', error);
+      showNotification('Failed to evaluate more companies: ' + error.message, 'error');
+    } finally {
+      setEvaluatingMore(false);
+    }
+  };
+
+  // Save Company List
+  const handleSaveCompanyList = async () => {
+    if (!saveListName.trim()) {
+      showNotification('Please enter a list name', 'error');
+      return;
+    }
+
+    setSavingList(true);
+
+    try {
+      // Collect all companies from selected categories
+      const selectedCompanies = [];
+      Object.entries(companyResearchResults.companies_by_category).forEach(([category, companies]) => {
+        if (selectedCategories[category]) {
+          selectedCompanies.push(...companies);
+        }
+      });
+
+      if (selectedCompanies.length === 0) {
+        showNotification('Please select at least one category', 'error');
+        setSavingList(false);
+        return;
+      }
+
+      // Extract JD title from companyJdText (first line is usually the title)
+      const jdTitle = companyJdText.split('\n')[0].replace(/^(Job Title:|Title:)\s*/i, '').trim();
+
+      const payload = {
+        list_name: saveListName.trim(),
+        description: saveListDescription.trim(),
+        jd_title: jdTitle || 'N/A',
+        jd_session_id: companySessionId || '',
+        companies: selectedCompanies
+      };
+
+      const response = await fetch('http://localhost:5001/company-lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save list: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification(`Saved "${data.list_name}" with ${data.total_companies} companies!`, 'success');
+        // Reset modal state
+        setShowSaveListModal(false);
+        setSaveListName('');
+        setSaveListDescription('');
+        setSelectedCategories({
+          direct_competitor: true,
+          adjacent_company: true,
+          same_category: true,
+          tangential: false,
+          similar_stage: false,
+          talent_pool: false
+        });
+      } else {
+        throw new Error('Failed to save company list');
+      }
+    } catch (error) {
+      console.error('Error saving company list:', error);
+      showNotification(`Error: ${error.message}`, 'error');
+    } finally {
+      setSavingList(false);
+    }
+  };
+
+  // Toggle category selection for saving
+  const toggleCategorySelection = (category) => {
+    setSelectedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
   };
 
   // Dummy profile data for testing
@@ -1686,6 +1890,48 @@ function App() {
     }
   };
 
+  // Handle search for people at selected companies
+  const handleSearchByCompanyList = async () => {
+    if (selectedCompanies.length === 0) {
+      showNotification('Please select at least one company', 'error');
+      return;
+    }
+
+    setSearchingCompanies(true);
+    setCompanySearchResults(null);
+
+    try {
+      const response = await fetch('/search-by-company-list', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          company_names: selectedCompanies,
+          filters: companySearchFilters,
+          max_per_company: 20
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setCompanySearchResults(data);
+        showNotification(`Found ${data.total_people} people at ${data.company_matches.filter(m => m.coresignal_id).length} companies`, 'success');
+        console.log('✅ Company search completed:', data);
+      } else {
+        setError(data.error || 'Search failed');
+        showNotification(data.error || 'Search failed', 'error');
+      }
+    } catch (err) {
+      setError('Network error searching companies');
+      console.error('Error:', err);
+      showNotification('Network error searching companies', 'error');
+    } finally {
+      setSearchingCompanies(false);
+    }
+  };
+
   const getScoreColor = (score) => {
     const numericScore = typeof score === 'number' ? score : parseFloat(score);
     if (isNaN(numericScore)) return '#6c757d';
@@ -1772,7 +2018,8 @@ function App() {
           >
             Single Profile
           </button>
-          <button
+          {/* HIDDEN: Profile Search tab - commented out to avoid confusion */}
+          {/* <button
             className={`mode-btn ${searchMode ? 'active' : ''}`}
             onClick={() => {
               setSearchMode(true);
@@ -1783,7 +2030,7 @@ function App() {
             }}
           >
             Profile Search
-          </button>
+          </button> */}
           <button
             className={`mode-btn ${jdAnalyzerMode ? 'active' : ''}`}
             onClick={() => {
@@ -1820,7 +2067,8 @@ function App() {
           >
             Batch Processing
           </button>
-          <button
+          {/* HIDDEN: Lists tab - commented out to avoid confusion */}
+          {/* <button
             className={`mode-btn ${listsMode ? 'active' : ''}`}
             onClick={() => {
               setListsMode(true);
@@ -1831,7 +2079,7 @@ function App() {
             }}
           >
             Lists
-          </button>
+          </button> */}
         </div>
 
         {listsMode ? (
@@ -1941,81 +2189,125 @@ function App() {
                       preview_limit: 20
                     };
 
-                    // Fire all 3 LLM API calls in parallel - each updates independently
+                    // Use streaming endpoint for parallel LLM execution (6-12s → ~4s)
+                    showNotification('Generating queries in parallel from Claude, GPT, and Gemini...', 'success');
 
-                    // Claude
-                    setClaudeLoading(true);
-                    fetch('http://localhost:5001/api/jd/generate-query-claude', {
+                    const response = await fetch('http://localhost:5001/api/jd/compare-llm-queries-stream', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(requestBody)
-                    })
-                      .then(res => res.json())
-                      .then(data => {
-                        if (data.success) setClaudeResult(data);
-                      })
-                      .catch(err => {
-                        console.error('Claude error:', err);
-                        setClaudeResult({
-                          success: true,
-                          model: 'Claude Haiku 4.5',
-                          error: err.message,
-                          query: null,
-                          preview_profiles: [],
-                          total_found: 0
-                        });
-                      })
-                      .finally(() => setClaudeLoading(false));
+                    });
 
-                    // GPT
-                    setGptLoading(true);
-                    fetch('http://localhost:5001/api/jd/generate-query-gpt', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(requestBody)
-                    })
-                      .then(res => res.json())
-                      .then(data => {
-                        if (data.success) setGptResult(data);
-                      })
-                      .catch(err => {
-                        console.error('GPT error:', err);
-                        setGptResult({
-                          success: true,
-                          model: 'GPT-4o',
-                          error: err.message,
-                          query: null,
-                          preview_profiles: [],
-                          total_found: 0
-                        });
-                      })
-                      .finally(() => setGptLoading(false));
+                    if (!response.ok) {
+                      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
 
-                    // Gemini
-                    setGeminiLoading(true);
-                    fetch('http://localhost:5001/api/jd/generate-query-gemini', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(requestBody)
-                    })
-                      .then(res => res.json())
-                      .then(data => {
-                        if (data.success) setGeminiResult(data);
-                      })
-                      .catch(err => {
-                        console.error('Gemini error:', err);
-                        setGeminiResult({
-                          success: true,
-                          model: 'Gemini 2.0 Flash',
-                          error: err.message,
-                          query: null,
-                          preview_profiles: [],
-                          total_found: 0
-                        });
-                      })
-                      .finally(() => setGeminiLoading(false));
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
 
-                    showNotification('Generating queries from Claude Haiku, GPT-4o, and Gemini...', 'success');
+                    // Process SSE stream
+                    while (true) {
+                      const { value, done } = await reader.read();
+                      if (done) break;
+
+                      buffer += decoder.decode(value, { stream: true });
+                      const lines = buffer.split('\n');
+                      buffer = lines.pop(); // Keep incomplete line in buffer
+
+                      for (const line of lines) {
+                        if (!line.trim() || line.startsWith(':')) continue;
+
+                        if (line.startsWith('event:')) {
+                          const eventType = line.substring(6).trim();
+                          continue; // Event type is informational
+                        }
+
+                        if (line.startsWith('data:')) {
+                          try {
+                            const data = JSON.parse(line.substring(5).trim());
+
+                            // Handle granular progress events (model-specific steps)
+                            if (data.model && data.step && data.message) {
+                              // Show progress notification with model-specific updates
+                              console.log(`Progress: ${data.model} - ${data.step}`);
+                              showNotification(data.message, 'info');
+                            }
+
+                            // Handle result event
+                            if (data.model && !data.step) {
+                              const resultData = {
+                                success: true,
+                                model: data.model,
+                                query: data.query,
+                                thinking: data.thinking,
+                                reasoning: data.reasoning,
+                                preview_profiles: data.preview_profiles || [],
+                                total_found: data.total_found || 0,
+                                error: data.error
+                              };
+
+                              // Update appropriate state based on model
+                              if (data.model === 'Claude Haiku 4.5') {
+                                setClaudeResult(resultData);
+                                setClaudeLoading(false);
+
+                                // Show appropriate notification based on result
+                                if (data.error) {
+                                  if (data.error.includes('503') || data.error.includes('rate limit')) {
+                                    showNotification(`Claude: Rate limit reached - try again in a moment`, 'warning');
+                                  } else {
+                                    showNotification(`Claude: ${data.error}`, 'error');
+                                  }
+                                } else {
+                                  showNotification(`Claude completed: ${data.total_found || 0} candidates`, 'success');
+                                }
+                              } else if (data.model.includes('GPT')) {
+                                setGptResult(resultData);
+                                setGptLoading(false);
+
+                                // Show appropriate notification based on result
+                                if (data.error) {
+                                  if (data.error.includes('503') || data.error.includes('rate limit')) {
+                                    showNotification(`GPT: Rate limit reached - try again in a moment`, 'warning');
+                                  } else {
+                                    showNotification(`GPT: ${data.error}`, 'error');
+                                  }
+                                } else {
+                                  showNotification(`GPT completed: ${data.total_found || 0} candidates`, 'success');
+                                }
+                              } else if (data.model.includes('Gemini')) {
+                                setGeminiResult(resultData);
+                                setGeminiLoading(false);
+
+                                // Show appropriate notification based on result
+                                if (data.error) {
+                                  if (data.error.includes('503') || data.error.includes('rate limit')) {
+                                    showNotification(`Gemini: Rate limit reached - try again in a moment`, 'warning');
+                                  } else {
+                                    showNotification(`Gemini: ${data.error}`, 'error');
+                                  }
+                                } else {
+                                  showNotification(`Gemini completed: ${data.total_found || 0} candidates`, 'success');
+                                }
+                              }
+                            }
+
+                            // Handle complete event
+                            if (data.status === 'complete') {
+                              console.log('All LLM queries completed');
+                            }
+
+                            // Handle error in stream data
+                            if (data.error && !data.model) {
+                              throw new Error(data.error);
+                            }
+                          } catch (parseError) {
+                            console.error('Error parsing SSE data:', parseError, line);
+                          }
+                        }
+                      }
+                    }
                   } catch (error) {
                     console.error('Error comparing LLM queries:', error);
                     showNotification('Failed to start LLM comparison', 'error');
@@ -2113,6 +2405,15 @@ function App() {
                                 <strong>Strategy:</strong> {claudeResult.reasoning}
                               </div>
 
+                              {claudeResult.thinking && (
+                                <details className="llm-thinking-details">
+                                  <summary>🧠 Show Chain-of-Thought Reasoning</summary>
+                                  <pre className="thinking-content">
+                                    {claudeResult.thinking}
+                                  </pre>
+                                </details>
+                              )}
+
                               <details className="llm-query-details">
                                 <summary>View Query JSON</summary>
                                 <pre className="query-json">
@@ -2196,6 +2497,15 @@ function App() {
                                 <strong>Strategy:</strong> {gptResult.reasoning}
                               </div>
 
+                              {gptResult.thinking && (
+                                <details className="llm-thinking-details">
+                                  <summary>🧠 Show Chain-of-Thought Reasoning</summary>
+                                  <pre className="thinking-content">
+                                    {gptResult.thinking}
+                                  </pre>
+                                </details>
+                              )}
+
                               <details className="llm-query-details">
                                 <summary>View Query JSON</summary>
                                 <pre className="query-json">
@@ -2278,6 +2588,15 @@ function App() {
                               <div className="llm-reasoning">
                                 <strong>Strategy:</strong> {geminiResult.reasoning}
                               </div>
+
+                              {geminiResult.thinking && (
+                                <details className="llm-thinking-details">
+                                  <summary>🧠 Show Chain-of-Thought Reasoning</summary>
+                                  <pre className="thinking-content">
+                                    {geminiResult.thinking}
+                                  </pre>
+                                </details>
+                              )}
 
                               <details className="llm-query-details">
                                 <summary>View Query JSON</summary>
@@ -2363,11 +2682,22 @@ function App() {
                             setCurrentPage(1); // Reset to first page
                             showNotification(`Found ${data.total_found} candidates from ${selectedResult.model}!`, 'success');
                           } else {
-                            showNotification(data.error || 'Failed to search candidates', 'error');
+                            // Show user-friendly error messages
+                            const errorMsg = data.error || 'Failed to search candidates';
+                            if (errorMsg.includes('503') || errorMsg.includes('rate limit')) {
+                              showNotification('Rate limit reached - please wait a moment and try again', 'warning');
+                            } else {
+                              showNotification(errorMsg, 'error');
+                            }
                           }
                         } catch (error) {
                           console.error('Error searching with selected query:', error);
-                          showNotification('Failed to search with selected query', 'error');
+                          const errorMsg = error.message || 'Failed to search with selected query';
+                          if (errorMsg.includes('503') || errorMsg.includes('rate limit')) {
+                            showNotification('Rate limit reached - please wait a moment and try again', 'warning');
+                          } else {
+                            showNotification(errorMsg, 'error');
+                          }
                         } finally {
                           setJdSearching(false);
                         }
@@ -2819,59 +3149,36 @@ function App() {
                     const parseData = await parseResponse.json();
                     console.log('Parsed JD:', parseData);
 
-                    // Step 2: Extract company mentions from JD text
-                    // More robust extraction: find ALL capitalized names that look like companies
-                    const mentionedCompanies = [];
+                    // IMPORTANT: Use AI-extracted companies from JD parser, NOT regex!
+                    // JDParser already extracted mentioned_companies, target_domain, and competitor_context
+                    // This is much more reliable than regex pattern matching
 
-                    // Pattern 1: After trigger phrases like "companies like X, Y, and Z"
-                    const triggerPhrases = [
-                      /(?:companies like|similar to|work at|admire companies|companies such as|examples include)\s+([^.]+)/gi,
-                      /(?:experience at)\s+([A-Z][a-z]+(?:[A-Z][a-z]+)?)/g
-                    ];
+                    // Step 2: Build structured research request using AI-extracted data
+                    // CRITICAL FIX: parseData.requirements contains the parsed fields, not parseData directly
+                    const requirements = parseData.requirements || {};
 
-                    triggerPhrases.forEach(regex => {
-                      let match;
-                      while ((match = regex.exec(companyJdText)) !== null) {
-                        const phrase = match[1];
-                        // Extract individual company names from comma/and-separated list
-                        const companyNames = phrase.split(/,|\s+and\s+|\s+or\s+/)
-                          .map(s => s.trim())
-                          .filter(s => s.length > 0 && /^[A-Z]/.test(s))  // Must start with capital
-                          .map(s => s.replace(/[^a-zA-Z\s]/g, '').trim())  // Remove punctuation
-                          .filter(s => s.length > 2);  // At least 3 chars
-
-                        mentionedCompanies.push(...companyNames);
-                      }
-                    });
-
-                    // Deduplicate and clean
-                    const uniqueCompanies = [...new Set(mentionedCompanies)]
-                      .filter(c => c && c.length >= 3)
-                      .slice(0, 10);  // Limit to 10 companies
-
-                    // Step 3: Build structured research request
-                    // Note: For competitive intelligence, we don't filter by company stage
-                    // We want ALL competitors regardless of funding stage
+                    // Store excluded companies in state for UI display
+                    setExcludedCompanies(requirements.excluded_companies || []);
                     const jdData = {
-                      title: parseData.role_title || "Engineering Role",
+                      title: requirements.role_title || "Engineering Role",
                       company: "YourCompany",
-                      company_stage: parseData.company_stage || "",  // Use actual company stage from JD, not seniority level
-                      industries: parseData.domain_expertise && parseData.domain_expertise.length > 0
-                                  ? parseData.domain_expertise
+                      company_stage: requirements.company_stage || "",
+                      industries: requirements.domain_expertise && requirements.domain_expertise.length > 0
+                                  ? requirements.domain_expertise
                                   : ["tech"],
                       requirements: {
-                        technical_skills: parseData.technical_skills || [],
-                        domain: parseData.domain_expertise && parseData.domain_expertise[0]
-                                ? parseData.domain_expertise[0]
-                                : "technology"
+                        technical_skills: requirements.technical_skills || [],
+                        domain: requirements.target_domain ||
+                                (requirements.domain_expertise && requirements.domain_expertise[0]) ||
+                                "technology"
                       },
                       target_companies: {
-                        mentioned_companies: uniqueCompanies.length > 0
-                                            ? uniqueCompanies
-                                            : [],
-                        industry_context: parseData.domain_expertise
-                                          ? parseData.domain_expertise.join(" ")
-                                          : "tech"
+                        // Use AI-extracted companies from JD parser
+                        mentioned_companies: requirements.mentioned_companies || [],
+                        excluded_companies: requirements.excluded_companies || [],
+                        // Use AI-extracted competitor context
+                        industry_context: requirements.competitor_context ||
+                                          (requirements.domain_expertise ? requirements.domain_expertise.join(" ") : "tech")
                       }
                     };
 
@@ -2916,6 +3223,11 @@ function App() {
                         if (streamData.success && streamData.session) {
                           setCompanyResearchStatus(streamData.session);
 
+                          // Extract discovered companies from stream (live updates during discovery)
+                          if (streamData.session.search_config && streamData.session.search_config.discovered_companies_list) {
+                            setDiscoveredCompanies(streamData.session.search_config.discovered_companies_list);
+                          }
+
                           if (streamData.session.status === 'completed') {
                             eventSource.close();
                             // Fetch results
@@ -2923,7 +3235,20 @@ function App() {
                             const resultsData = await resultsResponse.json();
 
                             if (resultsData.success) {
-                              setCompanyResearchResults(resultsData.results);
+                              const results = resultsData.results;
+                              setCompanyResearchResults(results);
+
+                              // NEW: Store discovered and screened companies for progressive evaluation
+                              if (results.discovered_companies) {
+                                setDiscoveredCompanies(results.discovered_companies);
+                              }
+                              if (results.screened_companies) {
+                                setScreenedCompanies(results.screened_companies);
+                              }
+                              if (results.summary && results.summary.total_evaluated) {
+                                setEvaluatedCount(results.summary.total_evaluated);
+                              }
+
                               showNotification('Research completed!', 'success');
                             }
                             setCompanyResearching(false);
@@ -3051,24 +3376,41 @@ function App() {
               <div className="research-results-section">
                 <div className="results-header">
                   <h3>Research Results</h3>
-                  <button
-                    className="export-csv-btn"
-                    onClick={async () => {
-                      const response = await fetch(`http://localhost:5001/research-companies/${companySessionId}/export-csv`);
-                      const data = await response.json();
-                      if (data.success) {
-                        const blob = new Blob([data.csv_data], { type: 'text/csv' });
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = data.filename;
-                        a.click();
-                        showNotification('CSV exported!', 'success');
-                      }
-                    }}
-                  >
-                    Export CSV
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      className="save-list-btn"
+                      onClick={() => setShowSaveListModal(true)}
+                      style={{
+                        backgroundColor: '#4F46E5',
+                        color: 'white',
+                        padding: '10px 20px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Save as Company List
+                    </button>
+                    <button
+                      className="export-csv-btn"
+                      onClick={async () => {
+                        const response = await fetch(`http://localhost:5001/research-companies/${companySessionId}/export-csv`);
+                        const data = await response.json();
+                        if (data.success) {
+                          const blob = new Blob([data.csv_data], { type: 'text/csv' });
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = data.filename;
+                          a.click();
+                          showNotification('CSV exported!', 'success');
+                        }
+                      }}
+                    >
+                      Export CSV
+                    </button>
+                  </div>
                 </div>
 
                 <div className="results-summary">
@@ -3077,29 +3419,399 @@ function App() {
                   <p>Top Company: {companyResearchResults.summary.top_company}</p>
                 </div>
 
+                {/* Discovered Companies Section - Show all discovered before evaluation */}
+                {discoveredCompanies && discoveredCompanies.length > 0 && (
+                  <div className="discovered-companies-section">
+                    <h4>Discovered Companies ({discoveredCompanies.length})</h4>
+                    <p className="discovered-subtitle">
+                      Found {discoveredCompanies.length} companies via seed expansion + web search
+                    </p>
+
+                    {/* Compact list view */}
+                    <div className="discovered-list">
+                      {discoveredCompanies.slice(0, 100).map((company, idx) => (
+                        <div key={idx} className="discovered-item">
+                          <span className="discovered-rank">#{idx + 1}</span>
+                          <span className="discovered-name">{company.name || company.company_name || 'Unknown'}</span>
+                          {company.discovered_via && (
+                            <span className="discovered-source">{company.discovered_via}</span>
+                          )}
+                          {idx < evaluatedCount && (
+                            <span className="discovered-badge evaluated">Evaluated</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Evaluation Progress */}
+                    <div className="evaluation-progress">
+                      <div className="progress-bar-container">
+                        <div
+                          className="progress-bar"
+                          style={{ width: `${(evaluatedCount / discoveredCompanies.length) * 100}%` }}
+                        />
+                      </div>
+                      <p className="progress-text">
+                        {evaluatedCount} of {discoveredCompanies.length} companies evaluated ({Math.round((evaluatedCount / discoveredCompanies.length) * 100)}%)
+                      </p>
+                    </div>
+
+                    {/* Evaluate More Button */}
+                    {evaluatedCount < discoveredCompanies.length && (
+                      <button
+                        className="evaluate-more-btn"
+                        onClick={evaluateMoreCompanies}
+                        disabled={evaluatingMore}
+                      >
+                        {evaluatingMore ? (
+                          <>Evaluating...</>
+                        ) : (
+                          <>Evaluate Next 25 Companies ({Math.min(evaluatedCount + 25, discoveredCompanies.length)}/{discoveredCompanies.length})</>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Excluded Companies Section */}
+                {excludedCompanies && excludedCompanies.length > 0 && (
+                  <div className="excluded-companies-section" style={{
+                    marginTop: '20px',
+                    marginBottom: '20px',
+                    padding: '15px',
+                    backgroundColor: '#f5f5f5',
+                    borderLeft: '4px solid #9ca3af',
+                    borderRadius: '4px'
+                  }}>
+                    <h4 style={{ margin: '0 0 10px 0', color: '#6b7280', fontSize: '14px', fontWeight: '600' }}>
+                      🏢 Excluded Companies (Your Companies)
+                    </h4>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {excludedCompanies.map((company, idx) => (
+                        <span
+                          key={idx}
+                          className="excluded-company-badge"
+                          style={{
+                            display: 'inline-block',
+                            padding: '6px 12px',
+                            backgroundColor: '#e5e7eb',
+                            color: '#4b5563',
+                            borderRadius: '16px',
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            border: '1px solid #d1d5db'
+                          }}
+                        >
+                          {company}
+                        </span>
+                      ))}
+                    </div>
+                    <p style={{
+                      margin: '10px 0 0 0',
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      fontStyle: 'italic'
+                    }}>
+                      These companies were not researched as they are identified as your own companies.
+                    </p>
+                  </div>
+                )}
+
+                {/* Expand/Collapse All Buttons */}
+                <div className="category-controls" style={{ marginBottom: '20px', textAlign: 'right' }}>
+                  <button onClick={expandAllCategories} className="control-btn" style={{ marginRight: '10px', padding: '8px 16px' }}>
+                    Expand All
+                  </button>
+                  <button onClick={collapseAllCategories} className="control-btn" style={{ padding: '8px 16px' }}>
+                    Collapse All
+                  </button>
+                </div>
+
                 {Object.entries(companyResearchResults.companies_by_category).map(([category, companies]) => (
                   companies.length > 0 && (
                     <div key={category} className="category-section">
-                      <h4>{category.replace('_', ' ').toUpperCase()} ({companies.length})</h4>
-                      <div className="company-cards">
-                        {companies.map((company, idx) => (
-                          <div key={idx} className="company-card">
-                            <div className="company-header">
-                              <h5>{company.company_name}</h5>
-                              <span className="score-badge">{company.relevance_score}/10</span>
+                      <h4
+                        className="category-header clickable"
+                        onClick={() => toggleCategory(category)}
+                        style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center' }}
+                      >
+                        <span className="arrow" style={{ marginRight: '8px' }}>
+                          {expandedCategories[category] ? '▼' : '▶'}
+                        </span>
+                        {category.replace('_', ' ').toUpperCase()} ({companies.length})
+                      </h4>
+                      {expandedCategories[category] && (
+                        <div className="company-cards">
+                          {companies.map((company, idx) => (
+                            <div key={idx} className="company-card">
+                              <div className="company-header">
+                                <h5>{company.company_name}</h5>
+                                <span className="score-badge">{company.relevance_score}/10</span>
+                              </div>
+                              <p className="reasoning">{company.relevance_reasoning}</p>
+                              <div className="company-meta">
+                                <span>{company.industry}</span>
+                                {company.employee_count && <span>{company.employee_count} employees</span>}
+                                {company.funding_stage && <span>{company.funding_stage}</span>}
+                              </div>
                             </div>
-                            <p className="reasoning">{company.relevance_reasoning}</p>
-                            <div className="company-meta">
-                              <span>{company.industry}</span>
-                              {company.employee_count && <span>{company.employee_count} employees</span>}
-                              {company.funding_stage && <span>{company.funding_stage}</span>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )
                 ))}
+
+                {/* Phase 3: Search for People at Companies */}
+                <div className="company-search-section" style={{ marginTop: '40px', padding: '20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                  <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>Search for People at Selected Companies</h3>
+
+                  {/* Company Selection Instructions */}
+                  <p style={{ marginBottom: '20px', color: '#6b7280', fontSize: '14px' }}>
+                    Select companies below to find people working there. Use filters to refine your search.
+                  </p>
+
+                  {/* Company Selection Checkboxes */}
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                        Select Companies ({selectedCompanies.length} selected)
+                      </h4>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => {
+                            const allCompanies = Object.values(companyResearchResults.companies_by_category)
+                              .flat()
+                              .map(c => c.company_name);
+                            setSelectedCompanies(allCompanies);
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '13px',
+                            borderRadius: '4px',
+                            border: '1px solid #d1d5db',
+                            backgroundColor: 'white',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => setSelectedCompanies([])}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '13px',
+                            borderRadius: '4px',
+                            border: '1px solid #d1d5db',
+                            backgroundColor: 'white',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '8px', maxHeight: '300px', overflowY: 'auto', padding: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                      {Object.values(companyResearchResults.companies_by_category)
+                        .flat()
+                        .map((company, idx) => (
+                          <label
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '8px',
+                              cursor: 'pointer',
+                              borderRadius: '4px',
+                              backgroundColor: selectedCompanies.includes(company.company_name) ? '#ede9fe' : 'transparent',
+                              transition: 'background-color 0.2s'
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedCompanies.includes(company.company_name)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedCompanies([...selectedCompanies, company.company_name]);
+                                } else {
+                                  setSelectedCompanies(selectedCompanies.filter(c => c !== company.company_name));
+                                }
+                              }}
+                              style={{ marginRight: '8px' }}
+                            />
+                            <span style={{ fontSize: '13px' }}>{company.company_name}</span>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Search Filters */}
+                  <div style={{ marginBottom: '20px' }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+                      Search Filters (Optional)
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px', color: '#4b5563' }}>
+                          Job Title
+                        </label>
+                        <input
+                          type="text"
+                          value={companySearchFilters.title}
+                          onChange={(e) => setCompanySearchFilters({ ...companySearchFilters, title: e.target.value })}
+                          placeholder="e.g., engineer"
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #d1d5db',
+                            fontSize: '13px'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px', color: '#4b5563' }}>
+                          Seniority
+                        </label>
+                        <input
+                          type="text"
+                          value={companySearchFilters.seniority}
+                          onChange={(e) => setCompanySearchFilters({ ...companySearchFilters, seniority: e.target.value })}
+                          placeholder="e.g., senior"
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #d1d5db',
+                            fontSize: '13px'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px', color: '#4b5563' }}>
+                          Location
+                        </label>
+                        <input
+                          type="text"
+                          value={companySearchFilters.location}
+                          onChange={(e) => setCompanySearchFilters({ ...companySearchFilters, location: e.target.value })}
+                          placeholder="e.g., San Francisco"
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #d1d5db',
+                            fontSize: '13px'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Search Button */}
+                  <button
+                    onClick={handleSearchByCompanyList}
+                    disabled={searchingCompanies || selectedCompanies.length === 0}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: searchingCompanies || selectedCompanies.length === 0 ? '#9ca3af' : '#4F46E5',
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: searchingCompanies || selectedCompanies.length === 0 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {searchingCompanies ? 'Searching...' : `Search for People at ${selectedCompanies.length} ${selectedCompanies.length === 1 ? 'Company' : 'Companies'}`}
+                  </button>
+
+                  {/* Search Results */}
+                  {companySearchResults && (
+                    <div style={{ marginTop: '30px' }}>
+                      <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>
+                        Found {companySearchResults.total_people} People
+                      </h4>
+
+                      {/* Company Match Status */}
+                      <div style={{ marginBottom: '20px' }}>
+                        <h5 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '10px', color: '#374151' }}>
+                          Company Matches
+                        </h5>
+                        <div style={{ display: 'grid', gap: '8px' }}>
+                          {companySearchResults.company_matches.map((match, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                padding: '10px 12px',
+                                backgroundColor: match.coresignal_id ? '#ecfdf5' : '#fef2f2',
+                                border: `1px solid ${match.coresignal_id ? '#10b981' : '#ef4444'}`,
+                                borderRadius: '4px',
+                                fontSize: '13px'
+                              }}
+                            >
+                              {match.coresignal_id ? (
+                                <span>
+                                  ✅ <strong>{match.company_name}</strong> → {match.coresignal_name}
+                                  <span style={{ marginLeft: '8px', color: '#6b7280' }}>
+                                    (confidence: {Math.round(match.confidence * 100)}%, {match.people_found} people)
+                                  </span>
+                                </span>
+                              ) : (
+                                <span>
+                                  ❌ <strong>{match.company_name}</strong> - No match found
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* People Results Table */}
+                      {companySearchResults.people && companySearchResults.people.length > 0 && (
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                            <thead>
+                              <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #d1d5db' }}>
+                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>Name</th>
+                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>Title</th>
+                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>Company</th>
+                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>Location</th>
+                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>LinkedIn</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {companySearchResults.people.map((person, idx) => (
+                                <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                  <td style={{ padding: '10px' }}>{person.full_name || 'N/A'}</td>
+                                  <td style={{ padding: '10px' }}>{person.title || 'N/A'}</td>
+                                  <td style={{ padding: '10px' }}>{person.company_name || 'N/A'}</td>
+                                  <td style={{ padding: '10px' }}>{person.location || 'N/A'}</td>
+                                  <td style={{ padding: '10px' }}>
+                                    {person.linkedin_url ? (
+                                      <a
+                                        href={person.linkedin_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ color: '#4F46E5', textDecoration: 'none' }}
+                                      >
+                                        View Profile
+                                      </a>
+                                    ) : (
+                                      'N/A'
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -4075,6 +4787,103 @@ function App() {
         <div className={`notification ${notification.type}`}>
           {notification.type === 'success' ? '✅' : notification.type === 'info' ? 'ℹ️' : '❌'} {notification.message}
       </div>
+      )}
+
+      {/* Save Company List Modal */}
+      {showSaveListModal && (
+        <div className="modal-overlay" onClick={() => setShowSaveListModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h2>Save as Company List</h2>
+              <button className="close-btn" onClick={() => setShowSaveListModal(false)} style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer' }}>&times;</button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label htmlFor="list-name" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>List Name *</label>
+                <input
+                  id="list-name"
+                  type="text"
+                  value={saveListName}
+                  onChange={(e) => setSaveListName(e.target.value)}
+                  placeholder="e.g., Voice AI Competitors Q1 2025"
+                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd' }}
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label htmlFor="list-description" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Description (optional)</label>
+                <textarea
+                  id="list-description"
+                  value={saveListDescription}
+                  onChange={(e) => setSaveListDescription(e.target.value)}
+                  placeholder="What is this list for?"
+                  rows="3"
+                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '12px', fontWeight: '500' }}>Select Categories to Include:</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  {Object.entries(companyResearchResults.companies_by_category).map(([category, companies]) => (
+                    companies.length > 0 && (
+                      <label key={category} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories[category]}
+                          onChange={() => toggleCategorySelection(category)}
+                          style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                        />
+                        <span>
+                          {category.replace('_', ' ').toUpperCase()} ({companies.length})
+                        </span>
+                      </label>
+                    )
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginTop: '20px', padding: '12px', backgroundColor: '#f3f4f6', borderRadius: '6px', fontSize: '14px' }}>
+                <strong>Total companies to save:</strong>{' '}
+                {Object.entries(companyResearchResults.companies_by_category).reduce((total, [category, companies]) => {
+                  return total + (selectedCategories[category] ? companies.length : 0);
+                }, 0)}
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '20px', borderTop: '1px solid #e5e7eb' }}>
+              <button
+                onClick={() => setShowSaveListModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  border: '1px solid #d1d5db',
+                  backgroundColor: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveCompanyList}
+                disabled={savingList || !saveListName.trim()}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: savingList || !saveListName.trim() ? '#9ca3af' : '#4F46E5',
+                  color: 'white',
+                  cursor: savingList || !saveListName.trim() ? 'not-allowed' : 'pointer',
+                  fontWeight: '500'
+                }}
+              >
+                {savingList ? 'Saving...' : 'Save List'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Crunchbase Validation Modal */}
