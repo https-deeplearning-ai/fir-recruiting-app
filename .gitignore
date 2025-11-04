@@ -58,6 +58,20 @@ test_*.py
 # Frontend build (uncomment if you want to rebuild on Render)
 # frontend/build/
 # backend/static/* # COMMENTED OUT - We need static files for deployment
+
+# Claude sub-agent planning (local only)
+.claude/sub-agents/
+
+# Excalidraw working files (can regenerate)
+*.excalidraw
+
+# Documentation drafts/summaries (keep only canonical docs)
+docs/*_SUMMARY.md
+docs/*_INDEX.md
+docs/STREAMING_*.md
+docs/FINAL_STATUS.md
+docs/IMPLEMENTATION_SUMMARY.md
+docs/TESTING_RESULTS.md
 .cursor/rules/byterover-rules.mdc
 .clinerules/byterover-rules.md
 .kilocode/rules/byterover-rules.md

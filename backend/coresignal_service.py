@@ -11,6 +11,7 @@ Key Changes:
 import requests
 import json
 import os
+from typing import List, Dict, Any, Optional
 
 
 class CoreSignalService:
@@ -1105,3 +1106,116 @@ class CoreSignalService:
         except Exception as e:
             print(f"   ❌ Failed to generate heuristic Crunchbase URL: {e}")
             return None
+
+
+def search_profiles_by_company_ids(
+    company_ids: List[int],
+    title: Optional[str] = None,
+    seniority: Optional[str] = None,
+    location: Optional[str] = None,
+    max_per_company: int = 20
+) -> List[Dict[str, Any]]:
+    """
+    Search for employee profiles at multiple companies using CoreSignal.
+
+    Args:
+        company_ids: List of CoreSignal company IDs to search
+        title: Optional job title filter (e.g., "engineer")
+        seniority: Optional seniority level (e.g., "senior")
+        location: Optional location filter (e.g., "San Francisco")
+        max_per_company: Maximum profiles per company
+
+    Returns:
+        List of employee profile dictionaries
+    """
+    import os
+    import requests
+
+    api_key = os.getenv("CORESIGNAL_API_KEY")
+    if not api_key:
+        raise ValueError("CORESIGNAL_API_KEY not found")
+
+    base_url = "https://api.coresignal.com"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    all_profiles = []
+
+    for company_id in company_ids:
+        # Build query for this company
+        must_clauses = [
+            {"term": {"last_company_id": company_id}}
+        ]
+
+        if title:
+            must_clauses.append({
+                "match": {
+                    "title": {
+                        "query": title,
+                        "fuzziness": "AUTO"
+                    }
+                }
+            })
+
+        if seniority:
+            must_clauses.append({
+                "match": {
+                    "title": {
+                        "query": seniority,
+                        "fuzziness": "AUTO"
+                    }
+                }
+            })
+
+        if location:
+            must_clauses.append({
+                "match": {
+                    "location": {
+                        "query": location,
+                        "fuzziness": "AUTO"
+                    }
+                }
+            })
+
+        payload = {
+            "query": {
+                "bool": {
+                    "must": must_clauses
+                }
+            },
+            "size": max_per_company
+        }
+
+        try:
+            response = requests.post(
+                f"{base_url}/v2/employee_clean/search/es_dsl/preview",
+                json=payload,
+                headers=headers,
+                timeout=10
+            )
+            response.raise_for_status()
+
+            data = response.json()
+            hits = data.get("hits", {}).get("hits", [])
+
+            for hit in hits:
+                source = hit.get("_source", {})
+                all_profiles.append({
+                    "employee_id": source.get("id"),
+                    "full_name": source.get("name"),
+                    "title": source.get("title"),
+                    "company_id": company_id,
+                    "company_name": source.get("last_company_name"),
+                    "location": source.get("location"),
+                    "linkedin_url": source.get("url"),
+                    "headline": source.get("headline"),
+                    "score": hit.get("_score")
+                })
+
+        except requests.exceptions.RequestException as e:
+            print(f"[CORESIGNAL] Error searching company {company_id}: {e}")
+            continue
+
+    return all_profiles

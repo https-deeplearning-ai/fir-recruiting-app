@@ -32,3 +32,27 @@ MAX_CONCURRENT_CALLS = config['MAX_CONCURRENT_CALLS']
 TIMEOUT_SECONDS = config['TIMEOUT_SECONDS']
 BATCH_SIZE = config['BATCH_SIZE']
 WORKERS = config['WORKERS']
+
+# Global list of companies to exclude from company research
+# These are DLAI's own companies and should not be identified as competitors
+EXCLUDED_COMPANIES = [
+    "DLAI",
+    "Deep Learning.AI",
+    "AI Fund"
+]
+
+def is_excluded_company(company_name: str) -> bool:
+    """
+    Check if a company name matches any excluded company (exact match, case-insensitive).
+
+    Args:
+        company_name: Company name to check
+
+    Returns:
+        True if the company should be excluded, False otherwise
+    """
+    if not company_name:
+        return False
+
+    company_name_lower = company_name.strip().lower()
+    return any(excluded.lower() == company_name_lower for excluded in EXCLUDED_COMPANIES)

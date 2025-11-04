@@ -170,10 +170,53 @@ cd .. && cp -r frontend/build/. backend/
 - Uses `/company_base/collect/{company_id}` endpoint for rich data
 - Session-based caching to avoid duplicate API calls
 
+**company_research_service.py:** Company discovery and competitive intelligence
+- **Multi-method discovery pipeline:**
+  - **Method 1: Seed Expansion** - Finds competitors of up to **15 mentioned companies** (increased from 5)
+    - Each seed triggers 3 Tavily searches: "{company} competitors", "companies like {company}", "{company} alternatives"
+    - Filters out excluded companies (DLAI, AI Fund) before expansion
+  - **Method 2: Web Search** - Direct domain/industry search using authoritative sources
+    - Generates up to **6 search queries** (2 domain + 3 seed + 1 fallback)
+    - Executes top **5 web searches** to balance coverage and API costs
+    - Uses **top 3 seed companies** in queries (not just first one)
+    - Priority: Domain (G2/Capterra) > Seed Companies > Industry > Generic fallback
+- **Evaluation Pipeline:**
+  - Screening: GPT-5-mini batch screening (20 companies/batch)
+  - Deep Research: GPT-5 or Claude Haiku 4.5 for top 25 candidates
+  - Filters excluded companies at all stages
+- **Progressive Evaluation (NEW):**
+  - **Phase 1 (Auto):** Discovers up to 100 companies, evaluates top 25
+  - **Phase 2 (On-Demand):** User can evaluate next 25/50/75 via "Evaluate More" button
+  - **Session Storage:** Saves screened companies and JD context in Supabase for resume
+  - **API Endpoint:** `/evaluate-more-companies` (POST) with session_id, start_index, count
+  - **Response Structure:**
+    ```json
+    {
+      "discovered_companies": [...],   // All 100 discovered
+      "screened_companies": [...],     // Ranked by initial score
+      "evaluated_companies": [...],    // Top 25 with full evaluation
+      "evaluation_progress": {
+        "evaluated_count": 25,
+        "remaining_count": 75
+      }
+    }
+    ```
+  - **UI Benefits:** Transparency (see all discovered), cost control (evaluate as needed), verification (check discovery quality)
+- **Authoritative Sources:** G2, Capterra, Gartner, Crunchbase, ProductHunt, CB Insights
+
 **config.py:** Deployment-specific configuration
 - Render: 50 concurrent calls, 60s timeout, 100 batch size
 - Heroku: 15 concurrent calls, 25s timeout, 50 batch size
 - Auto-detects environment via `RENDER` env var
+- **EXCLUDED_COMPANIES:** Global list of companies to exclude from company research
+  - Currently: `["DLAI", "Deep Learning.AI", "AI Fund"]`
+  - These are user's own companies and should not be researched as competitors
+  - Filtering occurs at 3 levels:
+    1. **JD Parser**: Identifies excluded companies from JD context (e.g., "Partner with AI Fund & DLAI")
+    2. **Discovery Phase**: Filters excluded companies from seed list before competitor search
+    3. **Evaluation Phase**: Skips excluded companies during screening and deep research
+  - Frontend displays excluded companies with gray badge: "🏢 Your Companies - Excluded"
+  - Utility function: `is_excluded_company(company_name)` for case-insensitive exact matching
 
 ### AI Assessment System
 
