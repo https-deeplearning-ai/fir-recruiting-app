@@ -6,8 +6,10 @@ the best CoreSignal search query for a given JD.
 """
 
 import os
+import time
 from typing import Dict, List, Any, Optional
 import anthropic
+from anthropic import RateLimitError
 import openai
 import json
 from jd_analyzer.query.llm_configs import get_config
@@ -689,17 +691,44 @@ Return the JSON query."""
                 max_tokens=self.claude_config.max_tokens
             )
 
-            # Use config for model parameters
-            response = self.anthropic_client.messages.create(
-                model=self.claude_config.model_name,
-                max_tokens=self.claude_config.max_tokens,
-                temperature=0 if self.claude_config.supports_temperature else None,
-                system=self.system_prompt,
-                messages=[{
-                    "role": "user",
-                    "content": user_prompt
-                }]
-            )
+            # Retry logic for rate limits (exponential backoff)
+            max_retries = 3
+            retry_count = 0
+            last_error = None
+
+            while retry_count < max_retries:
+                try:
+                    # Use config for model parameters
+                    response = self.anthropic_client.messages.create(
+                        model=self.claude_config.model_name,
+                        max_tokens=self.claude_config.max_tokens,
+                        temperature=0 if self.claude_config.supports_temperature else None,
+                        system=self.system_prompt,
+                        messages=[{
+                            "role": "user",
+                            "content": user_prompt
+                        }]
+                    )
+                    break  # Success, exit retry loop
+
+                except RateLimitError as e:
+                    retry_count += 1
+                    last_error = e
+                    if retry_count < max_retries:
+                        wait_time = 2 ** retry_count  # Exponential backoff: 2s, 4s, 8s
+                        debug_log.error(
+                            f"{self.claude_config.display_name} rate limit - retry {retry_count}/{max_retries} after {wait_time}s",
+                            exception=e,
+                            context={"retry_count": retry_count, "wait_time": wait_time}
+                        )
+                        time.sleep(wait_time)
+                    else:
+                        # Max retries exceeded, raise the error
+                        raise
+
+            if last_error and retry_count >= max_retries:
+                # Should not reach here, but just in case
+                raise last_error
 
             response_text = response.content[0].text.strip()
 
@@ -779,7 +808,34 @@ Return the JSON query."""
             if self.openai_config.supports_temperature:
                 api_params["temperature"] = 0
 
-            response = openai.chat.completions.create(**api_params)
+            # Retry logic for rate limits (exponential backoff)
+            max_retries = 3
+            retry_count = 0
+            last_error = None
+
+            while retry_count < max_retries:
+                try:
+                    response = openai.chat.completions.create(**api_params)
+                    break  # Success, exit retry loop
+
+                except openai.RateLimitError as e:
+                    retry_count += 1
+                    last_error = e
+                    if retry_count < max_retries:
+                        wait_time = 2 ** retry_count  # Exponential backoff: 2s, 4s, 8s
+                        debug_log.error(
+                            f"{self.openai_config.display_name} rate limit - retry {retry_count}/{max_retries} after {wait_time}s",
+                            exception=e,
+                            context={"retry_count": retry_count, "wait_time": wait_time}
+                        )
+                        time.sleep(wait_time)
+                    else:
+                        # Max retries exceeded, raise the error
+                        raise
+
+            if last_error and retry_count >= max_retries:
+                # Should not reach here, but just in case
+                raise last_error
 
             response_text = response.choices[0].message.content.strip()
 
@@ -852,14 +908,47 @@ Return the JSON query."""
             # Gemini doesn't support separate system prompts, combine them
             combined_prompt = f"{self.system_prompt}\n\n{user_prompt}"
 
-            # Generate content using new SDK
-            response = client.models.generate_content(
-                model=self.google_config.model_name,
-                contents=combined_prompt,
-                config={
-                    "temperature": 0 if self.google_config.supports_temperature else None
-                }
-            )
+            # Retry logic for rate limits (exponential backoff)
+            max_retries = 3
+            retry_count = 0
+            last_error = None
+
+            while retry_count < max_retries:
+                try:
+                    # Generate content using new SDK
+                    response = client.models.generate_content(
+                        model=self.google_config.model_name,
+                        contents=combined_prompt,
+                        config={
+                            "temperature": 0 if self.google_config.supports_temperature else None
+                        }
+                    )
+                    break  # Success, exit retry loop
+
+                except Exception as e:
+                    # Check if it's a rate limit error (429 or similar)
+                    error_msg = str(e).lower()
+                    if "rate" in error_msg or "429" in error_msg or "quota" in error_msg:
+                        retry_count += 1
+                        last_error = e
+                        if retry_count < max_retries:
+                            wait_time = 2 ** retry_count  # Exponential backoff: 2s, 4s, 8s
+                            debug_log.error(
+                                f"{self.google_config.display_name} rate limit - retry {retry_count}/{max_retries} after {wait_time}s",
+                                exception=e,
+                                context={"retry_count": retry_count, "wait_time": wait_time}
+                            )
+                            time.sleep(wait_time)
+                        else:
+                            # Max retries exceeded, raise the error
+                            raise
+                    else:
+                        # Not a rate limit error, raise immediately
+                        raise
+
+            if last_error and retry_count >= max_retries:
+                # Should not reach here, but just in case
+                raise last_error
 
             response_text = response.text.strip()
 
