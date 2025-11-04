@@ -524,7 +524,23 @@ This finds people who EVER worked at target companies (not just currently)!
 "C-Level", "Senior", "Manager", "Mid-Level", "Specialist", "Intern"
 (Distribution: Specialist 74%, Manager 14%, Senior 2%, C-Level 1%)
 
-Generate a CoreSignal Elasticsearch DSL query for the following JD requirements. Follow the priority order. Return ONLY the JSON query, no explanation."""
+Generate a CoreSignal Elasticsearch DSL query for the following JD requirements.
+
+**IMPORTANT OUTPUT FORMAT:**
+1. First, include your chain-of-thought reasoning inside <thinking></thinking> tags
+2. Then, provide the JSON query
+
+Example response format:
+<thinking>
+Step 1: Analyze JD requirements...
+Step 2: Determine field priority...
+...
+</thinking>
+
+{
+  "query": { ... }
+}
+"""
 
     def _clean_json_response(self, query_text: str) -> str:
         """
