@@ -1,8 +1,10 @@
 // App.js
 import React, { useState } from 'react';
 import JsonView from '@uiw/react-json-view';
+import { TbRefresh } from "react-icons/tb";
 import WorkExperienceSection from './components/WorkExperienceSection';
 import ListsView from './components/ListsView';
+import CrunchbaseValidationModal from './components/CrunchbaseValidationModal';
 import './App.css';
 
 function App() {
@@ -55,12 +57,104 @@ function App() {
   const [aiAnalysisLoading, setAiAnalysisLoading] = useState({}); // Track AI analysis loading state per candidate
   const [autoGenerateAI, setAutoGenerateAI] = useState(false); // Toggle for automatic AI analysis after profile fetch
 
+  // JD Analyzer state
+  const [jdAnalyzerMode, setJdAnalyzerMode] = useState(false); // Toggle for JD Analyzer view
+  const [jdText, setJdText] = useState(''); // Raw job description text
+  const [jdAnalyzing, setJdAnalyzing] = useState(false); // Loading state during JD analysis
+
+  // Company Research Agent state
+  const [companyResearchMode, setCompanyResearchMode] = useState(false); // Toggle for Company Research view
+  const [companyJdText, setCompanyJdText] = useState(''); // JD text for company research
+  const [companyResearching, setCompanyResearching] = useState(false); // Loading state during research
+  const [companySessionId, setCompanySessionId] = useState(null); // Current research session ID
+  const [companyResearchStatus, setCompanyResearchStatus] = useState(null); // Session status
+  const [companyResearchResults, setCompanyResearchResults] = useState(null); // Research results
+  const [expandedCategories, setExpandedCategories] = useState({
+    direct_competitor: true,    // Expanded by default (highest priority)
+    adjacent_company: true,      // Expanded by default
+    same_category: false,        // Collapsed by default
+    tangential: false,           // Collapsed by default
+    similar_stage: false,        // Collapsed by default
+    talent_pool: false           // Collapsed by default
+  }); // Track which categories are expanded/collapsed
+  const [extractedRequirements, setExtractedRequirements] = useState([]); // AI-extracted requirements
+  const [activeJD, setActiveJD] = useState(null); // Currently active JD {title, requirements, timestamp}
+  const [jdTitle, setJdTitle] = useState(''); // User-provided title for the JD
+  const [excludedCompanies, setExcludedCompanies] = useState([]); // Companies excluded from research (DLAI, AI Fund, etc.)
+  const [discoveredCompanies, setDiscoveredCompanies] = useState([]); // All discovered companies (up to 100)
+  const [screenedCompanies, setScreenedCompanies] = useState([]); // Screened/ranked companies
+  const [evaluatedCount, setEvaluatedCount] = useState(25); // Number of companies evaluated so far
+  const [evaluatingMore, setEvaluatingMore] = useState(false); // Loading state for "Evaluate More"
+  const [showWeightedRequirements, setShowWeightedRequirements] = useState(false); // Accordion toggle for weighted requirements
+  const [jdSearching, setJdSearching] = useState(false); // Loading state during JD → CoreSignal search
+  const [jdSearchResults, setJdSearchResults] = useState(null); // Search results from CoreSignal
+  const [jdFullResults, setJdFullResults] = useState(null); // Full 100 candidates from "Search with model" button
+  const [jdCsvData, setJdCsvData] = useState(null); // CSV data for optional download
+  const [currentPage, setCurrentPage] = useState(1); // Pagination for full results
+  const [hoveredProfile, setHoveredProfile] = useState(null); // For tooltip display
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 }); // Tooltip positioning
+
+  // LLM comparison states - 3 separate states for independent loading
+  const [claudeResult, setClaudeResult] = useState(null);
+  const [gptResult, setGptResult] = useState(null);
+  const [geminiResult, setGeminiResult] = useState(null);
+  const [claudeLoading, setClaudeLoading] = useState(false);
+  const [gptLoading, setGptLoading] = useState(false);
+  const [geminiLoading, setGeminiLoading] = useState(false);
+  const [selectedLlmQuery, setSelectedLlmQuery] = useState(null); // 'claude', 'gpt', or 'gemini'
+  const [activeLlmTab, setActiveLlmTab] = useState('claude'); // Which tab is currently visible
+
+  // Company List state (Save as Company List functionality)
+  const [showSaveListModal, setShowSaveListModal] = useState(false); // Modal visibility
+  const [saveListName, setSaveListName] = useState(''); // List name input
+  const [saveListDescription, setSaveListDescription] = useState(''); // List description input
+  const [selectedCategories, setSelectedCategories] = useState({
+    direct_competitor: true,
+    adjacent_company: true,
+    same_category: true,
+    tangential: false,
+    similar_stage: false,
+    talent_pool: false
+  }); // Which categories to include in saved list
+  const [savingList, setSavingList] = useState(false); // Loading state during save
+
+  // Crunchbase URL validation state
+  const [validationModalOpen, setValidationModalOpen] = useState(false);
+  const [validationData, setValidationData] = useState(null); // {companyId, companyName, crunchbaseUrl, source}
+
+  // Company Search state (Phase 3: Search for people at companies)
+  const [selectedCompanies, setSelectedCompanies] = useState([]); // Company names selected for people search
+  const [companySearchFilters, setCompanySearchFilters] = useState({
+    title: '',
+    seniority: '',
+    location: ''
+  });
+  const [companySearchResults, setCompanySearchResults] = useState(null); // {company_matches: [], people: []}
+  const [searchingCompanies, setSearchingCompanies] = useState(false); // Loading state
+
   // Save recruiter name to localStorage whenever it changes
   React.useEffect(() => {
     if (selectedRecruiter) {
       localStorage.setItem('recruiterName', selectedRecruiter);
     }
   }, [selectedRecruiter]);
+
+  // Load active JD from localStorage on mount
+  React.useEffect(() => {
+    const savedJD = localStorage.getItem('activeJD');
+    if (savedJD) {
+      try {
+        const jdData = JSON.parse(savedJD);
+        setActiveJD(jdData);
+        setWeightedRequirements(jdData.requirements || []);
+        setJdTitle(jdData.title || '');
+        console.log('✓ Loaded active JD from localStorage:', jdData.title);
+      } catch (e) {
+        console.error('Error loading active JD:', e);
+        localStorage.removeItem('activeJD');
+      }
+    }
+  }, []);
 
   // Pre-made feedback reasons
   const likeReasons = [
@@ -468,6 +562,173 @@ function App() {
     showNotification(`Feedback saved: ${reason}`);
   };
 
+  // Company Research Category Toggle Functions
+  const toggleCategory = (category) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
+
+  const expandAllCategories = () => {
+    setExpandedCategories({
+      direct_competitor: true,
+      adjacent_company: true,
+      same_category: true,
+      tangential: true,
+      similar_stage: true,
+      talent_pool: true
+    });
+  };
+
+  const collapseAllCategories = () => {
+    setExpandedCategories({
+      direct_competitor: false,
+      adjacent_company: false,
+      same_category: false,
+      tangential: false,
+      similar_stage: false,
+      talent_pool: false
+    });
+  };
+
+  // Evaluate More Companies (Progressive Evaluation)
+  const evaluateMoreCompanies = async () => {
+    if (!companySessionId) {
+      showNotification('No active research session', 'error');
+      return;
+    }
+
+    setEvaluatingMore(true);
+
+    try {
+      const response = await fetch('http://localhost:5001/evaluate-more-companies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: companySessionId,
+          start_index: evaluatedCount,
+          count: 25
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to evaluate more companies');
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Merge newly evaluated companies with existing results
+        const updatedResults = { ...companyResearchResults };
+
+        // Update companies_by_category with new evaluations
+        Object.entries(data.companies_by_category).forEach(([category, newCompanies]) => {
+          if (updatedResults.companies_by_category[category]) {
+            updatedResults.companies_by_category[category].push(...newCompanies);
+          } else {
+            updatedResults.companies_by_category[category] = newCompanies;
+          }
+        });
+
+        // Update summary
+        if (updatedResults.summary) {
+          updatedResults.summary.total_evaluated = data.evaluation_progress.evaluated_count;
+        }
+
+        setCompanyResearchResults(updatedResults);
+        setEvaluatedCount(data.evaluation_progress.evaluated_count);
+
+        showNotification(`Evaluated ${data.evaluated_companies.length} more companies!`, 'success');
+      }
+    } catch (error) {
+      console.error('Evaluate more error:', error);
+      showNotification('Failed to evaluate more companies: ' + error.message, 'error');
+    } finally {
+      setEvaluatingMore(false);
+    }
+  };
+
+  // Save Company List
+  const handleSaveCompanyList = async () => {
+    if (!saveListName.trim()) {
+      showNotification('Please enter a list name', 'error');
+      return;
+    }
+
+    setSavingList(true);
+
+    try {
+      // Collect all companies from selected categories
+      const selectedCompanies = [];
+      Object.entries(companyResearchResults.companies_by_category).forEach(([category, companies]) => {
+        if (selectedCategories[category]) {
+          selectedCompanies.push(...companies);
+        }
+      });
+
+      if (selectedCompanies.length === 0) {
+        showNotification('Please select at least one category', 'error');
+        setSavingList(false);
+        return;
+      }
+
+      // Extract JD title from companyJdText (first line is usually the title)
+      const jdTitle = companyJdText.split('\n')[0].replace(/^(Job Title:|Title:)\s*/i, '').trim();
+
+      const payload = {
+        list_name: saveListName.trim(),
+        description: saveListDescription.trim(),
+        jd_title: jdTitle || 'N/A',
+        jd_session_id: companySessionId || '',
+        companies: selectedCompanies
+      };
+
+      const response = await fetch('http://localhost:5001/company-lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save list: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification(`Saved "${data.list_name}" with ${data.total_companies} companies!`, 'success');
+        // Reset modal state
+        setShowSaveListModal(false);
+        setSaveListName('');
+        setSaveListDescription('');
+        setSelectedCategories({
+          direct_competitor: true,
+          adjacent_company: true,
+          same_category: true,
+          tangential: false,
+          similar_stage: false,
+          talent_pool: false
+        });
+      } else {
+        throw new Error('Failed to save company list');
+      }
+    } catch (error) {
+      console.error('Error saving company list:', error);
+      showNotification(`Error: ${error.message}`, 'error');
+    } finally {
+      setSavingList(false);
+    }
+  };
+
+  // Toggle category selection for saving
+  const toggleCategorySelection = (category) => {
+    setSelectedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
+
   // Dummy profile data for testing
   const dummyProfileData = {
     "id": 532675010,
@@ -814,6 +1075,117 @@ function App() {
     "hidden_details": []
   };
 
+  // Handler for Crunchbase link clicks
+  const handleCrunchbaseClick = async (clickData) => {
+    const { companyId, companyName, crunchbaseUrl, source } = clickData;
+
+    // Trusted sources (no modal needed): auto-verified or user-verified
+    const trustedSources = ['coresignal', 'websearch_validated', 'user_verified'];
+
+    if (trustedSources.includes(source)) {
+      // Silent auto-verification in background
+      try {
+        const response = await fetch('/verify-crunchbase-url', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            companyId,
+            isCorrect: true,
+            verificationStatus: 'verified',
+            correctedUrl: null,
+            crunchbaseUrl  // Pass URL so backend can save it to company_data
+          }),
+        });
+
+        if (response.ok) {
+          console.log(`✅ Auto-verified ${source} URL for ${companyName}`);
+        } else {
+          console.error('Failed to auto-verify URL');
+        }
+      } catch (error) {
+        console.error('Error auto-verifying URL:', error);
+      }
+      return; // Exit - no modal needed for trusted sources
+    }
+
+    // Uncertain sources: show validation modal for user review
+    setValidationData({
+      companyId,
+      companyName,
+      crunchbaseUrl,
+      source,
+      onRegenerate: () => handleRegenerateCrunchbaseUrl(companyName, companyId, crunchbaseUrl),
+    });
+    setValidationModalOpen(true);
+  };
+
+  // Handler for validation submission
+  const handleValidation = async (validationPayload) => {
+    try {
+      const response = await fetch('/verify-crunchbase-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(validationPayload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save verification');
+      }
+
+      const result = await response.json();
+      console.log('✅ Verification saved:', result);
+
+      // Update UI to reflect verification
+      const companyId = validationPayload.companyId;
+      const isCorrect = validationPayload.isCorrect;
+      const newSource = isCorrect ? 'user_verified' : validationPayload.verificationStatus;
+
+      // Update all candidate profiles that have this company
+      const updateCompanySource = (candidates) => {
+        return candidates.map(candidate => {
+          if (!candidate.profileSummary?.experiences) return candidate;
+
+          const updatedExperiences = candidate.profileSummary.experiences.map(exp => {
+            if (exp.company_id === companyId && exp.company_enriched) {
+              return {
+                ...exp,
+                company_enriched: {
+                  ...exp.company_enriched,
+                  crunchbase_source: newSource,
+                  user_verified: isCorrect
+                }
+              };
+            }
+            return exp;
+          });
+
+          return {
+            ...candidate,
+            profileSummary: {
+              ...candidate.profileSummary,
+              experiences: updatedExperiences
+            }
+          };
+        });
+      };
+
+      // Update all result arrays
+      setSingleProfileResults(prev => updateCompanySource(prev));
+      setBatchResults(prev => updateCompanySource(prev));
+      setSavedAssessments(prev => updateCompanySource(prev));
+
+      showNotification('Thank you for your feedback!', 'success');
+    } catch (error) {
+      console.error('Error saving verification:', error);
+      showNotification('Failed to save verification', 'error');
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -997,6 +1369,80 @@ function App() {
     } finally {
       setShowLoadingOverlay(false);
     }
+  };
+
+  const handleRegenerateCrunchbaseUrl = async (companyName, companyId, currentUrl) => {
+    try {
+      // Don't show loading overlay - let the button handle its own loading state
+      const response = await fetch('/regenerate-crunchbase-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_name: companyName,
+          company_id: companyId,
+          current_url: currentUrl
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        const newUrl = data.crunchbase_url;
+        const newSource = data.crunchbase_source;
+        const newConfidence = data.crunchbase_confidence;
+
+        // Update all candidate profiles that have this company
+        const updateCompanyUrl = (candidates) => {
+          return candidates.map(candidate => {
+            if (!candidate.profileSummary?.experiences) return candidate;
+
+            const updatedExperiences = candidate.profileSummary.experiences.map(exp => {
+              if (exp.company_id === companyId && exp.company_enriched) {
+                return {
+                  ...exp,
+                  company_enriched: {
+                    ...exp.company_enriched,
+                    crunchbase_company_url: newUrl,
+                    crunchbase_source: newSource,
+                    crunchbase_confidence: newConfidence
+                  }
+                };
+              }
+              return exp;
+            });
+
+            return {
+              ...candidate,
+              profileSummary: {
+                ...candidate.profileSummary,
+                experiences: updatedExperiences
+              }
+            };
+          });
+        };
+
+        // Update all result arrays
+        setSingleProfileResults(prev => updateCompanyUrl(prev));
+        setBatchResults(prev => updateCompanyUrl(prev));
+        setSavedAssessments(prev => updateCompanyUrl(prev));
+
+        const changeMessage = currentUrl !== newUrl
+          ? `\n\nOld: ${currentUrl}\nNew: ${newUrl}`
+          : '\n\n(URL unchanged, but validated!)';
+
+        showNotification(
+          `✅ Crunchbase URL updated for ${companyName}!${changeMessage}`,
+          'success',
+          8000  // Show for 8 seconds
+        );
+      } else {
+        showNotification(`❌ Failed to regenerate URL: ${data.error}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error regenerating URL:', error);
+      showNotification('❌ Network error during URL regeneration', 'error');
+    }
+    // No finally block - let CompanyTooltip handle its own loading state
   };
 
   const addRequirement = () => {
@@ -1444,6 +1890,48 @@ function App() {
     }
   };
 
+  // Handle search for people at selected companies
+  const handleSearchByCompanyList = async () => {
+    if (selectedCompanies.length === 0) {
+      showNotification('Please select at least one company', 'error');
+      return;
+    }
+
+    setSearchingCompanies(true);
+    setCompanySearchResults(null);
+
+    try {
+      const response = await fetch('/search-by-company-list', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          company_names: selectedCompanies,
+          filters: companySearchFilters,
+          max_per_company: 20
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setCompanySearchResults(data);
+        showNotification(`Found ${data.total_people} people at ${data.company_matches.filter(m => m.coresignal_id).length} companies`, 'success');
+        console.log('✅ Company search completed:', data);
+      } else {
+        setError(data.error || 'Search failed');
+        showNotification(data.error || 'Search failed', 'error');
+      }
+    } catch (err) {
+      setError('Network error searching companies');
+      console.error('Error:', err);
+      showNotification('Network error searching companies', 'error');
+    } finally {
+      setSearchingCompanies(false);
+    }
+  };
+
   const getScoreColor = (score) => {
     const numericScore = typeof score === 'number' ? score : parseFloat(score);
     if (isNaN(numericScore)) return '#6c757d';
@@ -1519,24 +2007,53 @@ function App() {
 
         <div className="mode-toggle">
           <button
-            className={`mode-btn ${!batchMode && !searchMode && !listsMode ? 'active' : ''}`}
+            className={`mode-btn ${!batchMode && !searchMode && !listsMode && !jdAnalyzerMode && !companyResearchMode ? 'active' : ''}`}
             onClick={() => {
               setBatchMode(false);
               setSearchMode(false);
               setListsMode(false);
+              setJdAnalyzerMode(false);
+              setCompanyResearchMode(false);
             }}
           >
             Single Profile
           </button>
-          <button
+          {/* HIDDEN: Profile Search tab - commented out to avoid confusion */}
+          {/* <button
             className={`mode-btn ${searchMode ? 'active' : ''}`}
             onClick={() => {
               setSearchMode(true);
               setBatchMode(false);
               setListsMode(false);
+              setJdAnalyzerMode(false);
+              setCompanyResearchMode(false);
             }}
           >
             Profile Search
+          </button> */}
+          <button
+            className={`mode-btn ${jdAnalyzerMode ? 'active' : ''}`}
+            onClick={() => {
+              setJdAnalyzerMode(true);
+              setSearchMode(false);
+              setBatchMode(false);
+              setListsMode(false);
+              setCompanyResearchMode(false);
+            }}
+          >
+            JD Analyzer {activeJD && '(Active)'}
+          </button>
+          <button
+            className={`mode-btn ${companyResearchMode ? 'active' : ''}`}
+            onClick={() => {
+              setCompanyResearchMode(true);
+              setJdAnalyzerMode(false);
+              setSearchMode(false);
+              setBatchMode(false);
+              setListsMode(false);
+            }}
+          >
+            Company Research
           </button>
           <button
             className={`mode-btn ${batchMode && !searchMode ? 'active' : ''}`}
@@ -1544,20 +2061,25 @@ function App() {
               setBatchMode(true);
               setSearchMode(false);
               setListsMode(false);
+              setJdAnalyzerMode(false);
+              setCompanyResearchMode(false);
             }}
           >
             Batch Processing
           </button>
-          <button
+          {/* HIDDEN: Lists tab - commented out to avoid confusion */}
+          {/* <button
             className={`mode-btn ${listsMode ? 'active' : ''}`}
             onClick={() => {
               setListsMode(true);
               setBatchMode(false);
               setSearchMode(false);
+              setJdAnalyzerMode(false);
+              setCompanyResearchMode(false);
             }}
           >
             Lists
-          </button>
+          </button> */}
         </div>
 
         {listsMode ? (
@@ -1565,6 +2087,1734 @@ function App() {
             recruiterName={selectedRecruiter}
             showNotification={showNotification}
           />
+        ) : jdAnalyzerMode ? (
+          <div className="jd-analyzer-container">
+            <div className="jd-analyzer-header">
+              <h2>📋 JD Analyzer</h2>
+              <p className="jd-analyzer-description">
+                Transform job descriptions into weighted assessment criteria
+              </p>
+            </div>
+
+            {/* Step 1: Input JD */}
+            <div className="jd-input-section">
+              <h3>Step 1: Paste Job Description</h3>
+              <textarea
+                className="jd-textarea"
+                value={jdText}
+                onChange={(e) => setJdText(e.target.value)}
+                placeholder="Paste the full job description here..."
+                rows="12"
+                disabled={jdAnalyzing}
+              />
+              <button
+                className="jd-analyze-btn"
+                onClick={async () => {
+                  if (!jdText.trim()) {
+                    showNotification('Please paste a job description', 'error');
+                    return;
+                  }
+
+                  setJdAnalyzing(true);
+                  try {
+                    const response = await fetch('http://localhost:5001/api/jd/full-analysis', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        jd_text: jdText,
+                        num_requirements: 5
+                      })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                      setExtractedRequirements(data.weighted_requirements);
+                      showNotification('Requirements extracted successfully!', 'success');
+                    } else {
+                      showNotification(`Error: ${data.error}`, 'error');
+                    }
+                  } catch (error) {
+                    console.error('Error analyzing JD:', error);
+                    showNotification('Failed to analyze job description', 'error');
+                  } finally {
+                    setJdAnalyzing(false);
+                  }
+                }}
+                disabled={jdAnalyzing || !jdText.trim()}
+              >
+                {jdAnalyzing ? 'Analyzing...' : 'Analyze JD'}
+              </button>
+
+              <button
+                className="llm-compare-btn"
+                onClick={async () => {
+                  if (!jdText.trim()) {
+                    showNotification('Please paste a job description first', 'error');
+                    return;
+                  }
+
+                  // Reset all results
+                  setClaudeResult(null);
+                  setGptResult(null);
+                  setGeminiResult(null);
+                  setSelectedLlmQuery(null);
+
+                  // Set loading states immediately so button text changes
+                  setClaudeLoading(true);
+                  setGptLoading(true);
+                  setGeminiLoading(true);
+
+                  try {
+                    // First, parse JD to get structured requirements
+                    const parseResponse = await fetch('http://localhost:5001/api/jd/parse', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ jd_text: jdText })
+                    });
+
+                    const parseData = await parseResponse.json();
+
+                    if (!parseData.success) {
+                      showNotification(`Error parsing JD: ${parseData.error}`, 'error');
+                      // Reset loading states on error
+                      setClaudeLoading(false);
+                      setGptLoading(false);
+                      setGeminiLoading(false);
+                      return;
+                    }
+
+                    const requestBody = {
+                      jd_requirements: parseData.requirements,
+                      preview_limit: 20
+                    };
+
+                    // Use streaming endpoint for parallel LLM execution (6-12s → ~4s)
+                    showNotification('Generating queries in parallel from Claude, GPT, and Gemini...', 'success');
+
+                    const response = await fetch('http://localhost:5001/api/jd/compare-llm-queries-stream', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(requestBody)
+                    });
+
+                    if (!response.ok) {
+                      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    // Process SSE stream
+                    while (true) {
+                      const { value, done } = await reader.read();
+                      if (done) break;
+
+                      buffer += decoder.decode(value, { stream: true });
+                      const lines = buffer.split('\n');
+                      buffer = lines.pop(); // Keep incomplete line in buffer
+
+                      for (const line of lines) {
+                        if (!line.trim() || line.startsWith(':')) continue;
+
+                        if (line.startsWith('event:')) {
+                          const eventType = line.substring(6).trim();
+                          continue; // Event type is informational
+                        }
+
+                        if (line.startsWith('data:')) {
+                          try {
+                            const data = JSON.parse(line.substring(5).trim());
+
+                            // Handle granular progress events (model-specific steps)
+                            if (data.model && data.step && data.message) {
+                              // Show progress notification with model-specific updates
+                              console.log(`Progress: ${data.model} - ${data.step}`);
+                              showNotification(data.message, 'info');
+                            }
+
+                            // Handle result event
+                            if (data.model && !data.step) {
+                              const resultData = {
+                                success: true,
+                                model: data.model,
+                                query: data.query,
+                                thinking: data.thinking,
+                                reasoning: data.reasoning,
+                                preview_profiles: data.preview_profiles || [],
+                                total_found: data.total_found || 0,
+                                error: data.error
+                              };
+
+                              // Update appropriate state based on model
+                              if (data.model === 'Claude Haiku 4.5') {
+                                setClaudeResult(resultData);
+                                setClaudeLoading(false);
+
+                                // Show appropriate notification based on result
+                                if (data.error) {
+                                  if (data.error.includes('503') || data.error.includes('rate limit')) {
+                                    showNotification(`Claude: Rate limit reached - try again in a moment`, 'warning');
+                                  } else {
+                                    showNotification(`Claude: ${data.error}`, 'error');
+                                  }
+                                } else {
+                                  showNotification(`Claude completed: ${data.total_found || 0} candidates`, 'success');
+                                }
+                              } else if (data.model.includes('GPT')) {
+                                setGptResult(resultData);
+                                setGptLoading(false);
+
+                                // Show appropriate notification based on result
+                                if (data.error) {
+                                  if (data.error.includes('503') || data.error.includes('rate limit')) {
+                                    showNotification(`GPT: Rate limit reached - try again in a moment`, 'warning');
+                                  } else {
+                                    showNotification(`GPT: ${data.error}`, 'error');
+                                  }
+                                } else {
+                                  showNotification(`GPT completed: ${data.total_found || 0} candidates`, 'success');
+                                }
+                              } else if (data.model.includes('Gemini')) {
+                                setGeminiResult(resultData);
+                                setGeminiLoading(false);
+
+                                // Show appropriate notification based on result
+                                if (data.error) {
+                                  if (data.error.includes('503') || data.error.includes('rate limit')) {
+                                    showNotification(`Gemini: Rate limit reached - try again in a moment`, 'warning');
+                                  } else {
+                                    showNotification(`Gemini: ${data.error}`, 'error');
+                                  }
+                                } else {
+                                  showNotification(`Gemini completed: ${data.total_found || 0} candidates`, 'success');
+                                }
+                              }
+                            }
+
+                            // Handle complete event
+                            if (data.status === 'complete') {
+                              console.log('All LLM queries completed');
+                            }
+
+                            // Handle error in stream data
+                            if (data.error && !data.model) {
+                              throw new Error(data.error);
+                            }
+                          } catch (parseError) {
+                            console.error('Error parsing SSE data:', parseError, line);
+                          }
+                        }
+                      }
+                    }
+                  } catch (error) {
+                    console.error('Error comparing LLM queries:', error);
+                    showNotification('Failed to start LLM comparison', 'error');
+                    // Reset loading states on error
+                    setClaudeLoading(false);
+                    setGptLoading(false);
+                    setGeminiLoading(false);
+                  }
+                }}
+                disabled={claudeLoading || gptLoading || geminiLoading || !jdText.trim()}
+              >
+                {(claudeLoading || gptLoading || geminiLoading) ? 'Generating...' : 'Generate & Preview Queries (20 candidates each)'}
+              </button>
+            </div>
+
+            {/* LLM Comparison Results - Tabbed Interface */}
+            {(claudeResult || gptResult || geminiResult || claudeLoading || gptLoading || geminiLoading) && (
+              <div className="llm-comparison-section">
+                <h3>LLM Query Comparison</h3>
+                <p className="section-description">
+                  Compare queries generated by Claude Haiku 4.5, GPT-4o, and Gemini 2.0 Flash. Click tabs to switch models.
+                </p>
+
+                <div className="llm-comparison-grid">
+                  {/* Horizontal Tab Headers */}
+                  <div className="llm-tabs-header">
+                    <button
+                      className={`llm-tab-button ${activeLlmTab === 'claude' ? 'active' : ''}`}
+                      onClick={() => setActiveLlmTab('claude')}
+                    >
+                      <span>Claude Haiku 4.5</span>
+                      <span className="tab-badge claude">Anthropic</span>
+                      {claudeLoading && <span className="loading-indicator"></span>}
+                      {claudeResult && !claudeLoading && (
+                        <span className="candidate-count">
+                          {claudeResult.total_found || 0} candidates
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      className={`llm-tab-button ${activeLlmTab === 'gpt' ? 'active' : ''}`}
+                      onClick={() => setActiveLlmTab('gpt')}
+                    >
+                      <span>GPT-4o</span>
+                      <span className="tab-badge openai">OpenAI</span>
+                      {gptLoading && <span className="loading-indicator"></span>}
+                      {gptResult && !gptLoading && (
+                        <span className="candidate-count">
+                          {gptResult.total_found || 0} candidates
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      className={`llm-tab-button ${activeLlmTab === 'gemini' ? 'active' : ''}`}
+                      onClick={() => setActiveLlmTab('gemini')}
+                    >
+                      <span>Gemini 2.0 Flash</span>
+                      <span className="tab-badge google">Google</span>
+                      {geminiLoading && <span className="loading-indicator"></span>}
+                      {geminiResult && !geminiLoading && (
+                        <span className="candidate-count">
+                          {geminiResult.total_found || 0} candidates
+                        </span>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Claude Card */}
+                  {activeLlmTab === 'claude' && (
+                    <div className={`llm-card ${selectedLlmQuery === 'claude' ? 'selected' : ''}`}>
+                      {claudeLoading ? (
+                        <div className="llm-loading">
+                          <div className="spinner"></div>
+                          <p>Claude Haiku 4.5 generating query...</p>
+                        </div>
+                      ) : claudeResult ? (
+                        <>
+                          {claudeResult.error && (
+                            <div className="llm-error">
+                              ❌ Error: {claudeResult.error}
+                            </div>
+                          )}
+
+                          {claudeResult.query && (
+                            <>
+                              <div className="llm-stats">
+                                <span className="stat-item">
+                                  <strong>{claudeResult.total_found || 0}</strong> candidates found
+                                </span>
+                              </div>
+
+                              <div className="llm-reasoning">
+                                <strong>Strategy:</strong> {claudeResult.reasoning}
+                              </div>
+
+                              {claudeResult.thinking && (
+                                <details className="llm-thinking-details">
+                                  <summary>🧠 Show Chain-of-Thought Reasoning</summary>
+                                  <pre className="thinking-content">
+                                    {claudeResult.thinking}
+                                  </pre>
+                                </details>
+                              )}
+
+                              <details className="llm-query-details">
+                                <summary>View Query JSON</summary>
+                                <pre className="query-json">
+                                  {JSON.stringify(claudeResult.query, null, 2)}
+                                </pre>
+                              </details>
+
+                              {claudeResult.preview_profiles && claudeResult.preview_profiles.length > 0 && (
+                                <div className="llm-preview-candidates">
+                                  <strong>Preview (First {claudeResult.preview_profiles.length}):</strong>
+                                  <div className="preview-list">
+                                    {claudeResult.preview_profiles.map((profile, pIndex) => {
+                                      const linkedinUrl = profile.linkedin_url || profile.professional_network_url || '';
+                                      const headline = profile.headline || profile.generated_headline || 'No headline';
+                                      const location = profile.location || profile.location_full || 'Location N/A';
+
+                                      return (
+                                        <div key={pIndex} className="preview-candidate">
+                                          <div className="preview-name">
+                                            {linkedinUrl ? (
+                                              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="candidate-link">
+                                                🔗 {profile.full_name}
+                                              </a>
+                                            ) : (
+                                              <span className="no-link">❌ {profile.full_name}</span>
+                                            )}
+                                          </div>
+                                          <div className="preview-headline">{headline}</div>
+                                          <div className="preview-meta">
+                                            📍 {location}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                className={`select-query-btn ${selectedLlmQuery === 'claude' ? 'selected' : ''}`}
+                                onClick={() => setSelectedLlmQuery('claude')}
+                              >
+                                {selectedLlmQuery === 'claude' ? 'Selected for Search' : 'Select This Query'}
+                              </button>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <p style={{textAlign: 'center', color: '#999', padding: '40px'}}>
+                          Click "Compare LLM Queries" to generate...
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* GPT Card */}
+                  {activeLlmTab === 'gpt' && (
+                    <div className={`llm-card ${selectedLlmQuery === 'gpt' ? 'selected' : ''}`}>
+                      {gptLoading ? (
+                        <div className="llm-loading">
+                          <div className="spinner"></div>
+                          <p>GPT-4o generating query...</p>
+                        </div>
+                      ) : gptResult ? (
+                        <>
+                          {gptResult.error && (
+                            <div className="llm-error">
+                              ❌ Error: {gptResult.error}
+                            </div>
+                          )}
+
+                          {gptResult.query && (
+                            <>
+                              <div className="llm-stats">
+                                <span className="stat-item">
+                                  <strong>{gptResult.total_found || 0}</strong> candidates found
+                                </span>
+                              </div>
+
+                              <div className="llm-reasoning">
+                                <strong>Strategy:</strong> {gptResult.reasoning}
+                              </div>
+
+                              {gptResult.thinking && (
+                                <details className="llm-thinking-details">
+                                  <summary>🧠 Show Chain-of-Thought Reasoning</summary>
+                                  <pre className="thinking-content">
+                                    {gptResult.thinking}
+                                  </pre>
+                                </details>
+                              )}
+
+                              <details className="llm-query-details">
+                                <summary>View Query JSON</summary>
+                                <pre className="query-json">
+                                  {JSON.stringify(gptResult.query, null, 2)}
+                                </pre>
+                              </details>
+
+                              {gptResult.preview_profiles && gptResult.preview_profiles.length > 0 && (
+                                <div className="llm-preview-candidates">
+                                  <strong>Preview (First {gptResult.preview_profiles.length}):</strong>
+                                  <div className="preview-list">
+                                    {gptResult.preview_profiles.map((profile, pIndex) => {
+                                      const linkedinUrl = profile.linkedin_url || profile.professional_network_url || '';
+                                      const headline = profile.headline || profile.generated_headline || 'No headline';
+                                      const location = profile.location || profile.location_full || 'Location N/A';
+
+                                      return (
+                                        <div key={pIndex} className="preview-candidate">
+                                          <div className="preview-name">
+                                            {linkedinUrl ? (
+                                              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="candidate-link">
+                                                🔗 {profile.full_name}
+                                              </a>
+                                            ) : (
+                                              <span className="no-link">❌ {profile.full_name}</span>
+                                            )}
+                                          </div>
+                                          <div className="preview-headline">{headline}</div>
+                                          <div className="preview-meta">
+                                            📍 {location}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                className={`select-query-btn ${selectedLlmQuery === 'gpt' ? 'selected' : ''}`}
+                                onClick={() => setSelectedLlmQuery('gpt')}
+                              >
+                                {selectedLlmQuery === 'gpt' ? 'Selected for Search' : 'Select This Query'}
+                              </button>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <p style={{textAlign: 'center', color: '#999', padding: '40px'}}>
+                          Click "Compare LLM Queries" to generate...
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Gemini Card */}
+                  {activeLlmTab === 'gemini' && (
+                    <div className={`llm-card ${selectedLlmQuery === 'gemini' ? 'selected' : ''}`}>
+                      {geminiLoading ? (
+                        <div className="llm-loading">
+                          <div className="spinner"></div>
+                          <p>Gemini 2.0 Flash generating query...</p>
+                        </div>
+                      ) : geminiResult ? (
+                        <>
+                          {geminiResult.error && (
+                            <div className="llm-error">
+                              ❌ Error: {geminiResult.error}
+                            </div>
+                          )}
+
+                          {geminiResult.query && (
+                            <>
+                              <div className="llm-stats">
+                                <span className="stat-item">
+                                  <strong>{geminiResult.total_found || 0}</strong> candidates found
+                                </span>
+                              </div>
+
+                              <div className="llm-reasoning">
+                                <strong>Strategy:</strong> {geminiResult.reasoning}
+                              </div>
+
+                              {geminiResult.thinking && (
+                                <details className="llm-thinking-details">
+                                  <summary>🧠 Show Chain-of-Thought Reasoning</summary>
+                                  <pre className="thinking-content">
+                                    {geminiResult.thinking}
+                                  </pre>
+                                </details>
+                              )}
+
+                              <details className="llm-query-details">
+                                <summary>View Query JSON</summary>
+                                <pre className="query-json">
+                                  {JSON.stringify(geminiResult.query, null, 2)}
+                                </pre>
+                              </details>
+
+                              {geminiResult.preview_profiles && geminiResult.preview_profiles.length > 0 && (
+                                <div className="llm-preview-candidates">
+                                  <strong>Preview (First {geminiResult.preview_profiles.length}):</strong>
+                                  <div className="preview-list">
+                                    {geminiResult.preview_profiles.map((profile, pIndex) => {
+                                      const linkedinUrl = profile.linkedin_url || profile.professional_network_url || '';
+                                      const headline = profile.headline || profile.generated_headline || 'No headline';
+                                      const location = profile.location || profile.location_full || 'Location N/A';
+
+                                      return (
+                                        <div key={pIndex} className="preview-candidate">
+                                          <div className="preview-name">
+                                            {linkedinUrl ? (
+                                              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="candidate-link">
+                                                🔗 {profile.full_name}
+                                              </a>
+                                            ) : (
+                                              <span className="no-link">❌ {profile.full_name}</span>
+                                            )}
+                                          </div>
+                                          <div className="preview-headline">{headline}</div>
+                                          <div className="preview-meta">
+                                            📍 {location}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                className={`select-query-btn ${selectedLlmQuery === 'gemini' ? 'selected' : ''}`}
+                                onClick={() => setSelectedLlmQuery('gemini')}
+                              >
+                                {selectedLlmQuery === 'gemini' ? 'Selected for Search' : 'Select This Query'}
+                              </button>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <p style={{textAlign: 'center', color: '#999', padding: '40px'}}>
+                          Click "Compare LLM Queries" to generate...
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Search with selected query button */}
+                {selectedLlmQuery && (
+                  <div className="llm-action-section">
+                    <button
+                      className="search-with-selected-btn"
+                      onClick={async () => {
+                        const selectedResult = selectedLlmQuery === 'claude' ? claudeResult :
+                                               selectedLlmQuery === 'gpt' ? gptResult : geminiResult;
+
+                        setJdSearching(true);
+                        try {
+                          const response = await fetch(`http://localhost:5001/api/jd/search-candidates`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              query: selectedResult.query,
+                              max_results: 100
+                            })
+                          });
+
+                          const data = await response.json();
+                          if (data.success) {
+                            // Store results for in-app display
+                            setJdFullResults(data.profiles);
+                            setJdCsvData(data.csv_data);
+                            setCurrentPage(1); // Reset to first page
+                            showNotification(`Found ${data.total_found} candidates from ${selectedResult.model}!`, 'success');
+                          } else {
+                            // Show user-friendly error messages
+                            const errorMsg = data.error || 'Failed to search candidates';
+                            if (errorMsg.includes('503') || errorMsg.includes('rate limit')) {
+                              showNotification('Rate limit reached - please wait a moment and try again', 'warning');
+                            } else {
+                              showNotification(errorMsg, 'error');
+                            }
+                          }
+                        } catch (error) {
+                          console.error('Error searching with selected query:', error);
+                          const errorMsg = error.message || 'Failed to search with selected query';
+                          if (errorMsg.includes('503') || errorMsg.includes('rate limit')) {
+                            showNotification('Rate limit reached - please wait a moment and try again', 'warning');
+                          } else {
+                            showNotification(errorMsg, 'error');
+                          }
+                        } finally {
+                          setJdSearching(false);
+                        }
+                      }}
+                      disabled={jdSearching}
+                    >
+                      {jdSearching ? 'Fetching candidates...' : `Fetch All 100 Candidates (${selectedLlmQuery === 'claude' ? claudeResult?.model : selectedLlmQuery === 'gpt' ? gptResult?.model : geminiResult?.model})`}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Full Search Results Section */}
+            {jdFullResults && jdFullResults.length > 0 && (
+              <div className="jd-full-results-section">
+                <div className="results-header">
+                  <h3>Search Results ({jdFullResults.length} candidates)</h3>
+                  <div className="results-actions">
+                    <button
+                      className="download-csv-btn"
+                      onClick={() => {
+                        if (jdCsvData) {
+                          const blob = new Blob([jdCsvData], { type: 'text/csv' });
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          const selectedResult = selectedLlmQuery === 'claude' ? claudeResult :
+                                                 selectedLlmQuery === 'gpt' ? gptResult : geminiResult;
+                          a.download = `${selectedResult?.model || 'candidates'}_${Date.now()}.csv`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          window.URL.revokeObjectURL(url);
+                          showNotification('CSV downloaded successfully!', 'success');
+                        }
+                      }}
+                    >
+                      Download CSV
+                    </button>
+                    <button
+                      className="clear-results-btn"
+                      onClick={() => {
+                        setJdFullResults(null);
+                        setJdCsvData(null);
+                        setCurrentPage(1); // Reset page
+                      }}
+                    >
+                      Clear Results
+                    </button>
+                  </div>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="pagination-controls">
+                  <div className="pagination-info">
+                    Showing {Math.min((currentPage - 1) * 20 + 1, jdFullResults.length)} - {Math.min(currentPage * 20, jdFullResults.length)} of {jdFullResults.length} candidates
+                  </div>
+                  <div className="pagination-buttons">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="pagination-btn"
+                    >
+                      ← Previous
+                    </button>
+                    <span className="pagination-pages">
+                      Page {currentPage} of {Math.ceil(jdFullResults.length / 20)}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(Math.ceil(jdFullResults.length / 20), prev + 1))}
+                      disabled={currentPage >= Math.ceil(jdFullResults.length / 20)}
+                      className="pagination-btn"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                </div>
+
+                <div className="results-grid">
+                  {jdFullResults
+                    .slice((currentPage - 1) * 20, currentPage * 20)
+                    .map((profile, idx) => {
+                      const linkedinUrl = profile.linkedin_url || profile.professional_network_url || '';
+                      const headline = profile.headline || profile.generated_headline || 'No headline';
+                      const location = profile.location || profile.location_full || 'Location N/A';
+                      const currentTitle = profile.current_title || profile.active_experience_title || '';
+                      const company = profile.company_name || profile.active_experience_company || '';
+                      const globalIdx = (currentPage - 1) * 20 + idx;
+
+                      return (
+                        <div
+                          key={globalIdx}
+                          className="result-candidate-card"
+                          onMouseEnter={(e) => {
+                            setHoveredProfile(profile);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setTooltipPosition({
+                              x: rect.right + 10,
+                              y: rect.top
+                            });
+                          }}
+                          onMouseLeave={() => setHoveredProfile(null)}
+                        >
+                          <div className="result-candidate-header">
+                            {linkedinUrl ? (
+                              <a
+                                href={linkedinUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="result-candidate-name"
+                              >
+                                🔗 {profile.full_name || 'Unknown'}
+                              </a>
+                            ) : (
+                              <span className="result-candidate-name no-link">❌ {profile.full_name || 'Unknown'}</span>
+                            )}
+                          </div>
+                          <div className="result-candidate-headline">{headline}</div>
+                          <div className="result-candidate-meta">
+                            📍 {location}
+                          </div>
+                          {currentTitle && (
+                            <div className="result-candidate-title">
+                              💼 {currentTitle}{company ? ` at ${company}` : ''}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+
+                {/* Tooltip */}
+                {hoveredProfile && (
+                  <div
+                    className="profile-tooltip"
+                    style={{
+                      position: 'fixed',
+                      left: `${tooltipPosition.x}px`,
+                      top: `${tooltipPosition.y}px`,
+                      zIndex: 10000
+                    }}
+                  >
+                    <div className="tooltip-header">
+                      <strong>{hoveredProfile.full_name || 'Unknown'}</strong>
+                    </div>
+                    <div className="tooltip-body">
+                      <div className="tooltip-section">
+                        <div className="tooltip-label">Current Role:</div>
+                        <div className="tooltip-value">
+                          {hoveredProfile.active_experience_title || hoveredProfile.current_title || 'N/A'}
+                        </div>
+                      </div>
+                      <div className="tooltip-section">
+                        <div className="tooltip-label">Company:</div>
+                        <div className="tooltip-value">
+                          {hoveredProfile.company_name || hoveredProfile.active_experience_company || 'N/A'}
+                        </div>
+                      </div>
+                      <div className="tooltip-section">
+                        <div className="tooltip-label">Location:</div>
+                        <div className="tooltip-value">
+                          {hoveredProfile.location_full || hoveredProfile.location || 'N/A'}
+                        </div>
+                      </div>
+                      {hoveredProfile.active_experience_industry && (
+                        <div className="tooltip-section">
+                          <div className="tooltip-label">Industry:</div>
+                          <div className="tooltip-value">{hoveredProfile.active_experience_industry}</div>
+                        </div>
+                      )}
+                      {hoveredProfile.management_level && (
+                        <div className="tooltip-section">
+                          <div className="tooltip-label">Management Level:</div>
+                          <div className="tooltip-value">{hoveredProfile.management_level}</div>
+                        </div>
+                      )}
+                      {hoveredProfile.inferred_skills && hoveredProfile.inferred_skills.length > 0 && (
+                        <div className="tooltip-section">
+                          <div className="tooltip-label">Skills:</div>
+                          <div className="tooltip-value">
+                            {hoveredProfile.inferred_skills.slice(0, 5).join(', ')}
+                            {hoveredProfile.inferred_skills.length > 5 && '...'}
+                          </div>
+                        </div>
+                      )}
+                      {hoveredProfile.connection_count && (
+                        <div className="tooltip-section">
+                          <div className="tooltip-label">Connections:</div>
+                          <div className="tooltip-value">{hoveredProfile.connection_count.toLocaleString()}</div>
+                        </div>
+                      )}
+                      {hoveredProfile.follower_count && (
+                        <div className="tooltip-section">
+                          <div className="tooltip-label">Followers:</div>
+                          <div className="tooltip-value">{hoveredProfile.follower_count.toLocaleString()}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 2: Review & Edit Requirements */}
+            {extractedRequirements.length > 0 && (
+              <div className="jd-requirements-section">
+                <h3>Step 2: Review & Adjust Requirements</h3>
+                <p className="section-description">
+                  AI extracted {extractedRequirements.length} requirements. Adjust weights as needed.
+                </p>
+
+                <div className="requirements-list">
+                  {extractedRequirements.map((req, index) => (
+                    <div key={index} className="requirement-card">
+                      <div className="requirement-header">
+                        <span className="requirement-number">{index + 1}.</span>
+                        <input
+                          type="text"
+                          className="requirement-name"
+                          value={req.requirement}
+                          onChange={(e) => {
+                            const newReqs = [...extractedRequirements];
+                            newReqs[index].requirement = e.target.value;
+                            setExtractedRequirements(newReqs);
+                          }}
+                        />
+                        <input
+                          type="number"
+                          className="requirement-weight"
+                          value={req.weight}
+                          min="0"
+                          max="100"
+                          onChange={(e) => {
+                            const newReqs = [...extractedRequirements];
+                            newReqs[index].weight = parseInt(e.target.value) || 0;
+                            setExtractedRequirements(newReqs);
+                          }}
+                        />
+                        <span className="weight-label">%</span>
+                        <button
+                          className="remove-req-btn"
+                          onClick={() => {
+                            setExtractedRequirements(extractedRequirements.filter((_, i) => i !== index));
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {req.description && (
+                        <p className="requirement-description">{req.description}</p>
+                      )}
+                    </div>
+                  ))}
+
+                  <div className="requirement-card general-fit">
+                    <div className="requirement-header">
+                      <span className="requirement-number">⚪</span>
+                      <span className="requirement-name">General Fit (auto-calculated)</span>
+                      <span className="requirement-weight">
+                        {100 - extractedRequirements.reduce((sum, req) => sum + (req.weight || 0), 0)}
+                      </span>
+                      <span className="weight-label">%</span>
+                    </div>
+                    <p className="requirement-description">
+                      Overall alignment with role, cultural fit, communication skills
+                    </p>
+                  </div>
+                </div>
+
+                <div className="total-weight">
+                  Total: {extractedRequirements.reduce((sum, req) => sum + (req.weight || 0), 0) +
+                    (100 - extractedRequirements.reduce((sum, req) => sum + (req.weight || 0), 0))}%
+                  {extractedRequirements.reduce((sum, req) => sum + (req.weight || 0), 0) === 100 ?
+                    ' (Warning: No room for General Fit)' : ''}
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Activate */}
+            {extractedRequirements.length > 0 && (
+              <div className="jd-activate-section">
+                <h3>Step 3: Name & Activate</h3>
+                <div className="jd-title-input">
+                  <label htmlFor="jdTitle">JD Title (optional):</label>
+                  <input
+                    id="jdTitle"
+                    type="text"
+                    value={jdTitle}
+                    onChange={(e) => setJdTitle(e.target.value)}
+                    placeholder="e.g., Senior PM - Fintech"
+                  />
+                </div>
+
+                <div className="jd-actions">
+                  <button
+                    className="activate-jd-btn"
+                    onClick={() => {
+                      const jdData = {
+                        title: jdTitle || 'Untitled JD',
+                        requirements: extractedRequirements.map(req => ({
+                          id: Date.now() + Math.random(),
+                          text: req.requirement,
+                          weight: req.weight,
+                          description: req.description,
+                          scoring_criteria: req.scoring_criteria
+                        })),
+                        timestamp: Date.now()
+                      };
+
+                      setActiveJD(jdData);
+                      setWeightedRequirements(jdData.requirements);
+                      localStorage.setItem('activeJD', JSON.stringify(jdData));
+                      showNotification(`JD "${jdData.title}" activated for all assessments!`, 'success');
+                    }}
+                  >
+                    Set as Active JD
+                  </button>
+
+                  <button
+                    className="search-candidates-btn"
+                    onClick={async () => {
+                      if (!jdText.trim()) {
+                        showNotification('Please provide a job description first', 'error');
+                        return;
+                      }
+
+                      setJdSearching(true);
+                      try {
+                        // First, parse JD to get structured requirements
+                        const parseResponse = await fetch('http://localhost:5001/api/jd/parse', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ jd_text: jdText })
+                        });
+
+                        const parseData = await parseResponse.json();
+
+                        if (!parseData.success) {
+                          showNotification(`Error parsing JD: ${parseData.error}`, 'error');
+                          return;
+                        }
+
+                        // Now search CoreSignal with parsed requirements
+                        const searchResponse = await fetch('http://localhost:5001/api/jd/search-candidates', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            jd_requirements: parseData.requirements,
+                            max_results: 100
+                          })
+                        });
+
+                        const searchData = await searchResponse.json();
+
+                        if (searchData.success) {
+                          setJdSearchResults(searchData);
+
+                          // Download CSV
+                          const blob = new Blob([searchData.csv_data], { type: 'text/csv' });
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `jd_search_${jdTitle || 'results'}_${Date.now()}.csv`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          window.URL.revokeObjectURL(url);
+
+                          showNotification(`Found ${searchData.total_found} matching candidates! CSV downloaded.`, 'success');
+                        } else {
+                          showNotification(`Error: ${searchData.error}`, 'error');
+                        }
+                      } catch (error) {
+                        console.error('Error searching candidates:', error);
+                        showNotification('Failed to search for candidates', 'error');
+                      } finally {
+                        setJdSearching(false);
+                      }
+                    }}
+                    disabled={jdSearching || !jdText.trim()}
+                  >
+                    {jdSearching ? 'Searching CoreSignal...' : 'Search Candidates'}
+                  </button>
+
+                  <button
+                    className="clear-jd-btn"
+                    onClick={() => {
+                      setJdText('');
+                      setExtractedRequirements([]);
+                      setJdTitle('');
+                      setJdSearchResults(null);
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <p className="activation-note">
+                  💡 Once activated, these requirements will be used for all profile assessments
+                  in Single Profile and Batch modes until you clear or change them.
+                </p>
+              </div>
+            )}
+          </div>
+        ) : companyResearchMode ? (
+          <div className="company-research-container">
+            <div className="company-research-header">
+              <h2>🏢 Company Research Agent</h2>
+              <p className="company-research-description">
+                Discover companies where the best candidates for your role currently work
+              </p>
+            </div>
+
+            {/* Step 1: Input JD */}
+            <div className="company-jd-input-section">
+              <h3>Step 1: Paste Job Description</h3>
+              <textarea
+                className="company-jd-textarea"
+                value={companyJdText}
+                onChange={(e) => setCompanyJdText(e.target.value)}
+                placeholder="Paste the full job description here..."
+                rows="12"
+                disabled={companyResearching}
+              />
+              <button
+                className="company-research-btn"
+                onClick={async () => {
+                  if (!companyJdText.trim()) {
+                    showNotification('Please paste a job description', 'error');
+                    return;
+                  }
+
+                  setCompanyResearching(true);
+                  try {
+                    // Step 1: Parse JD to extract structured requirements
+                    showNotification('Analyzing job description...', 'info');
+
+                    const parseResponse = await fetch('http://localhost:5001/api/jd/parse', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ jd_text: companyJdText })
+                    });
+
+                    if (!parseResponse.ok) {
+                      throw new Error('Failed to parse job description');
+                    }
+
+                    const parseData = await parseResponse.json();
+                    console.log('Parsed JD:', parseData);
+
+                    // IMPORTANT: Use AI-extracted companies from JD parser, NOT regex!
+                    // JDParser already extracted mentioned_companies, target_domain, and competitor_context
+                    // This is much more reliable than regex pattern matching
+
+                    // Step 2: Build structured research request using AI-extracted data
+                    // CRITICAL FIX: parseData.requirements contains the parsed fields, not parseData directly
+                    const requirements = parseData.requirements || {};
+
+                    // Store excluded companies in state for UI display
+                    setExcludedCompanies(requirements.excluded_companies || []);
+                    const jdData = {
+                      title: requirements.role_title || "Engineering Role",
+                      company: "YourCompany",
+                      company_stage: requirements.company_stage || "",
+                      industries: requirements.domain_expertise && requirements.domain_expertise.length > 0
+                                  ? requirements.domain_expertise
+                                  : ["tech"],
+                      requirements: {
+                        technical_skills: requirements.technical_skills || [],
+                        domain: requirements.target_domain ||
+                                (requirements.domain_expertise && requirements.domain_expertise[0]) ||
+                                "technology"
+                      },
+                      target_companies: {
+                        // Use AI-extracted companies from JD parser
+                        mentioned_companies: requirements.mentioned_companies || [],
+                        excluded_companies: requirements.excluded_companies || [],
+                        // Use AI-extracted competitor context
+                        industry_context: requirements.competitor_context ||
+                                          (requirements.domain_expertise ? requirements.domain_expertise.join(" ") : "tech")
+                      }
+                    };
+
+                    console.log('Research request:', jdData);
+                    showNotification('Starting company research...', 'info');
+
+                    // Step 4: Start company research
+                    const response = await fetch('http://localhost:5001/research-companies', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        jd_data: jdData,
+                        config: {
+                          max_companies: 50,
+                          min_relevance_score: 5.0,
+                          use_gpt5_deep_research: true
+                        }
+                      })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                      setCompanySessionId(data.session_id);
+                      setCompanyResearchStatus({ status: 'running', progress_percentage: 0 });
+                      showNotification('Company research started!', 'success');
+
+                      // Use Server-Sent Events for real-time streaming
+                      const eventSource = new EventSource(`http://localhost:5001/research-companies/${data.session_id}/stream`);
+
+                      eventSource.onmessage = async (event) => {
+                        const streamData = JSON.parse(event.data);
+
+                        if (streamData.error) {
+                          console.error('Stream error:', streamData.error);
+                          eventSource.close();
+                          showNotification('Stream error: ' + streamData.error, 'error');
+                          setCompanyResearching(false);
+                          return;
+                        }
+
+                        if (streamData.success && streamData.session) {
+                          setCompanyResearchStatus(streamData.session);
+
+                          // Extract discovered companies from stream (live updates during discovery)
+                          if (streamData.session.search_config && streamData.session.search_config.discovered_companies_list) {
+                            setDiscoveredCompanies(streamData.session.search_config.discovered_companies_list);
+                          }
+
+                          if (streamData.session.status === 'completed') {
+                            eventSource.close();
+                            // Fetch results
+                            const resultsResponse = await fetch(`http://localhost:5001/research-companies/${data.session_id}/results`);
+                            const resultsData = await resultsResponse.json();
+
+                            if (resultsData.success) {
+                              const results = resultsData.results;
+                              setCompanyResearchResults(results);
+
+                              // NEW: Store discovered and screened companies for progressive evaluation
+                              if (results.discovered_companies) {
+                                setDiscoveredCompanies(results.discovered_companies);
+                              }
+                              if (results.screened_companies) {
+                                setScreenedCompanies(results.screened_companies);
+                              }
+                              if (results.summary && results.summary.total_evaluated) {
+                                setEvaluatedCount(results.summary.total_evaluated);
+                              }
+
+                              showNotification('Research completed!', 'success');
+                            }
+                            setCompanyResearching(false);
+                          } else if (streamData.session.status === 'failed') {
+                            eventSource.close();
+                            showNotification('Research failed: ' + streamData.session.error_message, 'error');
+                            setCompanyResearching(false);
+                          }
+                        }
+                      };
+
+                      eventSource.onerror = (error) => {
+                        console.error('EventSource error:', error);
+                        eventSource.close();
+                        showNotification('Connection error. Please try again.', 'error');
+                        setCompanyResearching(false);
+                      };
+                    } else {
+                      showNotification('Failed to start research: ' + data.error, 'error');
+                      setCompanyResearching(false);
+                    }
+                  } catch (error) {
+                    showNotification('Error: ' + error.message, 'error');
+                    setCompanyResearching(false);
+                  }
+                }}
+                disabled={companyResearching || !companyJdText.trim()}
+              >
+                {companyResearching ? 'Researching...' : 'Start Research'}
+              </button>
+            </div>
+
+            {/* Progress Indicator */}
+            {companyResearchStatus && (
+              <div className="research-status-section">
+                <h3>Research Progress</h3>
+
+                {/* Phase Indicators */}
+                <div className="phase-indicators">
+                  <div className={`phase-item ${
+                    companyResearchStatus.search_config?.current_phase === 'discovery' ? 'active' :
+                    ['screening', 'deep_research'].includes(companyResearchStatus.search_config?.current_phase) ? 'completed' : ''
+                  }`}>
+                    <span className="phase-icon">{
+                      ['screening', 'deep_research'].includes(companyResearchStatus.search_config?.current_phase) ? '✓' : '1'
+                    }</span>
+                    <span className="phase-label">Discovery</span>
+                  </div>
+                  <div className="phase-divider"></div>
+                  <div className={`phase-item ${
+                    companyResearchStatus.search_config?.current_phase === 'screening' ? 'active' :
+                    companyResearchStatus.search_config?.current_phase === 'deep_research' ? 'completed' : ''
+                  }`}>
+                    <span className="phase-icon">{
+                      companyResearchStatus.search_config?.current_phase === 'deep_research' ? '✓' : '2'
+                    }</span>
+                    <span className="phase-label">Screening</span>
+                  </div>
+                  <div className="phase-divider"></div>
+                  <div className={`phase-item ${
+                    companyResearchStatus.search_config?.current_phase === 'deep_research' ? 'active' : ''
+                  }`}>
+                    <span className="phase-icon">3</span>
+                    <span className="phase-label">Deep Research</span>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${companyResearchStatus.progress_percentage || 0}%` }}
+                  />
+                </div>
+
+                {/* Current Action */}
+                {companyResearchStatus.search_config?.current_action && (
+                  <div className="current-action">
+                    <span className="spinner"></span>
+                    <span>{companyResearchStatus.search_config.current_action}</span>
+                  </div>
+                )}
+
+                {/* Metrics */}
+                <div className="research-metrics">
+                  {companyResearchStatus.total_discovered > 0 && (
+                    <span className="metric">
+                      <strong>Discovered:</strong> {companyResearchStatus.total_discovered}
+                    </span>
+                  )}
+                  {companyResearchStatus.total_evaluated > 0 && (
+                    <span className="metric">
+                      <strong>Evaluated:</strong> {companyResearchStatus.total_evaluated}
+                    </span>
+                  )}
+                  {companyResearchStatus.total_selected > 0 && (
+                    <span className="metric">
+                      <strong>Selected:</strong> {companyResearchStatus.total_selected}
+                    </span>
+                  )}
+                </div>
+
+                {/* Discovered Companies List */}
+                {companyResearchStatus.search_config?.discovered_companies &&
+                 companyResearchStatus.search_config.discovered_companies.length > 0 && (
+                  <div className="discovered-companies">
+                    <h4>Companies Found:</h4>
+                    <div className="company-chips">
+                      {companyResearchStatus.search_config.discovered_companies.slice(0, 15).map((name, idx) => (
+                        <span key={idx} className="company-chip">{name}</span>
+                      ))}
+                      {companyResearchStatus.search_config.discovered_companies.length > 15 && (
+                        <span className="company-chip more">
+                          +{companyResearchStatus.search_config.discovered_companies.length - 15} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Results Display */}
+            {companyResearchResults && (
+              <div className="research-results-section">
+                <div className="results-header">
+                  <h3>Research Results</h3>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      className="save-list-btn"
+                      onClick={() => setShowSaveListModal(true)}
+                      style={{
+                        backgroundColor: '#4F46E5',
+                        color: 'white',
+                        padding: '10px 20px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Save as Company List
+                    </button>
+                    <button
+                      className="export-csv-btn"
+                      onClick={async () => {
+                        const response = await fetch(`http://localhost:5001/research-companies/${companySessionId}/export-csv`);
+                        const data = await response.json();
+                        if (data.success) {
+                          const blob = new Blob([data.csv_data], { type: 'text/csv' });
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = data.filename;
+                          a.click();
+                          showNotification('CSV exported!', 'success');
+                        }
+                      }}
+                    >
+                      Export CSV
+                    </button>
+                  </div>
+                </div>
+
+                <div className="results-summary">
+                  <p>Total Companies: {companyResearchResults.summary.total_companies}</p>
+                  <p>Average Score: {companyResearchResults.summary.avg_relevance_score}</p>
+                  <p>Top Company: {companyResearchResults.summary.top_company}</p>
+                </div>
+
+                {/* Discovered Companies Section - Show all discovered before evaluation */}
+                {discoveredCompanies && discoveredCompanies.length > 0 && (
+                  <div className="discovered-companies-section">
+                    <h4>Discovered Companies ({discoveredCompanies.length})</h4>
+                    <p className="discovered-subtitle">
+                      Found {discoveredCompanies.length} companies via seed expansion + web search
+                    </p>
+
+                    {/* Compact list view */}
+                    <div className="discovered-list">
+                      {discoveredCompanies.slice(0, 100).map((company, idx) => (
+                        <div key={idx} className="discovered-item">
+                          <span className="discovered-rank">#{idx + 1}</span>
+                          <span className="discovered-name">{company.name || company.company_name || 'Unknown'}</span>
+                          {company.discovered_via && (
+                            <span className="discovered-source">{company.discovered_via}</span>
+                          )}
+                          {idx < evaluatedCount && (
+                            <span className="discovered-badge evaluated">Evaluated</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Evaluation Progress */}
+                    <div className="evaluation-progress">
+                      <div className="progress-bar-container">
+                        <div
+                          className="progress-bar"
+                          style={{ width: `${(evaluatedCount / discoveredCompanies.length) * 100}%` }}
+                        />
+                      </div>
+                      <p className="progress-text">
+                        {evaluatedCount} of {discoveredCompanies.length} companies evaluated ({Math.round((evaluatedCount / discoveredCompanies.length) * 100)}%)
+                      </p>
+                    </div>
+
+                    {/* Evaluate More Button */}
+                    {evaluatedCount < discoveredCompanies.length && (
+                      <button
+                        className="evaluate-more-btn"
+                        onClick={evaluateMoreCompanies}
+                        disabled={evaluatingMore}
+                      >
+                        {evaluatingMore ? (
+                          <>Evaluating...</>
+                        ) : (
+                          <>Evaluate Next 25 Companies ({Math.min(evaluatedCount + 25, discoveredCompanies.length)}/{discoveredCompanies.length})</>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Excluded Companies Section */}
+                {excludedCompanies && excludedCompanies.length > 0 && (
+                  <div className="excluded-companies-section" style={{
+                    marginTop: '20px',
+                    marginBottom: '20px',
+                    padding: '15px',
+                    backgroundColor: '#f5f5f5',
+                    borderLeft: '4px solid #9ca3af',
+                    borderRadius: '4px'
+                  }}>
+                    <h4 style={{ margin: '0 0 10px 0', color: '#6b7280', fontSize: '14px', fontWeight: '600' }}>
+                      🏢 Excluded Companies (Your Companies)
+                    </h4>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {excludedCompanies.map((company, idx) => (
+                        <span
+                          key={idx}
+                          className="excluded-company-badge"
+                          style={{
+                            display: 'inline-block',
+                            padding: '6px 12px',
+                            backgroundColor: '#e5e7eb',
+                            color: '#4b5563',
+                            borderRadius: '16px',
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            border: '1px solid #d1d5db'
+                          }}
+                        >
+                          {company}
+                        </span>
+                      ))}
+                    </div>
+                    <p style={{
+                      margin: '10px 0 0 0',
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      fontStyle: 'italic'
+                    }}>
+                      These companies were not researched as they are identified as your own companies.
+                    </p>
+                  </div>
+                )}
+
+                {/* Expand/Collapse All Buttons */}
+                <div className="category-controls" style={{ marginBottom: '20px', textAlign: 'right' }}>
+                  <button onClick={expandAllCategories} className="control-btn" style={{ marginRight: '10px', padding: '8px 16px' }}>
+                    Expand All
+                  </button>
+                  <button onClick={collapseAllCategories} className="control-btn" style={{ padding: '8px 16px' }}>
+                    Collapse All
+                  </button>
+                </div>
+
+                {Object.entries(companyResearchResults.companies_by_category).map(([category, companies]) => (
+                  companies.length > 0 && (
+                    <div key={category} className="category-section">
+                      <h4
+                        className="category-header clickable"
+                        onClick={() => toggleCategory(category)}
+                        style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center' }}
+                      >
+                        <span className="arrow" style={{ marginRight: '8px' }}>
+                          {expandedCategories[category] ? '▼' : '▶'}
+                        </span>
+                        {category.replace('_', ' ').toUpperCase()} ({companies.length})
+                      </h4>
+                      {expandedCategories[category] && (
+                        <div className="company-cards">
+                          {companies.map((company, idx) => (
+                            <div key={idx} className="company-card">
+                              <div className="company-header">
+                                <h5>{company.company_name}</h5>
+                                <span className="score-badge">{company.relevance_score}/10</span>
+                              </div>
+                              <p className="reasoning">{company.relevance_reasoning}</p>
+                              <div className="company-meta">
+                                <span>{company.industry}</span>
+                                {company.employee_count && <span>{company.employee_count} employees</span>}
+                                {company.funding_stage && <span>{company.funding_stage}</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                ))}
+
+                {/* Phase 3: Search for People at Companies */}
+                <div className="company-search-section" style={{ marginTop: '40px', padding: '20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                  <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>Search for People at Selected Companies</h3>
+
+                  {/* Company Selection Instructions */}
+                  <p style={{ marginBottom: '20px', color: '#6b7280', fontSize: '14px' }}>
+                    Select companies below to find people working there. Use filters to refine your search.
+                  </p>
+
+                  {/* Company Selection Checkboxes */}
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                        Select Companies ({selectedCompanies.length} selected)
+                      </h4>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => {
+                            const allCompanies = Object.values(companyResearchResults.companies_by_category)
+                              .flat()
+                              .map(c => c.company_name);
+                            setSelectedCompanies(allCompanies);
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '13px',
+                            borderRadius: '4px',
+                            border: '1px solid #d1d5db',
+                            backgroundColor: 'white',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={() => setSelectedCompanies([])}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '13px',
+                            borderRadius: '4px',
+                            border: '1px solid #d1d5db',
+                            backgroundColor: 'white',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '8px', maxHeight: '300px', overflowY: 'auto', padding: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                      {Object.values(companyResearchResults.companies_by_category)
+                        .flat()
+                        .map((company, idx) => (
+                          <label
+                            key={idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '8px',
+                              cursor: 'pointer',
+                              borderRadius: '4px',
+                              backgroundColor: selectedCompanies.includes(company.company_name) ? '#ede9fe' : 'transparent',
+                              transition: 'background-color 0.2s'
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedCompanies.includes(company.company_name)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedCompanies([...selectedCompanies, company.company_name]);
+                                } else {
+                                  setSelectedCompanies(selectedCompanies.filter(c => c !== company.company_name));
+                                }
+                              }}
+                              style={{ marginRight: '8px' }}
+                            />
+                            <span style={{ fontSize: '13px' }}>{company.company_name}</span>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Search Filters */}
+                  <div style={{ marginBottom: '20px' }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+                      Search Filters (Optional)
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px', color: '#4b5563' }}>
+                          Job Title
+                        </label>
+                        <input
+                          type="text"
+                          value={companySearchFilters.title}
+                          onChange={(e) => setCompanySearchFilters({ ...companySearchFilters, title: e.target.value })}
+                          placeholder="e.g., engineer"
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #d1d5db',
+                            fontSize: '13px'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px', color: '#4b5563' }}>
+                          Seniority
+                        </label>
+                        <input
+                          type="text"
+                          value={companySearchFilters.seniority}
+                          onChange={(e) => setCompanySearchFilters({ ...companySearchFilters, seniority: e.target.value })}
+                          placeholder="e.g., senior"
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #d1d5db',
+                            fontSize: '13px'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px', color: '#4b5563' }}>
+                          Location
+                        </label>
+                        <input
+                          type="text"
+                          value={companySearchFilters.location}
+                          onChange={(e) => setCompanySearchFilters({ ...companySearchFilters, location: e.target.value })}
+                          placeholder="e.g., San Francisco"
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #d1d5db',
+                            fontSize: '13px'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Search Button */}
+                  <button
+                    onClick={handleSearchByCompanyList}
+                    disabled={searchingCompanies || selectedCompanies.length === 0}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: searchingCompanies || selectedCompanies.length === 0 ? '#9ca3af' : '#4F46E5',
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: searchingCompanies || selectedCompanies.length === 0 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {searchingCompanies ? 'Searching...' : `Search for People at ${selectedCompanies.length} ${selectedCompanies.length === 1 ? 'Company' : 'Companies'}`}
+                  </button>
+
+                  {/* Search Results */}
+                  {companySearchResults && (
+                    <div style={{ marginTop: '30px' }}>
+                      <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>
+                        Found {companySearchResults.total_people} People
+                      </h4>
+
+                      {/* Company Match Status */}
+                      <div style={{ marginBottom: '20px' }}>
+                        <h5 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '10px', color: '#374151' }}>
+                          Company Matches
+                        </h5>
+                        <div style={{ display: 'grid', gap: '8px' }}>
+                          {companySearchResults.company_matches.map((match, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                padding: '10px 12px',
+                                backgroundColor: match.coresignal_id ? '#ecfdf5' : '#fef2f2',
+                                border: `1px solid ${match.coresignal_id ? '#10b981' : '#ef4444'}`,
+                                borderRadius: '4px',
+                                fontSize: '13px'
+                              }}
+                            >
+                              {match.coresignal_id ? (
+                                <span>
+                                  ✅ <strong>{match.company_name}</strong> → {match.coresignal_name}
+                                  <span style={{ marginLeft: '8px', color: '#6b7280' }}>
+                                    (confidence: {Math.round(match.confidence * 100)}%, {match.people_found} people)
+                                  </span>
+                                </span>
+                              ) : (
+                                <span>
+                                  ❌ <strong>{match.company_name}</strong> - No match found
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* People Results Table */}
+                      {companySearchResults.people && companySearchResults.people.length > 0 && (
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                            <thead>
+                              <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #d1d5db' }}>
+                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>Name</th>
+                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>Title</th>
+                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>Company</th>
+                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>Location</th>
+                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>LinkedIn</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {companySearchResults.people.map((person, idx) => (
+                                <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                  <td style={{ padding: '10px' }}>{person.full_name || 'N/A'}</td>
+                                  <td style={{ padding: '10px' }}>{person.title || 'N/A'}</td>
+                                  <td style={{ padding: '10px' }}>{person.company_name || 'N/A'}</td>
+                                  <td style={{ padding: '10px' }}>{person.location || 'N/A'}</td>
+                                  <td style={{ padding: '10px' }}>
+                                    {person.linkedin_url ? (
+                                      <a
+                                        href={person.linkedin_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ color: '#4F46E5', textDecoration: 'none' }}
+                                      >
+                                        View Profile
+                                      </a>
+                                    ) : (
+                                      'N/A'
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         ) : searchMode ? (
           <div className="search-form">
             <div className="form-group">
@@ -1643,25 +3893,29 @@ function App() {
           </div>
 
           <div className="form-group">
-            <label>Weighted Requirements (Optional):</label>
-            <div className="weighted-requirements">
-              <div className="add-requirement">
-                <input
-                  type="text"
-                  value={newRequirement}
-                  onChange={(e) => setNewRequirement(e.target.value)}
-                  placeholder="Enter a specific requirement (e.g., 'Startup experience')"
-                  onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
-                />
-                <button 
-                  type="button" 
-                  onClick={addRequirement}
-                  disabled={!newRequirement.trim() || weightedRequirements.length >= 5 || weightedRequirements.reduce((sum, req) => sum + req.weight, 0) >= 100}
-                  className="add-btn"
-                >
-                  Add
-                </button>
-              </div>
+            <div className="accordion-header" onClick={() => setShowWeightedRequirements(!showWeightedRequirements)}>
+              <label>Advanced: Custom Weighted Requirements</label>
+              <span className="accordion-toggle">{showWeightedRequirements ? '−' : '+'}</span>
+            </div>
+            {showWeightedRequirements && (
+              <div className="weighted-requirements">
+                <div className="add-requirement">
+                  <input
+                    type="text"
+                    value={newRequirement}
+                    onChange={(e) => setNewRequirement(e.target.value)}
+                    placeholder="Enter a specific requirement (e.g., 'Startup experience')"
+                    onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
+                  />
+                  <button
+                    type="button"
+                    onClick={addRequirement}
+                    disabled={!newRequirement.trim() || weightedRequirements.length >= 5 || weightedRequirements.reduce((sum, req) => sum + req.weight, 0) >= 100}
+                    className="add-btn"
+                  >
+                    Add
+                  </button>
+                </div>
               
               {weightedRequirements.reduce((sum, req) => sum + req.weight, 0) >= 100 && (
                 <div className="total-warning">
@@ -1716,7 +3970,8 @@ function App() {
                   <span className="weight-value">{getGeneralFitWeight()}%</span>
                 </div>
               </div>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* HIDDEN: Company Enrichment Toggle - Keep code for future use */}
@@ -1741,7 +3996,7 @@ function App() {
           )}
 
           {/* Force Refresh Toggle */}
-          <div className="form-group checkbox-group">
+          <div className="checkbox-group">
             <label className="checkbox-label">
               <input
                 type="checkbox"
@@ -1750,7 +4005,10 @@ function App() {
                 className="enrichment-checkbox"
               />
               <span className="checkbox-text">
-                <strong>🔄 Force Refresh Data</strong>
+                <strong>
+                  <TbRefresh style={{marginRight: '8px', verticalAlign: 'middle'}} size={16} />
+                  Force Refresh Data
+                </strong>
                 <span className="checkbox-description">
                   Bypass stored data and fetch fresh profile from CoreSignal (uses 1 credit even if stored).
                   {forceRefresh && <span className="cost-note"> ⚠️ Will use API credits</span>}
@@ -1895,17 +4153,21 @@ function App() {
             </div>
 
             <div className="form-group">
-              <label>Weighted Requirements (Optional):</label>
-              <div className="weighted-requirements">
-                <div className="add-requirement">
-                  <input
-                    type="text"
-                    value={newRequirement}
-                    onChange={(e) => setNewRequirement(e.target.value)}
-                    placeholder="Enter a specific requirement (e.g., 'Startup experience')"
-                    onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
-                  />
-                  <button 
+              <div className="accordion-header" onClick={() => setShowWeightedRequirements(!showWeightedRequirements)}>
+                <label>Advanced: Custom Weighted Requirements</label>
+                <span className="accordion-toggle">{showWeightedRequirements ? '−' : '+'}</span>
+              </div>
+              {showWeightedRequirements && (
+                <div className="weighted-requirements">
+                  <div className="add-requirement">
+                    <input
+                      type="text"
+                      value={newRequirement}
+                      onChange={(e) => setNewRequirement(e.target.value)}
+                      placeholder="Enter a specific requirement (e.g., 'Startup experience')"
+                      onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
+                    />
+                    <button 
                     type="button" 
                     onClick={addRequirement}
                     disabled={!newRequirement.trim() || weightedRequirements.length >= 5 || weightedRequirements.reduce((sum, req) => sum + req.weight, 0) >= 100}
@@ -1968,7 +4230,8 @@ function App() {
                     <span className="weight-value">{getGeneralFitWeight()}%</span>
                   </div>
                 </div>
-              </div>
+                </div>
+              )}
             </div>
 
             <div className="button-group">
@@ -2169,7 +4432,7 @@ function App() {
                             className="refresh-profile-button"
                             title="Refresh from CoreSignal (1 API credit)"
                           >
-                            🔄
+                            <TbRefresh size={14} />
                           </button>
                         </div>
                       </div>
@@ -2484,6 +4747,8 @@ function App() {
                           <WorkExperienceSection
                             profileData={candidate.profileSummary || (candidate.type === 'batch' ? candidate.profile_data?.profile_data : null)}
                             profileSummary={candidate.profileSummary}
+                            onRegenerateUrl={handleRegenerateCrunchbaseUrl}
+                            onCrunchbaseClick={handleCrunchbaseClick}
                           />
 
                             {/* Profile Not Found Message - only for batch results */}
@@ -2520,8 +4785,118 @@ function App() {
       {/* Notification */}
       {notification.show && (
         <div className={`notification ${notification.type}`}>
-          {notification.type === 'success' ? '✅' : '❌'} {notification.message}
+          {notification.type === 'success' ? '✅' : notification.type === 'info' ? 'ℹ️' : '❌'} {notification.message}
       </div>
+      )}
+
+      {/* Save Company List Modal */}
+      {showSaveListModal && (
+        <div className="modal-overlay" onClick={() => setShowSaveListModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h2>Save as Company List</h2>
+              <button className="close-btn" onClick={() => setShowSaveListModal(false)} style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer' }}>&times;</button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label htmlFor="list-name" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>List Name *</label>
+                <input
+                  id="list-name"
+                  type="text"
+                  value={saveListName}
+                  onChange={(e) => setSaveListName(e.target.value)}
+                  placeholder="e.g., Voice AI Competitors Q1 2025"
+                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd' }}
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label htmlFor="list-description" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Description (optional)</label>
+                <textarea
+                  id="list-description"
+                  value={saveListDescription}
+                  onChange={(e) => setSaveListDescription(e.target.value)}
+                  placeholder="What is this list for?"
+                  rows="3"
+                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '12px', fontWeight: '500' }}>Select Categories to Include:</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  {Object.entries(companyResearchResults.companies_by_category).map(([category, companies]) => (
+                    companies.length > 0 && (
+                      <label key={category} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories[category]}
+                          onChange={() => toggleCategorySelection(category)}
+                          style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                        />
+                        <span>
+                          {category.replace('_', ' ').toUpperCase()} ({companies.length})
+                        </span>
+                      </label>
+                    )
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginTop: '20px', padding: '12px', backgroundColor: '#f3f4f6', borderRadius: '6px', fontSize: '14px' }}>
+                <strong>Total companies to save:</strong>{' '}
+                {Object.entries(companyResearchResults.companies_by_category).reduce((total, [category, companies]) => {
+                  return total + (selectedCategories[category] ? companies.length : 0);
+                }, 0)}
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '20px', borderTop: '1px solid #e5e7eb' }}>
+              <button
+                onClick={() => setShowSaveListModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  border: '1px solid #d1d5db',
+                  backgroundColor: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveCompanyList}
+                disabled={savingList || !saveListName.trim()}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: savingList || !saveListName.trim() ? '#9ca3af' : '#4F46E5',
+                  color: 'white',
+                  cursor: savingList || !saveListName.trim() ? 'not-allowed' : 'pointer',
+                  fontWeight: '500'
+                }}
+              >
+                {savingList ? 'Saving...' : 'Save List'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Crunchbase Validation Modal */}
+      {validationModalOpen && validationData && (
+        <CrunchbaseValidationModal
+          isOpen={validationModalOpen}
+          onClose={() => setValidationModalOpen(false)}
+          companyName={validationData.companyName}
+          crunchbaseUrl={validationData.crunchbaseUrl}
+          companyId={validationData.companyId}
+          onValidate={handleValidation}
+          onRegenerate={validationData.onRegenerate}
+        />
       )}
     </div>
   );

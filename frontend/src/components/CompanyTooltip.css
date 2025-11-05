@@ -7,7 +7,7 @@
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   border: 1px solid #e0e0e0;
-  padding: 20px;
+  padding: 12px;
   min-width: 400px;
   max-width: 550px;
   max-height: 400px;
@@ -307,8 +307,8 @@
   text-decoration: underline;
 }
 
-/* Company Data Freshness Section */
-.company-freshness-row {
+/* Company Data Freshness Section - Scoped to tooltip and modal contexts */
+.company-tooltip .company-freshness-row {
   padding-top: 8px;
   margin-top: 8px;
   border-top: 1px solid #f0f0f0;
@@ -317,37 +317,38 @@
   gap: 4px;
 }
 
-.company-freshness-details {
+.company-tooltip .company-freshness-details {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  width: 100%;
   margin-top: 4px;
   padding: 8px 12px;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-radius: 6px;
   border: 1px solid #e0e0e0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-.freshness-item-compact {
+.company-tooltip .freshness-item-compact {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
 }
 
-.freshness-label-compact {
+.company-tooltip .freshness-label-compact {
   font-weight: 500;
   color: #666;
   min-width: 165px;
 }
 
-.freshness-date-compact {
+.company-tooltip .freshness-date-compact {
   color: #2c3e50;
   font-weight: 600;
 }
 
-.freshness-fresh-compact {
+.company-tooltip .freshness-fresh-compact {
   color: #10b981;
   font-weight: 600;
   font-size: 12px;
@@ -371,4 +372,172 @@
   .tooltip-label {
     min-width: 80px;
   }
+}
+
+/* Confidence Badge Styles */
+.confidence-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.confidence-badge.verified {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.confidence-badge.high {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.confidence-badge.validated {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.confidence-badge.ai-generated {
+  background: #e7e3ff;
+  color: #5b21b6;
+  border: 1px solid #c4b5fd;
+}
+
+.confidence-badge.unverified {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Crunchbase Link Container */
+.crunchbase-link-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Inline indicators inside Crunchbase pill */
+.inline-check {
+  margin-left: 4px;
+  font-size: 10px;
+  color: #10b981;
+  font-weight: bold;
+}
+
+.inline-check.ai {
+  color: #8b5cf6;
+}
+
+.inline-warning {
+  margin-left: 4px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+/* Visual cue for uncertain Crunchbase URLs */
+.crunchbase-pill.crunchbase-uncertain {
+  border: 1px dashed #fbbf24 !important;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+}
+
+/* Compact inline regenerate button - minimal badge style */
+.regenerate-btn-inline {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #667eea;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+.regenerate-btn-inline:hover:not(:disabled) {
+  transform: scale(1.2);
+  color: #764ba2;
+}
+
+.regenerate-btn-inline:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.regenerate-btn-inline:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Spinning animation for loading state */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.regenerate-btn-inline.loading {
+  animation: spin 1s linear infinite;
+}
+
+/* Edit button - pencil icon */
+.edit-btn-inline {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #667eea;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.edit-btn-inline:hover:not(:disabled) {
+  transform: scale(1.2);
+  color: #764ba2;
+}
+
+.edit-btn-inline:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+/* Red X indicator for not found */
+.inline-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-left: 4px;
+  font-weight: bold;
+}
+
+/* Not found state styling */
+.crunchbase-not-found {
+  opacity: 0.7;
+  border: 1px dashed #ef4444;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  cursor: default;
+}
+
+.crunchbase-not-found:hover {
+  transform: none;
+}
+
+/* OLD: Keep for backward compatibility but hide */
+.regenerate-btn {
+  display: none;
 }

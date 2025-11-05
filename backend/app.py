@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import json
 import os
@@ -40,6 +40,14 @@ try:
 except ImportError as e:
     print(f"Warning: Could not import ExtensionService: {e}")
     extension_service = None
+
+# Import JD Analyzer routes
+try:
+    from jd_analyzer.api.endpoints import register_jd_analyzer_routes
+    register_jd_analyzer_routes(app)
+    print("✓ JD Analyzer routes registered successfully")
+except ImportError as e:
+    print(f"Warning: Could not import JD Analyzer routes: {e}")
 
 # CoreSignal API configuration
 CORESIGNAL_API_KEY = os.getenv("CORESIGNAL_API_KEY")
@@ -271,10 +279,28 @@ def get_stored_company(company_id, freshness_days=30):
 
                 if age.days < freshness_days:
                     print(f"✅ Using stored company {company_id} (age: {age.days} days) - SAVED 1 Collect credit!")
+
+                    # Extract verification data if available
+                    verification_data = {}
+                    if cached.get('user_verified'):
+                        verification_data['user_verified'] = cached['user_verified']
+                        verification_data['verification_status'] = cached.get('verification_status', 'pending')
+                        verification_data['verified_by'] = cached.get('verified_by')
+                        verification_data['verified_at'] = cached.get('verified_at')
+
+                        # Extract the verified Crunchbase URL from company_data
+                        company_data = cached.get('company_data', {})
+                        if isinstance(company_data, dict):
+                            verified_url = company_data.get('crunchbase_company_url')
+                            if verified_url:
+                                verification_data['verified_crunchbase_url'] = verified_url
+                                print(f"   ✅ Found user-verified Crunchbase URL: {verified_url}")
+
                     return {
                         'company_data': cached['company_data'],
                         'cache_age_days': age.days,
-                        'last_fetched': cached['last_fetched']  # When WE cached company data
+                        'last_fetched': cached['last_fetched'],  # When WE cached company data
+                        'verification_data': verification_data
                     }
                 else:
                     print(f"⏰ Stored company too old ({age.days} days) - fetching fresh data")
@@ -1804,6 +1830,315 @@ def clear_feedback():
         print(f"❌ Error clearing feedback: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
+@app.route('/regenerate-crunchbase-url', methods=['POST'])
+def regenerate_crunchbase_url():
+    """
+    Manually regenerate Crunchbase URL using Claude Agent SDK WebSearch
+
+    This endpoint uses Claude with WebSearch to validate/correct Crunchbase URLs
+    for companies where Tavily returned low-confidence results.
+
+    Expected request body:
+    {
+        "company_name": "FOX Tech",
+        "company_id": 25523180,
+        "current_url": "https://www.crunchbase.com/organization/fox-tech"
+    }
+
+    Returns:
+    {
+        "success": true,
+        "crunchbase_url": "https://www.crunchbase.com/organization/fox-tech-co",
+        "crunchbase_source": "websearch_validated",
+        "crunchbase_confidence": 0.95
+    }
+    """
+    try:
+        data = request.get_json()
+        company_name = data.get('company_name')
+        company_id = data.get('company_id')
+        current_url = data.get('current_url')
+        return_candidates = data.get('return_candidates', False)
+
+        if not company_name:
+            return jsonify({'error': 'company_name is required'}), 400
+
+        print(f"\n🔄 Regenerating Crunchbase URL for: {company_name}")
+        print(f"   Current URL: {current_url}")
+        print(f"   Company ID: {company_id}")
+
+        # Initialize CoreSignal service
+        service = CoreSignalService()
+
+        # Fetch company data if company_id provided (for rich context)
+        company_data = {}
+        if company_id:
+            print(f"   📊 Fetching company data for context...")
+            company_endpoint = f"https://api.coresignal.com/cdapi/v2/company_base/collect/{company_id}"
+            response = requests.get(company_endpoint, headers=service.headers, timeout=30)
+
+            if response.status_code == 200:
+                company_data = response.json()
+                print(f"   ✅ Got company data ({len(company_data)} fields)")
+            else:
+                print(f"   ⚠️  Could not fetch company data (status {response.status_code})")
+
+        # Step 1: Get Tavily candidates
+        print(f"   🔍 Stage 1: Getting Tavily candidates...")
+        try:
+            from tavily import TavilyClient
+            import re
+
+            tavily_client = TavilyClient(api_key=os.getenv('TAVILY_API_KEY'))
+            response = tavily_client.search(
+                query=f"{company_name} crunchbase",
+                search_depth="basic",
+                max_results=10,
+                include_domains=["crunchbase.com"]
+            )
+
+            # Extract candidates with scores
+            crunchbase_pattern = r'crunchbase\.com/organization/([a-z0-9-]+)'
+            candidates = []
+            seen = set()
+
+            for result in response.get('results', []):
+                match = re.search(crunchbase_pattern, result.get('url', ''), re.IGNORECASE)
+                if match:
+                    slug = match.group(1)
+                    if slug not in seen:
+                        candidates.append({
+                            'slug': slug,
+                            'score': result.get('score', 0.0),
+                            'title': result.get('title', ''),
+                            'url': result.get('url', '')
+                        })
+                        seen.add(slug)
+
+            candidates.sort(key=lambda x: x['score'], reverse=True)
+            print(f"   📋 Found {len(candidates)} Tavily candidates")
+
+            # Don't fail if no candidates - Claude WebSearch can work standalone
+            if not candidates:
+                print(f"   ⚠️  No Tavily candidates, will use Claude WebSearch alone")
+
+        except Exception as e:
+            print(f"   ⚠️  Tavily search error: {e}, falling back to Claude WebSearch alone")
+            candidates = []
+
+        # Step 2: Use Claude WebSearch (validation mode if candidates exist, search mode if not)
+        print(f"   🤖 Stage 2: Claude WebSearch {'validation' if candidates else 'search'}...")
+        result = service._validate_with_claude_websearch(company_name, candidates, company_data)
+
+        if result and result.get('url'):
+            new_url = result['url']
+            new_source = result['source']
+            new_confidence = result['confidence']
+            print(f"   ✅ Regenerated URL: {new_url}")
+        elif candidates:
+            # Fallback to top Tavily candidate if Claude failed but we have candidates
+            print(f"   ⚠️  Claude validation failed, returning top Tavily candidate")
+            top = candidates[0]
+            new_url = f"https://www.crunchbase.com/organization/{top['slug']}"
+            new_source = 'tavily_fallback'
+            new_confidence = top['score']
+        else:
+            # Both Tavily and Claude failed
+            print(f"   ❌ Both Tavily and Claude failed to find Crunchbase URL")
+            return jsonify({'error': 'Could not find Crunchbase URL for this company'}), 404
+
+        # Step 2.5: If return_candidates=true, return array for user selection
+        if return_candidates:
+            # Mark which candidate was validated by Claude (if any)
+            for candidate in candidates:
+                if result and result.get('url'):
+                    candidate['validated'] = (result['url'] == f"https://www.crunchbase.com/organization/{candidate['slug']}")
+                else:
+                    candidate['validated'] = False
+
+            # Build full URLs for all candidates
+            for candidate in candidates:
+                if not candidate.get('url'):
+                    candidate['url'] = f"https://www.crunchbase.com/organization/{candidate['slug']}"
+
+            print(f"   📋 Returning {len(candidates)} candidates for user selection")
+            return jsonify({
+                'success': True,
+                'candidates': candidates[:4],  # Top 4 candidates
+                'claude_pick': result.get('url') if result else None
+            })
+
+        # Step 3: Update stored company data in Supabase (if company_id provided)
+        if company_id:
+            print(f"   💾 Updating stored company data in Supabase...")
+            try:
+                # Fetch current stored company data
+                headers = {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': f'Bearer {SUPABASE_KEY}',
+                    'Content-Type': 'application/json'
+                }
+
+                # Get current company data
+                get_url = f"{SUPABASE_URL}/rest/v1/stored_companies?company_id=eq.{company_id}"
+                response = requests.get(get_url, headers=headers)
+
+                if response.status_code == 200 and response.json():
+                    stored_data = response.json()[0]
+                    company_data_json = stored_data.get('company_data', {})
+
+                    # Update Crunchbase URL in the intelligence section
+                    if 'intelligence' not in company_data_json:
+                        company_data_json['intelligence'] = {}
+
+                    intelligence = company_data_json['intelligence']
+                    intelligence['crunchbase_company_url'] = new_url
+                    intelligence['crunchbase_source'] = new_source
+                    intelligence['crunchbase_confidence'] = new_confidence
+
+                    # Update in database
+                    patch_url = f"{SUPABASE_URL}/rest/v1/stored_companies?company_id=eq.{company_id}"
+                    update_response = requests.patch(
+                        patch_url,
+                        headers=headers,
+                        json={'company_data': company_data_json}
+                    )
+
+                    if update_response.status_code in [200, 204]:
+                        print(f"   ✅ Updated stored company data for company_id {company_id}")
+                    else:
+                        print(f"   ⚠️  Failed to update company data: {update_response.status_code}")
+                else:
+                    print(f"   ⚠️  No stored company data found for company_id {company_id}")
+
+            except Exception as e:
+                print(f"   ⚠️  Error updating stored data: {e}")
+                # Continue anyway - don't fail the whole request
+
+        # Return result
+        return jsonify({
+            'success': True,
+            'crunchbase_url': new_url,
+            'crunchbase_source': new_source,
+            'crunchbase_confidence': new_confidence,
+            'warning': 'Claude validation failed, using top Tavily result' if not result else None
+        })
+
+    except Exception as e:
+        import traceback
+        print(f"❌ Error regenerating URL: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/verify-crunchbase-url', methods=['POST'])
+def verify_crunchbase_url():
+    """
+    Endpoint to handle user verification of Crunchbase URLs.
+
+    Payload:
+    {
+        "company_id": 12345,
+        "is_correct": true/false/null,
+        "verification_status": "verified"/"needs_review"/"skipped",
+        "corrected_url": "https://..." (optional)
+    }
+    """
+    try:
+        data = request.json
+        print(f"📥 Received verification request: {data}")
+
+        # Accept both camelCase (companyId) and snake_case (company_id)
+        company_id = data.get('companyId') or data.get('company_id')
+        is_correct = data.get('isCorrect') if 'isCorrect' in data else data.get('is_correct')
+        verification_status = data.get('verificationStatus') or data.get('verification_status', 'pending')
+        corrected_url = data.get('correctedUrl') or data.get('corrected_url')
+
+        if not company_id:
+            print(f"❌ Missing company_id. Received data: {data}")
+            return jsonify({'error': 'company_id is required', 'received': data}), 400
+
+        # Prepare update data
+        update_data = {
+            'user_verified': is_correct if is_correct is not None else False,
+            'verification_status': verification_status,
+            'verified_by': 'user',  # Could be parameterized later
+            'verified_at': datetime.utcnow().isoformat()
+        }
+
+        # CRITICAL: Fetch current company_data to save the verified URL
+        # The URL comes from the frontend (which computed it during enrichment)
+        verified_url = data.get('crunchbaseUrl') or data.get('crunchbase_url')
+
+        # Fetch current data to get company_data
+        get_url = f"{SUPABASE_URL}/rest/v1/stored_companies?company_id=eq.{company_id}&select=company_data"
+        get_response = requests.get(
+            get_url,
+            headers={
+                'apikey': SUPABASE_KEY,
+                'Authorization': f'Bearer {SUPABASE_KEY}',
+                'Content-Type': 'application/json'
+            }
+        )
+
+        if get_response.status_code == 200 and get_response.json():
+            stored_data = get_response.json()[0]
+            company_data = stored_data.get('company_data', {})
+
+            # If user clicked "Yes, Correct", save the verified URL to company_data
+            if is_correct and verified_url:
+                company_data['crunchbase_company_url'] = verified_url
+                company_data['crunchbase_source'] = 'user_verified'
+                update_data['company_data'] = company_data
+                print(f"   💾 Saving user-verified URL to company_data: {verified_url}")
+
+        # If user provided a corrected URL, override with that
+        if corrected_url and get_response.status_code == 200 and get_response.json():
+            stored_data = get_response.json()[0]
+            company_data = stored_data.get('company_data', {})
+
+            # Store original URL before updating
+            update_data['original_url'] = company_data.get('crunchbase_company_url')
+
+            # Update company_data with corrected URL
+            company_data['crunchbase_company_url'] = corrected_url
+            company_data['crunchbase_source'] = 'user_corrected'
+            update_data['company_data'] = company_data
+            print(f"   💾 Saving user-corrected URL to company_data: {corrected_url}")
+
+        # Update Supabase
+        update_url = f"{SUPABASE_URL}/rest/v1/stored_companies?company_id=eq.{company_id}"
+        update_response = requests.patch(
+            update_url,
+            headers={
+                'apikey': SUPABASE_KEY,
+                'Authorization': f'Bearer {SUPABASE_KEY}',
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            json=update_data
+        )
+
+        if update_response.status_code in [200, 204]:
+            print(f"✅ Verified company_id {company_id}: {verification_status}")
+            return jsonify({
+                'success': True,
+                'message': 'Verification saved successfully',
+                'company_id': company_id,
+                'verification_status': verification_status
+            })
+        else:
+            print(f"⚠️  Failed to update verification: {update_response.status_code}")
+            return jsonify({
+                'error': 'Failed to save verification',
+                'status_code': update_response.status_code
+            }), 500
+
+    except Exception as e:
+        import traceback
+        print(f"❌ Error saving verification: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
 # ==================== CHROME EXTENSION API ENDPOINTS ====================
 
 @app.route('/extension/lists', methods=['GET'])
@@ -2253,6 +2588,591 @@ def export_list_to_csv(list_id):
         traceback.print_exc()
         return jsonify({'error': f'Failed to export CSV: {str(e)}'}), 500
 
+# ========================================
+# Company Research Endpoints
+# ========================================
+
+# Initialize company research service (lazy loading)
+company_research_service = None
+
+def get_company_research_service():
+    """Lazy load company research service"""
+    global company_research_service
+    if company_research_service is None:
+        try:
+            from company_research_service import CompanyResearchService
+            company_research_service = CompanyResearchService()
+            print("✓ Company Research Service initialized")
+        except Exception as e:
+            print(f"Warning: Could not initialize Company Research Service: {e}")
+    return company_research_service
+
+@app.route('/research-companies', methods=['POST'])
+def research_companies_endpoint():
+    """
+    Start company research for a job description.
+
+    Request Body:
+    {
+        "jd_id": "unique_id",  # Optional, will generate if not provided
+        "jd_data": {
+            "title": "Senior ML Engineer",
+            "company": "TechCorp",
+            "company_stage": "series_b",
+            "requirements": {...},
+            "target_companies": {
+                "mentioned_companies": ["Stripe", "Square"],
+                "industry_context": "fintech"
+            }
+        },
+        "config": {
+            "max_companies": 50,
+            "min_relevance_score": 5.0,
+            "include_competitors": true,
+            "use_gpt5_deep_research": true
+        }
+    }
+    """
+    try:
+        service = get_company_research_service()
+        if not service:
+            return jsonify({'error': 'Company research service not available'}), 503
+
+        data = request.get_json()
+
+        # Generate JD ID if not provided
+        import uuid
+        jd_id = data.get('jd_id', str(uuid.uuid4()))
+        jd_data = data.get('jd_data')
+        config = data.get('config', {})
+
+        if not jd_data:
+            return jsonify({'error': 'jd_data is required'}), 400
+
+        # ============= DEBUG LOGGING =============
+        print(f"\n{'='*100}")
+        print(f"[RESEARCH REQUEST] Received research request")
+        print(f"[RESEARCH REQUEST] JD ID: {jd_id}")
+        print(f"[RESEARCH REQUEST] JD Data:")
+        print(f"  - title: {jd_data.get('title')}")
+        print(f"  - company_stage: {jd_data.get('company_stage')}")
+        print(f"  - industries: {jd_data.get('industries')}")
+        print(f"  - requirements.domain: {jd_data.get('requirements', {}).get('domain')}")
+        print(f"  - requirements.technical_skills: {jd_data.get('requirements', {}).get('technical_skills')}")
+        print(f"  - target_companies.mentioned_companies: {jd_data.get('target_companies', {}).get('mentioned_companies')}")
+        print(f"  - target_companies.industry_context: {jd_data.get('target_companies', {}).get('industry_context')}")
+        print(f"[RESEARCH REQUEST] Config: {config}")
+        print(f"{'='*100}\n")
+        # =========================================
+
+        # Check for existing session
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        existing = supabase.table("company_research_sessions").select("*").eq(
+            "jd_id", jd_id
+        ).execute()
+
+        if existing.data and existing.data[0].get('status') == 'running':
+            return jsonify({
+                'success': False,
+                'error': 'Research already in progress for this JD'
+            }), 409
+
+        # Start async research in background
+        async def run_research():
+            await service.research_companies_for_jd(jd_id, jd_data, config)
+
+        # Create new event loop for this task
+        import threading
+        def background_task():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(run_research())
+            loop.close()
+
+        thread = threading.Thread(target=background_task)
+        thread.start()
+
+        return jsonify({
+            'success': True,
+            'session_id': jd_id,
+            'status': 'running',
+            'message': 'Company research started in background'
+        })
+
+    except Exception as e:
+        print(f"Research error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/evaluate-more-companies', methods=['POST'])
+def evaluate_more_companies_endpoint():
+    """
+    Evaluate additional companies from the discovered list.
+
+    Request Body:
+    {
+        "session_id": "jd_123",
+        "start_index": 25,  # Start from company 25
+        "count": 25         # Evaluate next 25
+    }
+    """
+    try:
+        service = get_company_research_service()
+        if not service:
+            return jsonify({'error': 'Company research service not available'}), 503
+
+        data = request.get_json()
+        session_id = data.get('session_id')
+        start_index = data.get('start_index', 25)
+        count = data.get('count', 25)
+
+        if not session_id:
+            return jsonify({'error': 'session_id is required'}), 400
+
+        # Run evaluation in background
+        async def run_evaluation():
+            return await service.evaluate_additional_companies(session_id, start_index, count)
+
+        # Create new event loop for this task
+        import threading
+        result_container = {}
+
+        def background_task():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            result = loop.run_until_complete(run_evaluation())
+            result_container['result'] = result
+            loop.close()
+
+        thread = threading.Thread(target=background_task)
+        thread.start()
+        thread.join()  # Wait for completion (evaluations are faster than discovery)
+
+        return jsonify(result_container.get('result', {'error': 'Evaluation failed'}))
+
+    except Exception as e:
+        print(f"Evaluate more error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/research-companies/<jd_id>/status', methods=['GET'])
+def get_research_status(jd_id):
+    """Get research session status and progress."""
+    try:
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        result = supabase.table("company_research_sessions").select("*").eq(
+            "jd_id", jd_id
+        ).execute()
+
+        if not result.data:
+            return jsonify({'error': 'Session not found'}), 404
+
+        session = result.data[0]
+
+        # Calculate progress percentage
+        if session['status'] == 'completed':
+            progress = 100
+        elif session['status'] == 'failed':
+            progress = 0
+        else:
+            # Estimate based on companies evaluated
+            total_expected = session.get('max_companies', 50)
+            evaluated = session.get('total_evaluated', 0)
+            progress = min(int((evaluated / total_expected) * 100), 99)
+
+        session['progress_percentage'] = progress
+
+        return jsonify({
+            'success': True,
+            'session': session
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/research-companies/<jd_id>/stream', methods=['GET'])
+def stream_research_status(jd_id):
+    """
+    Stream research session status in real-time using Server-Sent Events (SSE).
+
+    This provides much better UX than polling:
+    - Updates every 500ms (vs 2 seconds)
+    - Shows detailed progress (phase, current action, company being evaluated)
+    - Lower server load
+    - Professional streaming experience
+    """
+    def generate():
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        last_status = None
+        retry_count = 0
+        max_retries = 10  # Wait up to 5 seconds for session to be created
+
+        while True:
+            try:
+                # Fetch current status
+                result = supabase.table("company_research_sessions").select("*").eq(
+                    "jd_id", jd_id
+                ).execute()
+
+                if not result.data:
+                    # Session not found - might be race condition during creation
+                    retry_count += 1
+                    if retry_count >= max_retries:
+                        yield f"data: {json.dumps({'error': 'Session not found after retries'})}\n\n"
+                        break
+                    # Wait and retry
+                    time.sleep(0.5)
+                    continue
+
+                session = result.data[0]
+                status = session['status']
+
+                # Calculate progress
+                if status == 'completed':
+                    progress = 100
+                elif status == 'failed':
+                    progress = 0
+                else:
+                    total_expected = session.get('max_companies', 50)
+                    evaluated = session.get('total_evaluated', 0)
+                    progress = min(int((evaluated / total_expected) * 100), 99)
+
+                session['progress_percentage'] = progress
+
+                # Only send update if status changed
+                current_status = json.dumps(session)
+                if current_status != last_status:
+                    yield f"data: {json.dumps({'success': True, 'session': session})}\n\n"
+                    last_status = current_status
+
+                # Stop streaming if completed or failed
+                if status in ['completed', 'failed']:
+                    break
+
+                # Stream every 500ms
+                time.sleep(0.5)
+
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                break
+
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
+    })
+
+
+@app.route('/research-companies/<jd_id>/results', methods=['GET'])
+def get_research_results(jd_id):
+    """Get research results for a JD."""
+    try:
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        # Get query parameters
+        min_score = request.args.get('min_score', type=float)
+        category = request.args.get('category')
+        limit = request.args.get('limit', 500, type=int)  # Increased to show ALL companies
+
+        # Check session status
+        session_result = supabase.table("company_research_sessions").select("*").eq(
+            "jd_id", jd_id
+        ).execute()
+
+        if not session_result.data:
+            return jsonify({'error': 'Session not found'}), 404
+
+        session = session_result.data[0]
+
+        if session['status'] not in ['completed', 'running']:
+            return jsonify({
+                'error': f"Research {session['status']}. Cannot retrieve results."
+            }), 400
+
+        # Build query
+        query = supabase.table("target_companies").select("*").eq("jd_id", jd_id)
+
+        if min_score:
+            query = query.gte("relevance_score", min_score)
+
+        if category:
+            query = query.eq("category", category)
+
+        # Execute query
+        result = query.order("relevance_score", desc=True).limit(limit).execute()
+
+        companies = result.data
+
+        # Group by category (include ALL competitive intelligence categories)
+        categorized = {
+            "direct_competitor": [],
+            "adjacent_company": [],
+            "same_category": [],      # Competitive intelligence category
+            "tangential": [],          # Competitive intelligence category
+            "similar_stage": [],       # Legacy category
+            "talent_pool": []          # Legacy category
+        }
+
+        for company in companies:
+            cat = company.get("category", "talent_pool")
+            if cat in categorized:
+                categorized[cat].append(company)
+
+        # Calculate summary
+        total = len(companies)
+        avg_score = sum(c.get("relevance_score", 0) for c in companies) / total if total > 0 else 0
+        top_company = companies[0]["company_name"] if companies else None
+
+        # Extract discovered and screened companies from session metadata
+        search_config = session.get('search_config') or {}
+        screened_companies = search_config.get('screened_companies', [])
+        discovered_companies_list = search_config.get('discovered_companies_list', [])
+
+        # Get total metrics from session
+        total_discovered = session.get('total_discovered', len(discovered_companies_list))
+        total_evaluated = session.get('total_evaluated', total)
+
+        return jsonify({
+            'success': True,
+            'results': {
+                'companies_by_category': categorized,
+                'discovered_companies': discovered_companies_list[:100],  # All discovered (up to 100) with full objects
+                'screened_companies': screened_companies[:100],    # Screened/ranked companies
+                'evaluated_companies': companies,                   # Evaluated companies from DB
+                'summary': {
+                    'total_companies': total,
+                    'avg_relevance_score': round(avg_score, 2),
+                    'top_company': top_company,
+                    'total_discovered': total_discovered,
+                    'total_evaluated': total_evaluated,
+                    'evaluation_progress': {
+                        'evaluated_count': total_evaluated,
+                        'remaining_count': len(screened_companies) - total_evaluated
+                    }
+                }
+            }
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/research-companies/<jd_id>/export-csv', methods=['GET'])
+def export_research_csv(jd_id):
+    """Export research results as CSV."""
+    try:
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        # Get all companies for this JD
+        result = supabase.table("target_companies").select("*").eq(
+            "jd_id", jd_id
+        ).order("relevance_score", desc=True).execute()
+
+        if not result.data:
+            return jsonify({'error': 'No results found'}), 404
+
+        companies = result.data
+
+        # Build CSV
+        import csv
+        import io
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # Header
+        writer.writerow([
+            'Company Name',
+            'Relevance Score',
+            'Category',
+            'Industry',
+            'Employee Count',
+            'Funding Stage',
+            'Headquarters',
+            'Why Relevant',
+            'Discovered Via'
+        ])
+
+        # Data rows
+        for company in companies:
+            writer.writerow([
+                company.get('company_name', ''),
+                company.get('relevance_score', ''),
+                company.get('category', ''),
+                company.get('industry', ''),
+                company.get('employee_count', ''),
+                company.get('funding_stage', ''),
+                company.get('headquarters_location', ''),
+                company.get('relevance_reasoning', ''),
+                company.get('discovered_via', '')
+            ])
+
+        csv_data = output.getvalue()
+
+        return jsonify({
+            'success': True,
+            'csv_data': csv_data,
+            'filename': f'company_research_{jd_id[:8]}.csv'
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+# ============================================
+# COMPANY LISTS ENDPOINTS
+# ============================================
+
+@app.route('/company-lists', methods=['POST'])
+def save_company_list():
+    """Save companies from research results as a reusable list."""
+    try:
+        data = request.json
+        list_name = data.get('list_name')
+        description = data.get('description', '')
+        jd_title = data.get('jd_title', '')
+        jd_session_id = data.get('jd_session_id', '')
+        companies = data.get('companies', [])
+
+        if not list_name or not companies:
+            return jsonify({'error': 'list_name and companies are required'}), 400
+
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        # Create the list
+        list_data = {
+            'list_name': list_name,
+            'description': description,
+            'jd_title': jd_title,
+            'jd_session_id': jd_session_id,
+            'total_companies': len(companies)
+        }
+
+        list_result = supabase.table('company_lists').insert(list_data).execute()
+
+        if not list_result.data:
+            return jsonify({'error': 'Failed to create list'}), 500
+
+        list_id = list_result.data[0]['id']
+
+        # Add all companies to the list
+        company_items = []
+        for company in companies:
+            company_items.append({
+                'list_id': list_id,
+                'company_name': company.get('company_name', ''),
+                'company_domain': company.get('company_domain', ''),
+                'category': company.get('category', ''),
+                'relevance_score': company.get('relevance_score', 0),
+                'relevance_reasoning': company.get('relevance_reasoning', ''),
+                'industry': company.get('industry', ''),
+                'employee_count': company.get('employee_count'),
+                'funding_stage': company.get('funding_stage', ''),
+                'company_metadata': company  # Store full company object
+            })
+
+        # Batch insert companies
+        items_result = supabase.table('company_list_items').insert(company_items).execute()
+
+        return jsonify({
+            'success': True,
+            'list_id': list_id,
+            'list_name': list_name,
+            'total_companies': len(companies)
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/company-lists', methods=['GET'])
+def get_company_lists():
+    """Get all saved company lists."""
+    try:
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        result = supabase.table('company_lists').select('*').order('created_at', desc=True).execute()
+
+        return jsonify({
+            'success': True,
+            'lists': result.data
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/company-lists/<int:list_id>', methods=['GET'])
+def get_company_list(list_id):
+    """Get a specific company list with all its companies."""
+    try:
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        # Get list metadata
+        list_result = supabase.table('company_lists').select('*').eq('id', list_id).execute()
+
+        if not list_result.data:
+            return jsonify({'error': 'List not found'}), 404
+
+        # Get all companies in the list
+        companies_result = supabase.table('company_list_items').select('*').eq(
+            'list_id', list_id
+        ).order('relevance_score', desc=True).execute()
+
+        return jsonify({
+            'success': True,
+            'list': list_result.data[0],
+            'companies': companies_result.data
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/company-lists/<int:list_id>', methods=['DELETE'])
+def delete_company_list(list_id):
+    """Delete a company list (cascade deletes all companies in the list)."""
+    try:
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        # Delete the list (cascade will delete all items)
+        result = supabase.table('company_lists').delete().eq('id', list_id).execute()
+
+        return jsonify({
+            'success': True,
+            'message': 'List deleted successfully'
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy'})
@@ -2288,9 +3208,138 @@ def serve_frontend():
         </html>
         """
 
+@app.route('/search-by-company-list', methods=['POST'])
+def search_by_company_list():
+    """
+    Search for people at a list of companies using CoreSignal.
+
+    Request Body:
+    {
+        "company_names": ["Deepgram", "AssemblyAI", "ElevenLabs"],
+        "filters": {
+            "title": "engineer",  # Optional
+            "seniority": "senior",  # Optional
+            "location": "San Francisco"  # Optional
+        },
+        "max_per_company": 20  # Optional, default 20
+    }
+
+    Returns:
+        {
+            "success": true,
+            "company_matches": [
+                {
+                    "company_name": "Deepgram",
+                    "coresignal_id": "12345",
+                    "confidence": 0.95,
+                    "people_found": 15
+                },
+                ...
+            ],
+            "total_people": 45,
+            "search_time_seconds": 5.2
+        }
+    """
+    try:
+        import time
+        start_time = time.time()
+
+        data = request.get_json()
+        company_names = data.get("company_names", [])
+        filters = data.get("filters", {})
+        max_per_company = data.get("max_per_company", 20)
+
+        if not company_names:
+            return jsonify({'error': 'company_names is required'}), 400
+
+        print(f"\n{'='*100}")
+        print(f"[COMPANY SEARCH] Searching for people at {len(company_names)} companies")
+        print(f"[COMPANY SEARCH] Filters: {filters}")
+        print(f"{'='*100}\n")
+
+        # Step 1: Look up CoreSignal company IDs
+        from coresignal_company_lookup import CoreSignalCompanyLookup
+        lookup_service = CoreSignalCompanyLookup()
+
+        company_matches = []
+        coresignal_company_ids = []
+
+        for company_name in company_names:
+            match = lookup_service.get_best_match(company_name, confidence_threshold=0.7)
+
+            if match:
+                company_matches.append({
+                    "company_name": company_name,
+                    "coresignal_name": match["name"],
+                    "coresignal_id": match["company_id"],
+                    "confidence": match["confidence"],
+                    "website": match.get("website"),
+                    "employee_count": match.get("employee_count")
+                })
+                coresignal_company_ids.append(match["company_id"])
+                print(f"✓ {company_name} → {match['name']} (ID: {match['company_id']}, confidence: {match['confidence']})")
+            else:
+                print(f"✗ {company_name} → No match found")
+                company_matches.append({
+                    "company_name": company_name,
+                    "coresignal_id": None,
+                    "confidence": 0.0,
+                    "error": "No matching company found"
+                })
+
+        if not coresignal_company_ids:
+            return jsonify({
+                'success': False,
+                'error': 'No matching companies found in CoreSignal database',
+                'company_matches': company_matches
+            }), 404
+
+        # Step 2: Search for people at these companies via CoreSignal
+        from coresignal_service import search_profiles_by_company_ids
+
+        people = search_profiles_by_company_ids(
+            company_ids=coresignal_company_ids,
+            title=filters.get("title"),
+            seniority=filters.get("seniority"),
+            location=filters.get("location"),
+            max_per_company=max_per_company
+        )
+
+        # Add people_found count to each company match
+        for match in company_matches:
+            if match.get("coresignal_id"):
+                match["people_found"] = len([
+                    p for p in people
+                    if p.get("company_id") == match["coresignal_id"]
+                ])
+
+        search_time = time.time() - start_time
+
+        print(f"\n{'='*100}")
+        print(f"[COMPANY SEARCH] Search complete")
+        print(f"[COMPANY SEARCH] Companies matched: {len([m for m in company_matches if m.get('coresignal_id')])}/{len(company_names)}")
+        print(f"[COMPANY SEARCH] Total people found: {len(people)}")
+        print(f"[COMPANY SEARCH] Time: {search_time:.1f}s")
+        print(f"{'='*100}\n")
+
+        return jsonify({
+            'success': True,
+            'company_matches': company_matches,
+            'people': people,
+            'total_people': len(people),
+            'search_time_seconds': round(search_time, 2)
+        })
+
+    except Exception as e:
+        print(f"[COMPANY SEARCH] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     # Check if API key is set
     if not os.getenv("ANTHROPIC_API_KEY"):
         print("Warning: ANTHROPIC_API_KEY environment variable not set!")
-    
+
     app.run(debug=True, host='0.0.0.0', port=5001)

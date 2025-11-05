@@ -1,0 +1,959 @@
+{
+  "id": 334050937,
+  "parent_id": 334050937,
+  "created_at": "2016-09-21T18:09:28.000Z",
+  "updated_at": "2025-10-21T19:59:31.746729Z",
+  "checked_at": "2025-10-21T19:59:31.746729Z",
+  "changed_at": "2025-10-21T19:59:31.746729Z",
+  "experience_change_last_identified_at": null,
+  "is_deleted": 0,
+  "is_parent": 1,
+  "public_profile_id": 13066037,
+  "linkedin_url": "https://www.linkedin.com/in/dylanfield",
+  "linkedin_shorthand_names": [
+    "dylan-field-4454614",
+    "dylanfield"
+  ],
+  "historical_ids": [
+    334050937
+  ],
+  "full_name": "Dylan Field",
+  "first_name": "Dylan",
+  "first_name_initial": "D",
+  "middle_name": null,
+  "middle_name_initial": null,
+  "last_name": "Field",
+  "last_name_initial": "F",
+  "headline": "CEO & Co-founder of Figma",
+  "summary": null,
+  "picture_url": "https://media.licdn.com/dms/image/v2/D5603AQFssJhINmn3_Q/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1699465855464?e=2147483647&v=beta&t=9X4ILQpVpFP0sopXgWwscKezh6yGZJRma3I6l5YlVTA",
+  "location_country": "United States",
+  "location_country_iso2": "US",
+  "location_country_iso3": "USA",
+  "location_full": "Penngrove, California, United States",
+  "location_regions": [
+    "Americas",
+    "Northern America",
+    "AMER"
+  ],
+  "location_city": "Penngrove",
+  "location_state": "California",
+  "interests": [],
+  "inferred_skills": [
+    "research",
+    "software",
+    "engineering",
+    "commerce",
+    "blogs",
+    "ipad",
+    "design",
+    "marketing",
+    "pr",
+    "blogging",
+    "ruby",
+    "analytics",
+    "hadoop",
+    "software engineering",
+    "product design",
+    "online marketing",
+    "user experience",
+    "data analytics"
+  ],
+  "historical_skills": [],
+  "connections_count": 500,
+  "followers_count": 687,
+  "services": null,
+  "primary_professional_email": "dylan@figma.com",
+  "primary_professional_email_status": "verified",
+  "professional_emails_collection": [
+    {
+      "professional_email": "dylan@figma.com",
+      "professional_email_status": "verified",
+      "order_of_priority": 1
+    }
+  ],
+  "is_working": 1,
+  "active_experience_company_id": 9447971,
+  "active_experience_title": "CEO Co-founder",
+  "active_experience_description": null,
+  "active_experience_department": "C-Suite",
+  "active_experience_management_level": "Founder",
+  "is_decision_maker": 1,
+  "total_experience_duration_months": 198,
+  "total_experience_duration_months_breakdown_department": [
+    {
+      "department": "Product",
+      "total_experience_duration_months": 6
+    },
+    {
+      "department": "C-Suite",
+      "total_experience_duration_months": 159
+    },
+    {
+      "department": "Research",
+      "total_experience_duration_months": 11
+    },
+    {
+      "department": "Engineering and Technical",
+      "total_experience_duration_months": 5
+    },
+    {
+      "department": "Marketing",
+      "total_experience_duration_months": 17
+    }
+  ],
+  "total_experience_duration_months_breakdown_management_level": [
+    {
+      "management_level": "Specialist",
+      "total_experience_duration_months": 10
+    },
+    {
+      "management_level": "Intern",
+      "total_experience_duration_months": 29
+    },
+    {
+      "management_level": "Founder",
+      "total_experience_duration_months": 159
+    }
+  ],
+  "experience": [
+    {
+      "active_experience": 1,
+      "position_title": "CEO Co-founder",
+      "department": "C-Suite",
+      "management_level": "Founder",
+      "location": "Palo Alto, CA",
+      "description": null,
+      "date_from": "August 2012",
+      "date_from_year": 2012,
+      "date_from_month": 8,
+      "date_to": null,
+      "date_to_year": null,
+      "date_to_month": null,
+      "duration_months": 158,
+      "company_id": 9447971,
+      "company_name": "Figma, Inc.",
+      "company_type": "Privately Held",
+      "company_founded_year": 2012,
+      "company_followers_count": 1847469,
+      "company_website": "https://www.figma.com",
+      "company_facebook_url": [
+        "https://www.facebook.com/figmadesign"
+      ],
+      "company_twitter_url": [
+        "https://www.twitter.com/figma",
+        "https://www.twitter.com/figmadesign"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/figma",
+      "company_size_range": "1001-5000 employees",
+      "company_employees_count": 3268,
+      "company_industry": "Design Services",
+      "company_categories_and_keywords": [
+        "technology/software",
+        "software design software",
+        "wireframing software",
+        "figma",
+        "wireframing",
+        "prototyping",
+        "software design platforms",
+        "computers electronics and technology > computers electronics and technology - other (in united states)",
+        "community",
+        "products",
+        "development",
+        "solutions",
+        "design",
+        "technology",
+        "developer-tools",
+        "enterprise-software",
+        "graphic-design",
+        "collaboration",
+        "developer tools",
+        "product design",
+        "software",
+        "web apps"
+      ],
+      "company_annual_revenue_source_5": 998560000,
+      "company_annual_revenue_currency_source_5": "USD",
+      "company_annual_revenue_source_1": 749011008.0,
+      "company_annual_revenue_currency_source_1": "USD",
+      "company_employees_count_change_yearly_percentage": 10.368118878757176,
+      "company_last_funding_round_date": "2024-07-17",
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": "760 Market St; San Francisco, California 94103, US",
+      "company_hq_country": "United States",
+      "company_hq_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "company_hq_country_iso2": "US",
+      "company_hq_country_iso3": "USA",
+      "company_hq_city": "San Francisco",
+      "company_hq_state": "California",
+      "company_hq_street": "760 Market St",
+      "company_hq_zipcode": "94103",
+      "company_last_updated_at": "2025-09-08",
+      "company_stock_ticker": [
+        {
+          "exchange": "NYSE",
+          "ticker": "FIG"
+        }
+      ],
+      "company_is_b2b": 1,
+      "order_in_profile": 1
+    },
+    {
+      "active_experience": 0,
+      "position_title": "Product Design Intern",
+      "department": "Product",
+      "management_level": "Intern",
+      "location": "Palo Alto, CA",
+      "description": "2012 KPCB Engineering Fellow (http://kpcbfellows.com) Worked closely with Flipboard's design team on Flipboard's 2.0 release: http://allthingsd.com/20130326/new-flipboard-news-and-posts-handpicked-and-shared/",
+      "date_from": "January 2012",
+      "date_from_year": 2012,
+      "date_from_month": 1,
+      "date_to": "July 2012",
+      "date_to_year": 2012,
+      "date_to_month": 7,
+      "duration_months": 6,
+      "company_id": 25790375,
+      "company_name": "Flipboard Inc.",
+      "company_type": "Privately Held",
+      "company_founded_year": 2010,
+      "company_followers_count": 18050,
+      "company_website": "https://www.flipboard.com/download-flipboard/",
+      "company_facebook_url": [
+        "https://www.facebook.com/flipboard"
+      ],
+      "company_twitter_url": [
+        "https://www.twitter.com/flipboard"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/flipboard-inc",
+      "company_size_range": "51-200 employees",
+      "company_employees_count": 135,
+      "company_industry": "Technology, Information and Media",
+      "company_categories_and_keywords": [
+        "sports",
+        "social media",
+        "ipad",
+        "iphone",
+        "android",
+        "news",
+        "web",
+        "content",
+        "journalism",
+        "curation",
+        "storytelling",
+        "startups",
+        "politics",
+        "technology",
+        "marketing",
+        "community",
+        "sports organization",
+        "activities",
+        "sports activities",
+        "asker folkedanslag",
+        "content-provider",
+        "enterprise-software",
+        "magazine",
+        "platform",
+        "social-networks",
+        "apps",
+        "media and entertainment",
+        "mobile",
+        "social"
+      ],
+      "company_annual_revenue_source_5": 63000000,
+      "company_annual_revenue_currency_source_5": "USD",
+      "company_annual_revenue_source_1": null,
+      "company_annual_revenue_currency_source_1": null,
+      "company_employees_count_change_yearly_percentage": -4.929577464788732,
+      "company_last_funding_round_date": "2022-07-01",
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": "214 Homer St.; Palo Alto, CA 94301, US",
+      "company_hq_country": "United States",
+      "company_hq_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "company_hq_country_iso2": "US",
+      "company_hq_country_iso3": "USA",
+      "company_hq_city": "Palo Alto",
+      "company_hq_state": "California",
+      "company_hq_street": "214 Homer St.",
+      "company_hq_zipcode": "94301",
+      "company_last_updated_at": "2025-09-06",
+      "company_stock_ticker": [],
+      "company_is_b2b": 0,
+      "order_in_profile": 2
+    },
+    {
+      "active_experience": 0,
+      "position_title": "Software Engineering Intern",
+      "department": "Engineering and Technical",
+      "management_level": "Intern",
+      "location": null,
+      "description": "Worked on a recommendation engine, analyzed / visualized Flipboard's data and helped with early explorations into commerce (resulted in a partnership with Gilt Taste after I left: http://bits.blogs.nytimes.com/2011/11/22/flipboard-adds-its-first-ipad-catalog-for-gilt-taste/)",
+      "date_from": "May 2011",
+      "date_from_year": 2011,
+      "date_from_month": 5,
+      "date_to": "August 2011",
+      "date_to_year": 2011,
+      "date_to_month": 8,
+      "duration_months": 3,
+      "company_id": 25790375,
+      "company_name": "Flipboard",
+      "company_type": "Privately Held",
+      "company_founded_year": 2010,
+      "company_followers_count": 18050,
+      "company_website": "https://www.flipboard.com/download-flipboard/",
+      "company_facebook_url": [
+        "https://www.facebook.com/flipboard"
+      ],
+      "company_twitter_url": [
+        "https://www.twitter.com/flipboard"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/flipboard-inc",
+      "company_size_range": "51-200 employees",
+      "company_employees_count": 135,
+      "company_industry": "Technology, Information and Media",
+      "company_categories_and_keywords": [
+        "sports",
+        "social media",
+        "ipad",
+        "iphone",
+        "android",
+        "news",
+        "web",
+        "content",
+        "journalism",
+        "curation",
+        "storytelling",
+        "startups",
+        "politics",
+        "technology",
+        "marketing",
+        "community",
+        "sports organization",
+        "activities",
+        "sports activities",
+        "asker folkedanslag",
+        "content-provider",
+        "enterprise-software",
+        "magazine",
+        "platform",
+        "social-networks",
+        "apps",
+        "media and entertainment",
+        "mobile",
+        "social"
+      ],
+      "company_annual_revenue_source_5": 63000000,
+      "company_annual_revenue_currency_source_5": "USD",
+      "company_annual_revenue_source_1": null,
+      "company_annual_revenue_currency_source_1": null,
+      "company_employees_count_change_yearly_percentage": -4.929577464788732,
+      "company_last_funding_round_date": "2022-07-01",
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": "214 Homer St.; Palo Alto, CA 94301, US",
+      "company_hq_country": "United States",
+      "company_hq_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "company_hq_country_iso2": "US",
+      "company_hq_country_iso3": "USA",
+      "company_hq_city": "Palo Alto",
+      "company_hq_state": "California",
+      "company_hq_street": "214 Homer St.",
+      "company_hq_zipcode": "94301",
+      "company_last_updated_at": "2025-09-06",
+      "company_stock_ticker": [],
+      "company_is_b2b": 0,
+      "order_in_profile": 3
+    },
+    {
+      "active_experience": 0,
+      "position_title": "Data Analytics Intern",
+      "department": "Research",
+      "management_level": "Intern",
+      "location": null,
+      "description": "Analyzed trends for LinkedIn's Skills product using Hadoop and Pig. Led company wide \u201cLinkedIn for Good\u201d initiative to connect NPOs with volunteers",
+      "date_from": "May 2010",
+      "date_from_year": 2010,
+      "date_from_month": 5,
+      "date_to": "August 2010",
+      "date_to_year": 2010,
+      "date_to_month": 8,
+      "duration_months": 3,
+      "company_id": 8568581,
+      "company_name": "LinkedIn",
+      "company_type": "Public Company",
+      "company_founded_year": null,
+      "company_followers_count": 31786057,
+      "company_website": "https://www.linkedin.com",
+      "company_facebook_url": [
+        "https://www.facebook.com/linkedin"
+      ],
+      "company_twitter_url": [
+        "https://www.twitter.com/linkedin"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/linkedin",
+      "company_size_range": "10,001+ employees",
+      "company_employees_count": 23866,
+      "company_industry": "Software Development",
+      "company_categories_and_keywords": [
+        "online professional network",
+        "jobs",
+        "people search",
+        "company search",
+        "address book",
+        "advertising",
+        "professional identity",
+        "group collaboration",
+        "recruiting",
+        "technology",
+        "platform",
+        "social-networks",
+        "professional networking",
+        "social media",
+        "social recruiting"
+      ],
+      "company_annual_revenue_source_5": 17812000000,
+      "company_annual_revenue_currency_source_5": "USD",
+      "company_annual_revenue_source_1": 16371999744.0,
+      "company_annual_revenue_currency_source_1": "USD",
+      "company_employees_count_change_yearly_percentage": -6.532466515234589,
+      "company_last_funding_round_date": "2016-02-15",
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": "1000 W Maude; Sunnyvale, CA 94085, US",
+      "company_hq_country": "United States",
+      "company_hq_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "company_hq_country_iso2": "US",
+      "company_hq_country_iso3": "USA",
+      "company_hq_city": "Sunnyvale",
+      "company_hq_state": "California",
+      "company_hq_street": "1000 W Maude",
+      "company_hq_zipcode": "94085",
+      "company_last_updated_at": "2025-09-09",
+      "company_stock_ticker": [
+        {
+          "exchange": "NYSE",
+          "ticker": "LNKD"
+        }
+      ],
+      "company_is_b2b": null,
+      "order_in_profile": 4
+    },
+    {
+      "active_experience": 0,
+      "position_title": "Research Assistant",
+      "department": "Research",
+      "management_level": "Specialist",
+      "location": null,
+      "description": "Technical Research Assistant to danah boyd",
+      "date_from": "September 2009",
+      "date_from_year": 2009,
+      "date_from_month": 9,
+      "date_to": "May 2010",
+      "date_to_year": 2010,
+      "date_to_month": 5,
+      "duration_months": 8,
+      "company_id": 5181133,
+      "company_name": "Microsoft",
+      "company_type": "Public Company",
+      "company_founded_year": null,
+      "company_followers_count": 26277735,
+      "company_website": "https://www.microsoft.com",
+      "company_facebook_url": [
+        "https://www.facebook.com/microsoftuk"
+      ],
+      "company_twitter_url": [
+        "https://www.twitter.com/microsoftuk"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/microsoft",
+      "company_size_range": "10,001+ employees",
+      "company_employees_count": 228928,
+      "company_industry": "Software Development",
+      "company_categories_and_keywords": [
+        "technology",
+        "computers electronics and technology > programming and developer software (in united states)",
+        "business software",
+        "developer tools",
+        "home & educational software",
+        "tablets",
+        "search",
+        "advertising",
+        "servers",
+        "windows operating system",
+        "windows applications & platforms",
+        "smartphones",
+        "cloud computing",
+        "quantum computing",
+        "future of work",
+        "productivity",
+        "ai",
+        "artificial intelligence",
+        "machine learning",
+        "laptops",
+        "mixed reality",
+        "virtual reality",
+        "gaming",
+        "developers",
+        "it professional",
+        "microsoft",
+        "cloud",
+        "computing"
+      ],
+      "company_annual_revenue_source_5": null,
+      "company_annual_revenue_currency_source_5": null,
+      "company_annual_revenue_source_1": null,
+      "company_annual_revenue_currency_source_1": null,
+      "company_employees_count_change_yearly_percentage": -6.534058432544542,
+      "company_last_funding_round_date": null,
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": "1 Microsoft Way; Redmond, Washington 98052, US",
+      "company_hq_country": "United States",
+      "company_hq_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "company_hq_country_iso2": "US",
+      "company_hq_country_iso3": "USA",
+      "company_hq_city": "Redmond",
+      "company_hq_state": "Washington",
+      "company_hq_street": "1 Microsoft Way",
+      "company_hq_zipcode": "98052",
+      "company_last_updated_at": "2025-09-06",
+      "company_stock_ticker": [
+        {
+          "exchange": "NASDAQ",
+          "ticker": "MSFT"
+        }
+      ],
+      "company_is_b2b": 0,
+      "order_in_profile": 5
+    },
+    {
+      "active_experience": 0,
+      "position_title": "Developer",
+      "department": "Engineering and Technical",
+      "management_level": "Specialist",
+      "location": null,
+      "description": "Developed in Flex/Ruby, worked with designer on user experience and built customer relationships.",
+      "date_from": "June 2009",
+      "date_from_year": 2009,
+      "date_from_month": 6,
+      "date_to": "August 2009",
+      "date_to_year": 2009,
+      "date_to_month": 8,
+      "duration_months": 2,
+      "company_id": 3866648,
+      "company_name": "Indinero",
+      "company_type": "Privately Held",
+      "company_founded_year": 2009,
+      "company_followers_count": 10391,
+      "company_website": "https://www.indinero.com",
+      "company_facebook_url": [
+        "https://www.facebook.com/indinerocom",
+        "https://www.facebook.com/pages/indinerocom/165885526769558"
+      ],
+      "company_twitter_url": [
+        "https://www.twitter.com/indinero"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/indinero",
+      "company_size_range": "201-500 employees",
+      "company_employees_count": 168,
+      "company_industry": "Financial Services",
+      "company_categories_and_keywords": [
+        "finance",
+        "business finance  providers",
+        "bookkeeping services providers",
+        "indinero",
+        "business process outsourcing (bpo) service",
+        "tax services",
+        "accounting firms",
+        "bookkeeping services",
+        "finance > accounting and auditing",
+        "accounting",
+        "taxes",
+        "business operations",
+        "startups",
+        "small business",
+        "software",
+        "cfo",
+        "fintech",
+        "financial management",
+        "business tax",
+        "tax",
+        "technology",
+        "cloud",
+        "platform",
+        "consumer software",
+        "financial services"
+      ],
+      "company_annual_revenue_source_5": 16000000,
+      "company_annual_revenue_currency_source_5": "USD",
+      "company_annual_revenue_source_1": null,
+      "company_annual_revenue_currency_source_1": null,
+      "company_employees_count_change_yearly_percentage": 4.3478260869565215,
+      "company_last_funding_round_date": "2021-01-07",
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": "Los Angeles, 90036, US",
+      "company_hq_country": "United States",
+      "company_hq_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "company_hq_country_iso2": "US",
+      "company_hq_country_iso3": "USA",
+      "company_hq_city": "",
+      "company_hq_state": "",
+      "company_hq_street": "",
+      "company_hq_zipcode": "90036",
+      "company_last_updated_at": "2025-09-08",
+      "company_stock_ticker": [],
+      "company_is_b2b": 1,
+      "order_in_profile": 6
+    },
+    {
+      "active_experience": 0,
+      "position_title": "Online Marketing Intern",
+      "department": "Marketing",
+      "management_level": "Intern",
+      "location": null,
+      "description": "Did some PR, Marketing, Development, Blogging and lots of things in between.",
+      "date_from": "January 2008",
+      "date_from_year": 2008,
+      "date_from_month": 1,
+      "date_to": "June 2009",
+      "date_to_year": 2009,
+      "date_to_month": 6,
+      "duration_months": 17,
+      "company_id": 62223771,
+      "company_name": "O'Reilly Media",
+      "company_type": "Privately Held",
+      "company_founded_year": 1978,
+      "company_followers_count": 109050,
+      "company_website": "https://www.oreilly.com",
+      "company_facebook_url": [
+        "https://www.facebook.com/oreilly"
+      ],
+      "company_twitter_url": [
+        "https://www.twitter.com/oreillymedia"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/oreilly-media",
+      "company_size_range": "201-500 employees",
+      "company_employees_count": 1317,
+      "company_industry": "E-Learning Providers",
+      "company_categories_and_keywords": [
+        "technology and business training",
+        "science and education > business training (in united states)",
+        "genai",
+        "publishing",
+        "conferences",
+        "research",
+        "online services",
+        "online media",
+        "e-learning",
+        "ebooks",
+        "online training",
+        "data",
+        "programming",
+        "design",
+        "iot",
+        "web",
+        "webops",
+        "security",
+        "futurism",
+        "learning",
+        "ai",
+        "futursim",
+        "technology",
+        "economy",
+        "technology training",
+        "business knowledge",
+        "video",
+        "learning resources",
+        "books",
+        "platform",
+        "professional-education",
+        "education",
+        "events",
+        "information technology",
+        "software",
+        "training"
+      ],
+      "company_annual_revenue_source_5": 250000000,
+      "company_annual_revenue_currency_source_5": "USD",
+      "company_annual_revenue_source_1": null,
+      "company_annual_revenue_currency_source_1": null,
+      "company_employees_count_change_yearly_percentage": 5.953338696701529,
+      "company_last_funding_round_date": null,
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": "1005 Gravenstein Hwy North; Sebastopol, CA 95472, US",
+      "company_hq_country": "United States",
+      "company_hq_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "company_hq_country_iso2": "US",
+      "company_hq_country_iso3": "USA",
+      "company_hq_city": "Sebastopol",
+      "company_hq_state": "California",
+      "company_hq_street": "1005 Gravenstein Hwy North",
+      "company_hq_zipcode": "95472",
+      "company_last_updated_at": "2025-09-08",
+      "company_stock_ticker": [],
+      "company_is_b2b": 1,
+      "order_in_profile": 7
+    }
+  ],
+  "projected_base_salary_p25": null,
+  "projected_base_salary_median": null,
+  "projected_base_salary_p75": null,
+  "projected_base_salary_period": null,
+  "projected_base_salary_currency": null,
+  "projected_base_salary_updated_at": null,
+  "projected_additional_salary": [],
+  "projected_additional_salary_period": null,
+  "projected_additional_salary_currency": null,
+  "projected_additional_salary_updated_at": null,
+  "projected_total_salary_p25": null,
+  "projected_total_salary_median": null,
+  "projected_total_salary_p75": null,
+  "projected_total_salary_period": null,
+  "projected_total_salary_currency": null,
+  "projected_total_salary_updated_at": null,
+  "last_graduation_date": 2009,
+  "education_degrees": [
+    "High School Diploma, Mathematics and Engineering"
+  ],
+  "education": [
+    {
+      "degree": "High School Diploma, Mathematics and Engineering",
+      "description": "2005-2009: FIRST robotics, Team 675!",
+      "institution_url": null,
+      "institution_name": "Technology High School",
+      "institution_full_address": null,
+      "institution_country_iso2": null,
+      "institution_country_iso3": null,
+      "institution_regions": [],
+      "institution_city": null,
+      "institution_state": null,
+      "institution_street": null,
+      "institution_zipcode": null,
+      "date_from_year": 2005,
+      "date_to_year": 2009,
+      "activities_and_societies": null,
+      "order_in_profile": 1
+    }
+  ],
+  "recommendations_count": 2,
+  "recommendations": [
+    {
+      "recommendation": "\u201cDylan set the bar at O'Reilly Media for all interns. It's a very high bar, and pretty much not a day goes by without someone asking, \"Do you think we could get Dylan to come back?\"\u201d",
+      "referee_full_name": "Allen Noren",
+      "referee_url": "https://www.linkedin.com/in/allennoren",
+      "order_in_profile": 1
+    },
+    {
+      "recommendation": "\u201cDylan's an extremely sharp individual with a lot of talent and great insight. He's an excellent person to work with.\u201d",
+      "referee_full_name": "Sam Liu",
+      "referee_url": "https://www.linkedin.com/in/sammyliu",
+      "order_in_profile": 2
+    }
+  ],
+  "activity": [
+    {
+      "activity_url": "https://www.linkedin.com/posts/natalieserrino_pete-warden-wrote-an-awesome-blog-post-talking-activity-7386131293694021632-0_pb",
+      "title": "Pete Warden wrote an awesome blog post talking about why benchmarking matters in AI and why we started AI Benchmark Club.  https://lnkd.in/gceUnEdY\u2026",
+      "action": "Liked by",
+      "order_in_profile": 1
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/oneimagingradiology_oneimaging-healthfair-community-activity-7384976667355799552-SPgN",
+      "title": "It\u2019s not every day that a CEO announces Series A funding and shows up to support employees and customers at a Benefits Fair \u2014 but ours did! Elan\u2026",
+      "action": "Liked by",
+      "order_in_profile": 2
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/zachlloyd_head-of-developer-relations-activity-7384625423831281666-JAlh",
+      "title": "Warp is hiring a Head of Developer Relations. \n\nQualifications:\n- you love building in public\n- you're all in on Agentic Development\n- you want to\u2026",
+      "action": "Liked by",
+      "order_in_profile": 3
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/jesselandry23_mrimachine-imagingcenters-employer-activity-7384235858117226496-7C3v",
+      "title": "There's a quiet revolution happening in Miami, and it's not coming from the beach clubs or the crypto bros, it's coming from inside the #MRImachine\u2026",
+      "action": "Liked by",
+      "order_in_profile": 4
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/y-combinator_were-excited-to-announce-that-nine-exceptional-activity-7383971113661480960-dBYV",
+      "title": "We're excited to announce that nine exceptional founders (and YC alum) are joining us as Visiting Partners at YC.\n\nWelcome, Matt Riley, Harshita A.\u2026",
+      "action": "Liked by",
+      "order_in_profile": 5
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/dylanfield_honored-to-support-elan-adler-and-oneimaging-activity-7383941422715990016-X_qy",
+      "title": "Honored to support Elan Adler \ud83e\ude7b and OneImaging in their quest to make diagnostic imaging cheaper and more accessible! \n\nMore generally \u2014 I believe\u2026",
+      "action": "Shared by",
+      "order_in_profile": 6
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/dsiglin_two-observations-and-an-ask-to-figma-after-activity-7380591998526783488-hadk",
+      "title": "Two observations and an ask to Figma after an intensive week with Figma Make. One observation is.... weird.\n\n1. As with any AI - feed it\u2026",
+      "action": "Liked by",
+      "order_in_profile": 7
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/charlotte-riel-58553020_figma-onboarding-creativity-activity-7382470391157657600-RYuJ",
+      "title": "Just wrapped up onboarding at Figma. What an incredible few days in San Francisco! \n\nFrom the vibrant colors and creative buzz in the office to\u2026",
+      "action": "Liked by",
+      "order_in_profile": 8
+    }
+  ],
+  "awards": [],
+  "courses": [
+    {
+      "organizer": "CSCI 0160",
+      "title": "Algorithms and Data Structures",
+      "order_in_profile": 1
+    },
+    {
+      "organizer": "CSCI 1430",
+      "title": "Computer Vision",
+      "order_in_profile": 2
+    },
+    {
+      "organizer": "POLS 1160",
+      "title": "Constitutional Law",
+      "order_in_profile": 3
+    },
+    {
+      "organizer": null,
+      "title": "Cryptography",
+      "order_in_profile": 4
+    },
+    {
+      "organizer": "CSCI 0310",
+      "title": "Introduction to Computer Systems",
+      "order_in_profile": 5
+    },
+    {
+      "organizer": "MATH 0520",
+      "title": "Linear Algebra",
+      "order_in_profile": 6
+    },
+    {
+      "organizer": null,
+      "title": "Multivariable Calculus",
+      "order_in_profile": 7
+    },
+    {
+      "organizer": "MATH 161",
+      "title": "Probability Theory",
+      "order_in_profile": 8
+    },
+    {
+      "organizer": "MATH 340",
+      "title": "Real Analysis",
+      "order_in_profile": 9
+    },
+    {
+      "organizer": "CSCI 1480",
+      "title": "Robotics",
+      "order_in_profile": 10
+    },
+    {
+      "organizer": "CSCI 1660",
+      "title": "Security",
+      "order_in_profile": 11
+    },
+    {
+      "organizer": "SOC 2690P",
+      "title": "Social Network Analysis",
+      "order_in_profile": 12
+    },
+    {
+      "organizer": "CSCI 0320",
+      "title": "Software Engineering",
+      "order_in_profile": 13
+    }
+  ],
+  "certifications": [],
+  "languages": [
+    {
+      "language": "English",
+      "proficiency": "Native or bilingual proficiency",
+      "order_in_profile": 1
+    }
+  ],
+  "patents_count": null,
+  "patents_topics": [],
+  "patents": [],
+  "publications_count": null,
+  "publications_topics": [],
+  "publications": [],
+  "projects_count": null,
+  "projects_topics": [],
+  "projects": [],
+  "organizations": [],
+  "github_url": null,
+  "github_username": null,
+  "github_mapping_confidence": null,
+  "github_contributions_count": null,
+  "github_repos_summary": [],
+  "profile_root_field_changes_summary": [
+    {
+      "field_name": "profile_photo_url",
+      "change_type": "new",
+      "last_changed_at": "2025-02-26 21:17:20.577235"
+    },
+    {
+      "field_name": "follower_count",
+      "change_type": "updated",
+      "last_changed_at": "2025-10-21 19:59:31.746729"
+    },
+    {
+      "field_name": "profile_url",
+      "change_type": "updated",
+      "last_changed_at": "2025-07-28 04:44:21.716645"
+    },
+    {
+      "field_name": "shorthand_name",
+      "change_type": "updated",
+      "last_changed_at": "2025-07-28 04:44:21.716645"
+    }
+  ],
+  "profile_collection_field_changes_summary": [
+    {
+      "field_name": "education",
+      "last_changed_at": "2025-03-20 23:01:53.320750"
+    },
+    {
+      "field_name": "activity",
+      "last_changed_at": "2025-10-21 19:59:31.746729"
+    },
+    {
+      "field_name": "experience",
+      "last_changed_at": "2025-10-21 19:59:31.746729"
+    },
+    {
+      "field_name": "websites",
+      "last_changed_at": "2025-03-19 10:32:13.026053"
+    }
+  ],
+  "experience_recently_started": [],
+  "experience_recently_closed": []
+}

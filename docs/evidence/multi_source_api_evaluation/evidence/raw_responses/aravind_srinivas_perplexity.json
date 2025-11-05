@@ -1,0 +1,799 @@
+{
+  "id": 418654053,
+  "parent_id": 418654053,
+  "created_at": "2019-06-16T11:29:28.000Z",
+  "updated_at": "2025-10-23T04:09:49.776453Z",
+  "checked_at": "2025-10-23T04:09:49.776453Z",
+  "changed_at": "2025-10-23T04:09:49.776453Z",
+  "experience_change_last_identified_at": "2024-11-01T07:07:18.803067Z",
+  "is_deleted": 0,
+  "is_parent": 1,
+  "public_profile_id": 308837016,
+  "linkedin_url": "https://www.linkedin.com/in/aravind-srinivas-16051987",
+  "linkedin_shorthand_names": [
+    "aravind-srinivas-16051987"
+  ],
+  "historical_ids": [
+    418654053
+  ],
+  "full_name": "Aravind Srinivas",
+  "first_name": "Aravind",
+  "first_name_initial": "A",
+  "middle_name": null,
+  "middle_name_initial": null,
+  "last_name": "Srinivas",
+  "last_name_initial": "S",
+  "headline": "Cofounder, President & CEO, Perplexity",
+  "summary": "Cofounder, President and CEO of Perplexity. Try it out at https://www.perplexity.ai",
+  "picture_url": "https://static.licdn.com/aero-v1/sc/h/9c8pery4andzj6ohjkjp54ma2",
+  "location_country": "United States",
+  "location_country_iso2": "US",
+  "location_country_iso3": "USA",
+  "location_full": "San Francisco, California, United States",
+  "location_regions": [
+    "Americas",
+    "Northern America",
+    "AMER"
+  ],
+  "location_city": "San Francisco",
+  "location_state": "California",
+  "interests": [],
+  "inferred_skills": [
+    "research"
+  ],
+  "historical_skills": [],
+  "connections_count": 500,
+  "followers_count": 1187,
+  "services": null,
+  "primary_professional_email": "aravind@perplexity.ai",
+  "primary_professional_email_status": "verified",
+  "professional_emails_collection": [
+    {
+      "professional_email": "aravind@perplexity.ai",
+      "professional_email_status": "verified",
+      "order_of_priority": 1
+    }
+  ],
+  "is_working": 1,
+  "active_experience_company_id": 89675467,
+  "active_experience_title": "Cofounder, President, CEO",
+  "active_experience_description": "Fastest way to get answers to any question",
+  "active_experience_department": null,
+  "active_experience_management_level": null,
+  "is_decision_maker": null,
+  "total_experience_duration_months": 67,
+  "total_experience_duration_months_breakdown_department": [
+    {
+      "department": "Finance & Accounting",
+      "total_experience_duration_months": 33
+    },
+    {
+      "department": "Other",
+      "total_experience_duration_months": 39
+    },
+    {
+      "department": "Research",
+      "total_experience_duration_months": 29
+    }
+  ],
+  "total_experience_duration_months_breakdown_management_level": [
+    {
+      "management_level": "Intern",
+      "total_experience_duration_months": 18
+    },
+    {
+      "management_level": "Partner",
+      "total_experience_duration_months": 33
+    },
+    {
+      "management_level": "Specialist",
+      "total_experience_duration_months": 11
+    },
+    {
+      "management_level": "Other",
+      "total_experience_duration_months": 39
+    }
+  ],
+  "experience": [
+    {
+      "active_experience": 1,
+      "position_title": "Cofounder, President, CEO",
+      "department": null,
+      "management_level": null,
+      "location": null,
+      "description": "Fastest way to get answers to any question",
+      "date_from": "August 2022",
+      "date_from_year": 2022,
+      "date_from_month": 8,
+      "date_to": null,
+      "date_to_year": null,
+      "date_to_month": null,
+      "duration_months": 38,
+      "company_id": 89675467,
+      "company_name": "Perplexity",
+      "company_type": "Privately Held",
+      "company_founded_year": null,
+      "company_followers_count": 1070209,
+      "company_website": "https://www.perplexity.ai",
+      "company_facebook_url": [
+        "https://www.facebook.com/100095315123417",
+        "https://www.facebook.com/perplexityofficial"
+      ],
+      "company_twitter_url": [
+        "https://www.twitter.com/perplexity_ai"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/perplexity-ai",
+      "company_size_range": "11-50 employees",
+      "company_employees_count": 1444,
+      "company_industry": "Software Development",
+      "company_categories_and_keywords": [
+        "technology/artificial intelligence",
+        "reference materials > dictionaries and encyclopedias (in united states)",
+        "real-time answers",
+        "trusted answers",
+        "accurate answers",
+        "ai-powered answer engine",
+        "free",
+        "technology",
+        "artificial-intelligence",
+        "platform",
+        "search-engine",
+        "artificial intelligence (ai)",
+        "chatbot",
+        "generative ai",
+        "machine learning",
+        "natural language processing",
+        "search engine"
+      ],
+      "company_annual_revenue_source_5": 50000000,
+      "company_annual_revenue_currency_source_5": "USD",
+      "company_annual_revenue_source_1": null,
+      "company_annual_revenue_currency_source_1": null,
+      "company_employees_count_change_yearly_percentage": 466.2745098039216,
+      "company_last_funding_round_date": "2025-08-15",
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": "115 Sansome St; Suite 900; San Francisco, California 94104, US",
+      "company_hq_country": "United States",
+      "company_hq_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "company_hq_country_iso2": "US",
+      "company_hq_country_iso3": "USA",
+      "company_hq_city": "San Francisco",
+      "company_hq_state": "California",
+      "company_hq_street": "115 Sansome St; Suite 900",
+      "company_hq_zipcode": "94104",
+      "company_last_updated_at": "2025-09-08",
+      "company_stock_ticker": [],
+      "company_is_b2b": 0,
+      "order_in_profile": 1
+    },
+    {
+      "active_experience": 1,
+      "position_title": "Angel Investor",
+      "department": "Finance & Accounting",
+      "management_level": "Partner",
+      "location": null,
+      "description": "Cursor (AI-first Code Editor), Eleven Labs (AI Voices), Mistral (AI Foundation Models), Cognition Labs (AI Software Engineer), Pika Labs (AI Videos), Suno (AI Music), Cartesia (Real Time Multimodal AI), LiveKit (RTC API for multimodal AI), Udio (AI Music), Antimetal (AI to optimize cloud costs), Ray (AI Fitness Coach), Silurian (AI for Weather Prediction), Fal AI (Multimodal Generative AI Inference)",
+      "date_from": "January 2023",
+      "date_from_year": 2023,
+      "date_from_month": 1,
+      "date_to": null,
+      "date_to_year": null,
+      "date_to_month": null,
+      "duration_months": 33,
+      "company_id": null,
+      "company_name": "Aravind Srinivas",
+      "company_type": null,
+      "company_founded_year": null,
+      "company_followers_count": null,
+      "company_website": null,
+      "company_facebook_url": [],
+      "company_twitter_url": [],
+      "company_linkedin_url": null,
+      "company_size_range": null,
+      "company_employees_count": null,
+      "company_industry": null,
+      "company_categories_and_keywords": [],
+      "company_annual_revenue_source_5": null,
+      "company_annual_revenue_currency_source_5": null,
+      "company_annual_revenue_source_1": null,
+      "company_annual_revenue_currency_source_1": null,
+      "company_employees_count_change_yearly_percentage": null,
+      "company_last_funding_round_date": null,
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": null,
+      "company_hq_country": null,
+      "company_hq_regions": [],
+      "company_hq_country_iso2": null,
+      "company_hq_country_iso3": null,
+      "company_hq_city": null,
+      "company_hq_state": null,
+      "company_hq_street": null,
+      "company_hq_zipcode": null,
+      "company_last_updated_at": null,
+      "company_stock_ticker": [],
+      "company_is_b2b": null,
+      "order_in_profile": 2
+    },
+    {
+      "active_experience": 0,
+      "position_title": "Research Scientist",
+      "department": "Research",
+      "management_level": "Specialist",
+      "location": "San Francisco Bay Area",
+      "description": "Research on language and diffusion generative models.",
+      "date_from": "September 2021",
+      "date_from_year": 2021,
+      "date_from_month": 9,
+      "date_to": "August 2022",
+      "date_to_year": 2022,
+      "date_to_month": 8,
+      "duration_months": 11,
+      "company_id": 11078125,
+      "company_name": "OpenAI",
+      "company_type": "Partnership",
+      "company_founded_year": 2015,
+      "company_followers_count": 8269285,
+      "company_website": "https://www.openai.com",
+      "company_facebook_url": [
+        "https://www.facebook.com/openai.research",
+        "https://www.facebook.com/openai"
+      ],
+      "company_twitter_url": [
+        "https://www.twitter.com/openai"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/openai",
+      "company_size_range": "201-500 employees",
+      "company_employees_count": 7449,
+      "company_industry": "Research Services",
+      "company_categories_and_keywords": [
+        "technology/research",
+        "computers electronics and technology > computers electronics and technology - other (in united states)",
+        "artificial intelligence and machine learning",
+        "safe agi",
+        "human-level problems",
+        "artificial general intelligence",
+        "beneficial",
+        "building",
+        "technology",
+        "application-software",
+        "artificial-intelligence",
+        "platform",
+        "artificial intelligence (ai)",
+        "generative ai",
+        "machine learning",
+        "natural language processing",
+        "saas"
+      ],
+      "company_annual_revenue_source_5": 3700000000,
+      "company_annual_revenue_currency_source_5": "USD",
+      "company_annual_revenue_source_1": 1300000000.0,
+      "company_annual_revenue_currency_source_1": "USD",
+      "company_employees_count_change_yearly_percentage": 109.18281381634371,
+      "company_last_funding_round_date": "2025-03-31",
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": "San Francisco, CA 94110, US",
+      "company_hq_country": "United States",
+      "company_hq_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "company_hq_country_iso2": "US",
+      "company_hq_country_iso3": "USA",
+      "company_hq_city": "San Francisco",
+      "company_hq_state": "California",
+      "company_hq_street": "",
+      "company_hq_zipcode": "94110",
+      "company_last_updated_at": "2025-09-05",
+      "company_stock_ticker": [],
+      "company_is_b2b": 0,
+      "order_in_profile": 3
+    },
+    {
+      "active_experience": 0,
+      "position_title": "Research Intern",
+      "department": "Research",
+      "management_level": "Intern",
+      "location": "Mountain View, California, United States",
+      "description": "Transformers for Vision: Bottleneck Transformers, Local Self-Attention",
+      "date_from": "May 2020",
+      "date_from_year": 2020,
+      "date_from_month": 5,
+      "date_to": "April 2021",
+      "date_to_year": 2021,
+      "date_to_month": 4,
+      "duration_months": 11,
+      "company_id": 3252082,
+      "company_name": "Google",
+      "company_type": "Public Company",
+      "company_founded_year": null,
+      "company_followers_count": 38731926,
+      "company_website": "https://www.google.com",
+      "company_facebook_url": [
+        "https://www.facebook.com/lifeatgoogle"
+      ],
+      "company_twitter_url": [
+        "https://www.twitter.com/lifeatgoogle"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/google",
+      "company_size_range": "10,001+ employees",
+      "company_employees_count": 316360,
+      "company_industry": "Software Development",
+      "company_categories_and_keywords": [
+        "technology/software",
+        "url shortener",
+        "goo.io",
+        "computers electronics and technology > search engines (in united states)",
+        "search",
+        "ads",
+        "mobile",
+        "android",
+        "online video",
+        "apps",
+        "machine learning",
+        "virtual reality",
+        "cloud",
+        "hardware",
+        "artificial intelligence",
+        "youtube",
+        "software",
+        "technology",
+        "engineering",
+        "customer service"
+      ],
+      "company_annual_revenue_source_5": null,
+      "company_annual_revenue_currency_source_5": null,
+      "company_annual_revenue_source_1": null,
+      "company_annual_revenue_currency_source_1": null,
+      "company_employees_count_change_yearly_percentage": 5.099149200527556,
+      "company_last_funding_round_date": null,
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": "1600 Amphitheatre Parkway; Mountain View, CA 94043, US",
+      "company_hq_country": "United States",
+      "company_hq_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "company_hq_country_iso2": "US",
+      "company_hq_country_iso3": "USA",
+      "company_hq_city": "Mountain View",
+      "company_hq_state": "California",
+      "company_hq_street": "1600 Amphitheatre Parkway",
+      "company_hq_zipcode": "94043",
+      "company_last_updated_at": "2025-09-06",
+      "company_stock_ticker": [
+        {
+          "exchange": "NASDAQ",
+          "ticker": "GOOGL"
+        }
+      ],
+      "company_is_b2b": 0,
+      "order_in_profile": 4
+    },
+    {
+      "active_experience": 0,
+      "position_title": "Research Intern",
+      "department": "Research",
+      "management_level": "Intern",
+      "location": "London, United Kingdom",
+      "description": "Large-Scale Contrastive Learning: CPCv2.",
+      "date_from": "May 2019",
+      "date_from_year": 2019,
+      "date_from_month": 5,
+      "date_to": "September 2019",
+      "date_to_year": 2019,
+      "date_to_month": 9,
+      "duration_months": 4,
+      "company_id": 92799654,
+      "company_name": "DeepMind",
+      "company_type": "Privately Held",
+      "company_founded_year": 2010,
+      "company_followers_count": 1305123,
+      "company_website": "https://www.deepmind.google",
+      "company_facebook_url": [],
+      "company_twitter_url": [
+        "https://www.twitter.com/deepmindai",
+        "https://www.twitter.com/googledeepmind?ref_src=twsrc%5egoogle%7ctwcamp%5eserp%7ctwgr%5eauthor",
+        "https://www.twitter.com/googledeepmind"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/deepmind",
+      "company_size_range": "501-1000 employees",
+      "company_employees_count": 6677,
+      "company_industry": "Research Services",
+      "company_categories_and_keywords": [
+        "insurance",
+        "science and education > science and education - other (in united states)",
+        "artificial intelligence and machine learning",
+        "employee benefits",
+        "auto dealers",
+        "consulting",
+        "property & casualty",
+        "artificial intelligence (ai)",
+        "business development",
+        "machine learning"
+      ],
+      "company_annual_revenue_source_5": 1100000000,
+      "company_annual_revenue_currency_source_5": "USD",
+      "company_annual_revenue_source_1": null,
+      "company_annual_revenue_currency_source_1": null,
+      "company_employees_count_change_yearly_percentage": 78.14834578441835,
+      "company_last_funding_round_date": "2011-02-01",
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": "Kings Cross; London, London N1C4AG, GB",
+      "company_hq_country": "United Kingdom",
+      "company_hq_regions": [
+        "Europe",
+        "Northern Europe",
+        "EMEA"
+      ],
+      "company_hq_country_iso2": "GB",
+      "company_hq_country_iso3": "GBR",
+      "company_hq_city": null,
+      "company_hq_state": null,
+      "company_hq_street": null,
+      "company_hq_zipcode": null,
+      "company_last_updated_at": "2025-09-09",
+      "company_stock_ticker": [],
+      "company_is_b2b": 1,
+      "order_in_profile": 5
+    },
+    {
+      "active_experience": 0,
+      "position_title": "Research Intern",
+      "department": "Research",
+      "management_level": "Intern",
+      "location": "San Francisco Bay Area",
+      "description": "Research on Policy Gradient Algorithms.",
+      "date_from": "May 2018",
+      "date_from_year": 2018,
+      "date_from_month": 5,
+      "date_to": "August 2018",
+      "date_to_year": 2018,
+      "date_to_month": 8,
+      "duration_months": 3,
+      "company_id": 11078125,
+      "company_name": "OpenAI",
+      "company_type": "Partnership",
+      "company_founded_year": 2015,
+      "company_followers_count": 8269285,
+      "company_website": "https://www.openai.com",
+      "company_facebook_url": [
+        "https://www.facebook.com/openai.research",
+        "https://www.facebook.com/openai"
+      ],
+      "company_twitter_url": [
+        "https://www.twitter.com/openai"
+      ],
+      "company_linkedin_url": "https://www.linkedin.com/company/openai",
+      "company_size_range": "201-500 employees",
+      "company_employees_count": 7449,
+      "company_industry": "Research Services",
+      "company_categories_and_keywords": [
+        "technology/research",
+        "computers electronics and technology > computers electronics and technology - other (in united states)",
+        "artificial intelligence and machine learning",
+        "safe agi",
+        "human-level problems",
+        "artificial general intelligence",
+        "beneficial",
+        "building",
+        "technology",
+        "application-software",
+        "artificial-intelligence",
+        "platform",
+        "artificial intelligence (ai)",
+        "generative ai",
+        "machine learning",
+        "natural language processing",
+        "saas"
+      ],
+      "company_annual_revenue_source_5": 3700000000,
+      "company_annual_revenue_currency_source_5": "USD",
+      "company_annual_revenue_source_1": 1300000000.0,
+      "company_annual_revenue_currency_source_1": "USD",
+      "company_employees_count_change_yearly_percentage": 109.18281381634371,
+      "company_last_funding_round_date": "2025-03-31",
+      "company_last_funding_round_amount_raised": null,
+      "company_hq_full_address": "San Francisco, CA 94110, US",
+      "company_hq_country": "United States",
+      "company_hq_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "company_hq_country_iso2": "US",
+      "company_hq_country_iso3": "USA",
+      "company_hq_city": "San Francisco",
+      "company_hq_state": "California",
+      "company_hq_street": "",
+      "company_hq_zipcode": "94110",
+      "company_last_updated_at": "2025-09-05",
+      "company_stock_ticker": [],
+      "company_is_b2b": 0,
+      "order_in_profile": 6
+    }
+  ],
+  "projected_base_salary_p25": null,
+  "projected_base_salary_median": null,
+  "projected_base_salary_p75": null,
+  "projected_base_salary_period": null,
+  "projected_base_salary_currency": null,
+  "projected_base_salary_updated_at": null,
+  "projected_additional_salary": [],
+  "projected_additional_salary_period": null,
+  "projected_additional_salary_currency": null,
+  "projected_additional_salary_updated_at": null,
+  "projected_total_salary_p25": null,
+  "projected_total_salary_median": null,
+  "projected_total_salary_p75": null,
+  "projected_total_salary_period": null,
+  "projected_total_salary_currency": null,
+  "projected_total_salary_updated_at": null,
+  "last_graduation_date": null,
+  "education_degrees": [
+    "Dual Degree (B.Tech and M.Tech), Electrical Engineering",
+    "Doctor of Philosophy - PhD, Computer Science"
+  ],
+  "education": [
+    {
+      "degree": "Doctor of Philosophy - PhD, Computer Science",
+      "description": "Research: Contrastive Learning for Computer Vision (CPCv2), Reinforcement Learning (CURL). Transformers for Image Generation (Flow++), Image Recognition (BoTNet), Video Generation (VideoGPT), Reinforcement Learning (Decision Transformer). Teaching: Deep Unsupervised Learning (Spring 20' and 21').",
+      "institution_url": "https://www.linkedin.com/school/uc-berkeley",
+      "institution_name": "University of California, Berkeley",
+      "institution_full_address": "101 Sproul Hall; Berkeley, CA 94720, US",
+      "institution_country_iso2": "US",
+      "institution_country_iso3": "USA",
+      "institution_regions": [
+        "Americas",
+        "Northern America",
+        "AMER"
+      ],
+      "institution_city": "Berkeley",
+      "institution_state": "California",
+      "institution_street": "101 Sproul Hall",
+      "institution_zipcode": "94720",
+      "date_from_year": null,
+      "date_to_year": null,
+      "activities_and_societies": null,
+      "order_in_profile": 1
+    },
+    {
+      "degree": "Dual Degree (B.Tech and M.Tech), Electrical Engineering",
+      "description": "Research: Deep Reinforcement Learning: Dynamic Action Repeats for Hierarchical RL (AAAI 17', ICLR 17'), Transfer Learning (ICLR 17'). Teaching: Reinforcement Learning (Spring 17'), Advanced Reinforcement Learning (Spring 17').",
+      "institution_url": "https://www.linkedin.com/school/reachiitm",
+      "institution_name": "Indian Institute of Technology, Madras",
+      "institution_full_address": "I.I.T. Post Office, Chennai; Chennai, Tamilnadu 600036, IN",
+      "institution_country_iso2": "IN",
+      "institution_country_iso3": "IND",
+      "institution_regions": [
+        "Asia",
+        "Southern Asia",
+        "APAC"
+      ],
+      "institution_city": null,
+      "institution_state": null,
+      "institution_street": null,
+      "institution_zipcode": null,
+      "date_from_year": null,
+      "date_to_year": null,
+      "activities_and_societies": null,
+      "order_in_profile": 2
+    }
+  ],
+  "recommendations_count": null,
+  "recommendations": [],
+  "activity": [
+    {
+      "activity_url": "https://www.linkedin.com/posts/aravind-srinivas-16051987_samsung-launches-first-ever-perplexity-ai-powered-activity-7386847740078702592-iY4-",
+      "title": "Perplexity is working with Samsung Electronics on Samsung TV integration. People spend a lot of time on their TV and a native experience to ask\u2026",
+      "action": "Shared by",
+      "order_in_profile": 1
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/ross-connolly-b9690614_lewis-hamilton-named-worlds-most-marketable-activity-7386775391643803648-9IxZ",
+      "title": "Lewis Hamilton has been named the worlds most valuable athlete for 2025, by SportsPro. \n\nThis recognition further confirms Lewis\u2019s increasing\u2026",
+      "action": "Liked by",
+      "order_in_profile": 2
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/foutty_samsung-launches-first-ever-perplexity-ai-powered-activity-7386784254719946752-pYDL",
+      "title": "Perplexity has landed on Samsung TVs. We're excited to be working with Samsung, the top TV brand in the world, to help people get answers to their\u2026",
+      "action": "Liked by",
+      "order_in_profile": 3
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/aravind-srinivas-16051987_perplexity-is-the-n\u00famero-um-app-in-brazil-activity-7386594904816283648-nEu_",
+      "title": "Perplexity is the n\u00famero um app in Brazil across all categories \ud83d\udc51 \ud83c\udde7\ud83c\uddf7",
+      "action": "Shared by",
+      "order_in_profile": 4
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/mharrisonbaker_im-joining-perplexity-ai-to-help-build-perplexity-activity-7386499970209624064-UjmS",
+      "title": "I\u2019m joining Perplexity AI to help build Perplexity for Government.\n\nThanks for all the kind words on my job update (a LinkedIn glitch prevents me\u2026",
+      "action": "Liked by",
+      "order_in_profile": 5
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/berkeley-haas_from-phd-to-ceo-aravind-srinivas-on-reinventing-activity-7386434787164487680-0gvQ",
+      "title": "Who needs a pitch deck when you built Perplexity? \n\nListen to Aravind Srinivas, CEO & Co-founder of Perplexity AI, share his insights in the latest\u2026",
+      "action": "Liked by",
+      "order_in_profile": 6
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/aravind-srinivas-16051987_comet-will-have-some-fun-no-wifi-games-already-activity-7385013999362297856-YqAD",
+      "title": "Comet will have some fun no-WiFi games! Already has one called Wormhole. Try it out. https://lnkd.in/eusuc657",
+      "action": "Shared by",
+      "order_in_profile": 7
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/berkeley-haas_deansspeakerseries-berkeleyhaas-ucberkeley-activity-7384998520417673216-gLU3",
+      "title": "Thank you to Aravind Srinivas, PhD 21 (Computer Science), CEO and Co-founder of Perplexity, for joining us at the Dean\u2019s Speaker Series and sharing\u2026",
+      "action": "Liked by",
+      "order_in_profile": 8
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/litquidity_crazy-stat-perplexity-has-recently-overtaken-activity-7381131077408432128-9lH2",
+      "title": "Crazy stat: Perplexity has recently overtaken Grok on web traffic, with 168 million visits the last 28 days.",
+      "action": "Liked by",
+      "order_in_profile": 9
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/jonah-sklar_back-in-april-i-waited-for-over-an-hour-activity-7384736719390081024-wnTc",
+      "title": "Back in April, I waited for over an hour and a half outside of a speaker event, hoping to ask Aravind Srinivas if he could come to Haas to speak with\u2026",
+      "action": "Liked by",
+      "order_in_profile": 10
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/aravind-srinivas-16051987_you-can-now-track-insider-trading-on-perplexity-activity-7384709328253100032-VK5I",
+      "title": "You can now track insider trading on Perplexity Finance. We will be adding politician trading shortly.",
+      "action": "Shared by",
+      "order_in_profile": 11
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/aravind-srinivas-16051987_weve-built-a-new-experience-for-learning-activity-7384631589198045184-PM_l",
+      "title": "We\u2019ve built a new experience for learning languages on Perplexity. Answers need to go beyond text to interactive experiences and cards embedded into\u2026",
+      "action": "Shared by",
+      "order_in_profile": 12
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/aravind-srinivas-16051987_momentum-activity-7384368597122367488-6dqg",
+      "title": "Momentum: \ud83d\udcc8",
+      "action": "Shared by",
+      "order_in_profile": 13
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/aravind-srinivas-16051987_true-activity-7384239604654235648-F3uk",
+      "title": "True",
+      "action": "Shared by",
+      "order_in_profile": 14
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/perplexity-ai_users-should-always-have-control-over-their-activity-7383880027958009856-1pB6",
+      "title": "Users should always have control over their online experience.\n\nStarting today, Mozilla Firefox users can set Perplexity as their default search\u2026",
+      "action": "Liked by",
+      "order_in_profile": 15
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/ajitvarma_choose-how-you-search-and-stay-organized-activity-7383909764751278080-Sdfz",
+      "title": "AI is changing how we search, but how we integrate it matters just as much as what it can do.\n\nWith Firefox 144, we\u2019re introducing Perplexity as a\u2026",
+      "action": "Liked by",
+      "order_in_profile": 16
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/aravind-srinivas-16051987_perplexity-is-now-an-in-built-default-search-activity-7383889192109408256-0hDT",
+      "title": "Perplexity is now an in-built default search option for all Firefox users. We look forward to working closely with Mozilla on a lot more things in\u2026",
+      "action": "Shared by",
+      "order_in_profile": 17
+    },
+    {
+      "activity_url": "https://www.linkedin.com/posts/aravind-srinivas-16051987_number-1-app-in-ios-app-store-in-india-too-activity-7383865319443980289-udp3",
+      "title": "Number 1 App in iOS App Store in India too",
+      "action": "Shared by",
+      "order_in_profile": 18
+    }
+  ],
+  "awards": [
+    {
+      "title": "Viterbi India Fellowship",
+      "issuer": "Indo-US Science and Technology Forum",
+      "description": "https://www.iusstf.org/assets/sitesfile/image/download_links/pdf/pdf_2068068638.pdf",
+      "date": "May 2015",
+      "date_year": 2015,
+      "date_month": 5,
+      "order_in_profile": 1
+    },
+    {
+      "title": "Indian National Mathematics Olympiad Merit Awardee",
+      "issuer": "National Board of Higher Mathematics, India",
+      "description": null,
+      "date": null,
+      "date_year": null,
+      "date_month": null,
+      "order_in_profile": 2
+    },
+    {
+      "title": "Kishore Vaigyanik Protsahan Yojana",
+      "issuer": "Department of Science and Technology, Government of India",
+      "description": null,
+      "date": null,
+      "date_year": null,
+      "date_month": null,
+      "order_in_profile": 3
+    },
+    {
+      "title": "National Talent Search Scholarship",
+      "issuer": "Government of India",
+      "description": null,
+      "date": null,
+      "date_year": null,
+      "date_month": null,
+      "order_in_profile": 4
+    }
+  ],
+  "courses": [],
+  "certifications": [],
+  "languages": [],
+  "patents_count": null,
+  "patents_topics": [],
+  "patents": [],
+  "publications_count": null,
+  "publications_topics": [],
+  "publications": [],
+  "projects_count": null,
+  "projects_topics": [],
+  "projects": [],
+  "organizations": [],
+  "github_url": null,
+  "github_username": null,
+  "github_mapping_confidence": null,
+  "github_contributions_count": null,
+  "github_repos_summary": [],
+  "profile_root_field_changes_summary": [
+    {
+      "field_name": "summary",
+      "change_type": "updated",
+      "last_changed_at": "2025-09-09 04:08:19.316958"
+    },
+    {
+      "field_name": "follower_count",
+      "change_type": "updated",
+      "last_changed_at": "2025-10-23 04:09:49.776453"
+    },
+    {
+      "field_name": "location",
+      "change_type": "updated",
+      "last_changed_at": "2025-02-26 13:42:34.392347"
+    },
+    {
+      "field_name": "headline",
+      "change_type": "updated",
+      "last_changed_at": "2025-09-01 03:06:34.540783"
+    },
+    {
+      "field_name": "country",
+      "change_type": "updated",
+      "last_changed_at": "2025-02-26 13:42:34.392347"
+    }
+  ],
+  "profile_collection_field_changes_summary": [
+    {
+      "field_name": "experience",
+      "last_changed_at": "2025-10-23 04:09:49.776453"
+    },
+    {
+      "field_name": "activity",
+      "last_changed_at": "2025-10-23 04:09:49.776453"
+    },
+    {
+      "field_name": "education",
+      "last_changed_at": "2025-10-08 04:07:34.262218"
+    }
+  ],
+  "experience_recently_started": [],
+  "experience_recently_closed": []
+}

@@ -200,7 +200,7 @@
   align-items: center;
   justify-content: center;
   z-index: 10000;
-  padding: 20px;
+  padding: 12px;
   backdrop-filter: blur(4px);
   animation: fadeIn 0.2s ease;
 }
@@ -235,6 +235,21 @@
   width: auto; /* Let content determine width */
   max-height: none; /* Remove height constraint in modal */
   margin: 0;
+}
+
+/* Modal-specific overrides to prevent horizontal scrolling */
+.modal-content .company-freshness-details,
+.modal-content .company-links-pills,
+.modal-content .tooltip-content,
+.modal-content .description-text {
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.modal-content .company-tooltip {
+  overflow-x: hidden;
 }
 
 @keyframes slideUp {

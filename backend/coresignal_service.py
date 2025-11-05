@@ -11,6 +11,7 @@ Key Changes:
 import requests
 import json
 import os
+from typing import List, Dict, Any, Optional
 
 
 class CoreSignalService:
@@ -255,7 +256,8 @@ class CoreSignalService:
                         'company_data': stored_result['company_data'],
                         'company_id': company_id,
                         'from_storage': True,
-                        'storage_age_days': stored_result.get('cache_age_days', 0)
+                        'storage_age_days': stored_result.get('cache_age_days', 0),
+                        'verification_data': stored_result.get('verification_data', {})
                     }
                     self.company_cache[company_id] = result
                     return result
@@ -347,21 +349,28 @@ class CoreSignalService:
         This fetches full company profiles for each company in the candidate's
         work history and adds enriched company intelligence.
 
-        OPTIMIZATION: Only enriches companies from jobs after min_year (default 2020)
-        to save API credits and focus on recent, relevant experience.
+        SMART ENRICHMENT STRATEGY:
+        1. Always enrich the FIRST 3 experiences (most recent jobs)
+        2. For remaining experiences, only enrich if job started >= min_year
+        3. This ensures we ALWAYS show company data for recent career history
 
         Args:
             profile_data (dict): Employee profile from fetch_linkedin_profile()
-            min_year (int): Only enrich companies from jobs starting on or after this year (default: 2020)
+            min_year (int): Only enrich older companies from jobs starting on or after this year (default: 2020)
             storage_functions (dict): Optional dict with 'get' and 'save' functions for database storage
 
         Returns:
             dict: Profile with enriched company data + metadata about API calls
         """
-        print(f"\n🔍 Enriching profile with detailed company data (jobs from {min_year} onwards)...")
-
         experiences = profile_data.get('experience', [])
         total_companies = len(experiences)
+
+        # CRITICAL: Always enrich first 3 companies, regardless of year
+        min_companies_to_enrich = min(3, total_companies)
+
+        print(f"\n🔍 Enriching profile with detailed company data...")
+        print(f"   Strategy: First {min_companies_to_enrich} companies always + jobs from {min_year} onwards")
+
         companies_enriched = 0
         companies_failed = 0
         companies_skipped_old = 0
@@ -375,20 +384,36 @@ class CoreSignalService:
                 print(f"   ⚠️  Experience {i}/{total_companies}: {company_name} - No company_id")
                 continue
 
-            # OPTIMIZATION: Skip companies from jobs before min_year to save API credits
-            start_year = exp.get('date_from_year')
-            if start_year:
-                try:
-                    if int(start_year) < min_year:
-                        print(f"   ⏭️  Experience {i}/{total_companies}: {company_name} - Skipped (started {start_year}, before {min_year})")
-                        companies_skipped_old += 1
-                        exp['company_enriched'] = None
-                        continue
-                except (ValueError, TypeError):
-                    print(f"   ⚠️  Experience {i}/{total_companies}: {company_name} - Invalid start_year: {start_year}")
-                    # Continue processing this experience even if year is invalid
+            # Determine if we should enrich this company
+            should_enrich = False
+            skip_reason = None
 
-            print(f"\n   📊 Experience {i}/{total_companies}: {company_name} (ID: {company_id}, started {start_year or 'unknown'})")
+            # Rule 1: Always enrich first 3 companies
+            if i <= min_companies_to_enrich:
+                should_enrich = True
+            else:
+                # Rule 2: For older companies, check min_year filter
+                start_year = exp.get('date_from_year')
+                if start_year:
+                    try:
+                        if int(start_year) >= min_year:
+                            should_enrich = True
+                        else:
+                            skip_reason = f"started {start_year}, before {min_year}"
+                    except (ValueError, TypeError):
+                        print(f"   ⚠️  Experience {i}/{total_companies}: {company_name} - Invalid start_year: {start_year}")
+                        should_enrich = True  # Enrich if year is invalid (safer)
+                else:
+                    # No start year available, enrich it to be safe
+                    should_enrich = True
+
+            if not should_enrich:
+                print(f"   ⏭️  Experience {i}/{total_companies}: {company_name} - Skipped ({skip_reason})")
+                companies_skipped_old += 1
+                exp['company_enriched'] = None
+                continue
+
+            print(f"\n   📊 Experience {i}/{total_companies}: {company_name} (ID: {company_id}, started {exp.get('date_from_year', 'unknown')})")
 
             # Fetch full company data (with storage integration)
             company_result = self.fetch_company_data(company_id, storage_functions=storage_functions)
@@ -397,11 +422,12 @@ class CoreSignalService:
                 company_data = company_result['company_data']
                 companies_enriched += 1
 
-                # Add enriched fields to experience (with storage metadata)
+                # Add enriched fields to experience (with storage metadata and verification data)
                 exp['company_enriched'] = self._extract_company_intelligence(
                     company_data,
                     from_storage=company_result.get('from_storage', False),
-                    storage_age_days=company_result.get('storage_age_days', 0)
+                    storage_age_days=company_result.get('storage_age_days', 0),
+                    verification_data=company_result.get('verification_data', {})
                 )
 
                 # Track if we used cache or made API call
@@ -436,7 +462,7 @@ class CoreSignalService:
             'enrichment_summary': enrichment_summary
         }
 
-    def _extract_company_intelligence(self, company_data, from_storage=False, storage_age_days=0):
+    def _extract_company_intelligence(self, company_data, from_storage=False, storage_age_days=0, verification_data=None):
         """
         Extract key intelligence signals from full company profile
 
@@ -500,8 +526,22 @@ class CoreSignalService:
                     cb_company_url = entry.get('cb_url')
                     if cb_company_url:
                         intelligence['crunchbase_company_url'] = cb_company_url
+                        intelligence['crunchbase_source'] = 'coresignal'
+                        intelligence['crunchbase_confidence'] = 1.0  # 100% confidence from official source
                         print(f"   🔗 Crunchbase URL from company_crunchbase_info_collection: {cb_company_url}")
                         break
+
+        # CHECK USER-VERIFIED URL: If user has verified a URL, use that instead
+        if not intelligence.get('crunchbase_company_url') and from_storage and verification_data:
+            # Check if this stored company has a user-verified Crunchbase URL
+            user_verified = verification_data.get('user_verified', False)
+            verified_url = verification_data.get('verified_crunchbase_url')
+
+            if user_verified and verified_url:
+                intelligence['crunchbase_company_url'] = verified_url
+                intelligence['crunchbase_source'] = 'user_verified'
+                intelligence['crunchbase_confidence'] = 1.0  # 100% confidence - user confirmed
+                print(f"   ✅ Using user-verified Crunchbase URL: {verified_url}")
 
         # FALLBACK: If no Crunchbase URL found, search for it using hybrid search
         if not intelligence.get('crunchbase_company_url'):
@@ -509,12 +549,25 @@ class CoreSignalService:
             print(f"   ⚠️  NO Crunchbase URL in company_crunchbase_info_collection for {company_name}")
             if company_name:
                 print(f"   🔍 Attempting hybrid search (Tavily + Claude WebSearch) for: {company_name}")
-                searched_url = self._search_crunchbase_url(company_name, company_data)
-                if searched_url:
-                    intelligence['crunchbase_company_url'] = searched_url
-                    print(f"   ✅ Crunchbase URL found via hybrid search: {searched_url}")
+                search_result = self._search_crunchbase_url(company_name, company_data)
+                if search_result:
+                    # Handle both old string format and new dict format
+                    if isinstance(search_result, dict):
+                        intelligence['crunchbase_company_url'] = search_result['url']
+                        intelligence['crunchbase_source'] = search_result['source']
+                        intelligence['crunchbase_confidence'] = search_result['confidence']
+                        print(f"   ✅ Crunchbase URL found via hybrid search: {search_result['url']}")
+                    else:
+                        # Legacy string format
+                        intelligence['crunchbase_company_url'] = search_result
+                        intelligence['crunchbase_source'] = 'legacy'
+                        intelligence['crunchbase_confidence'] = 0.0
+                        print(f"   ✅ Crunchbase URL found via hybrid search: {search_result}")
                 else:
                     print(f"   ❌ Hybrid search failed to find Crunchbase URL for {company_name}")
+                    intelligence['crunchbase_company_url'] = None
+                    intelligence['crunchbase_source'] = 'not_found'
+                    intelligence['crunchbase_confidence'] = 0.0
 
         # DEBUG: Print final Crunchbase URL
         final_cb_url = intelligence.get('crunchbase_company_url')
@@ -791,7 +844,7 @@ class CoreSignalService:
                 include_domains=["crunchbase.com"]
             )
 
-            # Extract unique Crunchbase slugs
+            # Extract unique Crunchbase slugs WITH SCORES
             crunchbase_pattern = r'crunchbase\.com/organization/([a-z0-9-]+)'
             candidates = []
             seen = set()
@@ -801,36 +854,46 @@ class CoreSignalService:
                 if match:
                     slug = match.group(1)
                     if slug not in seen:
-                        candidates.append(slug)
+                        # NEW: Extract score and metadata
+                        candidates.append({
+                            'slug': slug,
+                            'score': result.get('score', 0.0),
+                            'title': result.get('title', ''),
+                            'url': result.get('url', '')
+                        })
                         seen.add(slug)
 
             if not candidates:
                 print(f"   ⚠️  Tavily found no candidates, using heuristic")
                 return self._generate_heuristic_crunchbase_url(company_name)
 
-            print(f"   📋 Tavily found {len(candidates)} candidates: {candidates[:5]}")
+            # Sort by score (highest first)
+            candidates.sort(key=lambda x: x['score'], reverse=True)
+
+            # Extract just slugs for logging
+            candidate_slugs = [c['slug'] for c in candidates]
+            print(f"   📋 Tavily found {len(candidates)} candidates: {candidate_slugs[:5]}")
 
             # If only 1 candidate, return immediately (no ambiguity)
             if len(candidates) == 1:
-                url = f"https://www.crunchbase.com/organization/{candidates[0]}"
+                url = f"https://www.crunchbase.com/organization/{candidates[0]['slug']}"
                 print(f"   ✅ Single candidate: {url}")
-                return url
+                return {'url': url, 'source': 'tavily_single', 'confidence': candidates[0]['score']}
 
-            # STAGE 2: Claude Agent SDK WebSearch validation
-            if company_data:
-                print(f"   🔍 Stage 2: Claude Agent SDK WebSearch validation")
-                validated_url = self._validate_with_claude_websearch(
-                    company_name,
-                    candidates,
-                    company_data
-                )
-                if validated_url:
-                    return validated_url
+            # SIMPLIFIED: Use first Tavily candidate (fast!)
+            # User can manually regenerate if URL is incorrect
+            top_score = candidates[0]['score']
+            url = f"https://www.crunchbase.com/organization/{candidates[0]['slug']}"
 
-            # Fallback: First Tavily candidate
-            url = f"https://www.crunchbase.com/organization/{candidates[0]}"
-            print(f"   ⚠️  WebSearch unavailable, using first Tavily: {url}")
-            return url
+            if top_score >= 0.90:
+                print(f"   ✅ High confidence match (score: {top_score:.2f}): {url}")
+                source = 'tavily_high_confidence'
+            else:
+                print(f"   ✅ Using Tavily result (score: {top_score:.2f}): {url}")
+                print(f"   💡 Low confidence - user can regenerate via UI if needed")
+                source = 'tavily_fallback'
+
+            return {'url': url, 'source': source, 'confidence': top_score}
 
         except ImportError as e:
             print(f"   ⚠️  Dependencies not installed ({e}), using heuristic")
@@ -856,7 +919,7 @@ class CoreSignalService:
             str: Validated Crunchbase URL or None
         """
         try:
-            import anyio
+            import asyncio
             from claude_agent_sdk import query, ClaudeAgentOptions
             import re
 
@@ -893,39 +956,61 @@ class CoreSignalService:
                     amount_m = int(funding_amount / 1000000)
                     prompt_parts.append(f"Amount Raised: ${amount_m}M")
 
-            # Add Tavily candidates as context
-            candidates_str = ", ".join([f"`{c}`" for c in tavily_candidates[:5]])
-            prompt_parts.append(f"\nTavily found these Crunchbase candidates: {candidates_str}")
+            # Add Tavily candidates as context (extract slugs from dict structure)
+            candidate_slugs = [c['slug'] if isinstance(c, dict) else c for c in tavily_candidates[:5]]
+            prompt_parts.append("\nTavily found these Crunchbase URL candidates:")
+            for i, slug in enumerate(candidate_slugs, 1):
+                prompt_parts.append(f"{i}. https://www.crunchbase.com/organization/{slug}")
 
-            prompt_parts.append("\nWhich ONE of these Tavily candidates is the CORRECT Crunchbase profile?")
-            prompt_parts.append("Search for this company and return ONLY the matching candidate slug.")
+            prompt_parts.append("\nTASK:")
+            prompt_parts.append("1. Visit EACH of the Crunchbase URLs above using WebSearch")
+            prompt_parts.append("2. Compare the company details on each page to the CoreSignal data provided")
+            prompt_parts.append("3. Find the URL where the description, location, and funding match EXACTLY")
+            prompt_parts.append("4. Return ONLY the matching URL in your response")
+            prompt_parts.append("\nIMPORTANT: You must cite specific evidence from the Crunchbase pages that proves the match.")
 
             prompt = "\n".join(prompt_parts)
 
-            print(f"   📝 Prompt: {prompt[:150]}...")
+            print(f"\n{'='*80}")
+            print(f"📝 FULL CLAUDE WEBSEARCH PROMPT:")
+            print(f"{'='*80}")
+            print(prompt)
+            print(f"{'='*80}\n")
 
-            # Run async query() in sync context using anyio
-            def run_websearch():
+            # Run async query() in sync context using asyncio WITH TIMEOUT
+            async def async_search():
                 collected_messages = []
+                options = ClaudeAgentOptions(
+                    model="claude-haiku-4-5-20251001",  # Haiku 4.5: 4-5x faster than Sonnet, low cost
+                    allowed_tools=["WebSearch"]
+                    # Note: max_tokens not supported in ClaudeAgentOptions API
+                )
 
-                async def async_search():
-                    options = ClaudeAgentOptions(
-                        allowed_tools=["WebSearch"]
-                    )
+                async for message in query(prompt=prompt, options=options):
+                    collected_messages.append(message)
 
-                    async for message in query(prompt=prompt, options=options):
-                        collected_messages.append(message)
+                return collected_messages
 
-                    return collected_messages
+            # Execute WebSearch with 10-second timeout
+            async def run_with_timeout():
+                return await asyncio.wait_for(async_search(), timeout=10.0)
 
-                return anyio.run(async_search)
-
-            # Execute WebSearch
-            messages = run_websearch()
+            try:
+                messages = asyncio.run(run_with_timeout())
+            except asyncio.TimeoutError:
+                print(f"   ⏱️  WebSearch timeout (10s), falling back to top Tavily result")
+                top_candidate = tavily_candidates[0]
+                url = f"https://www.crunchbase.com/organization/{top_candidate['slug']}"
+                return {'url': url, 'source': 'timeout_fallback', 'confidence': top_candidate['score']}
 
             # Parse response to find matching candidate
             response_text = " ".join(str(msg) for msg in messages)
-            print(f"   🤖 Claude response: {response_text[:200]}...")
+
+            print(f"\n{'='*80}")
+            print(f"🤖 FULL CLAUDE WEBSEARCH RESPONSE:")
+            print(f"{'='*80}")
+            print(response_text)
+            print(f"{'='*80}\n")
 
             # Extract Crunchbase URLs from response
             pattern = r'crunchbase\.com/organization/([a-z0-9-]+)'
@@ -933,10 +1018,13 @@ class CoreSignalService:
 
             # Find intersection: which Tavily candidate appears in response?
             for candidate in tavily_candidates:
-                if candidate in found_slugs or candidate in response_text:
-                    url = f"https://www.crunchbase.com/organization/{candidate}"
+                slug = candidate['slug'] if isinstance(candidate, dict) else candidate
+                score = candidate.get('score', 0.0) if isinstance(candidate, dict) else 0.0
+
+                if slug in found_slugs or slug in response_text:
+                    url = f"https://www.crunchbase.com/organization/{slug}"
                     print(f"   ✅ Claude validated: {url}")
-                    return url
+                    return {'url': url, 'source': 'websearch_validated', 'confidence': score}
 
             print(f"   ⚠️  No match found in WebSearch results")
             return None
@@ -945,7 +1033,29 @@ class CoreSignalService:
             print(f"   ⚠️  claude-agent-sdk not installed: {e}")
             return None
         except Exception as e:
-            print(f"   ⚠️  WebSearch validation failed: {e}")
+            import traceback
+            error_str = str(e)
+            error_details = traceback.format_exc()
+
+            # Print main error
+            print(f"   ⚠️  WebSearch validation failed: {error_str}")
+
+            # Detect and highlight specific error types
+            if "rate_limit" in error_str.lower() or "429" in error_str:
+                print(f"   💳 API Rate Limit: You've hit the rate limit. Wait and try again.")
+            elif "credit" in error_str.lower() or "quota" in error_str.lower():
+                print(f"   💳 API Credits Exhausted: Check your Anthropic API credits/quota.")
+            elif "api_key" in error_str.lower() or "401" in error_str or "403" in error_str:
+                print(f"   🔑 API Key Issue: Check ANTHROPIC_API_KEY environment variable.")
+            elif "404" in error_str:
+                print(f"   🔍 Model Not Found: The model 'claude-haiku-4-5-20251001' may not be available.")
+
+            # Print FULL traceback (no truncation) for debugging
+            print(f"   🐛 Full error traceback:")
+            for line in error_details.split('\n'):
+                if line.strip():
+                    print(f"      {line}")
+
             return None
 
     def _generate_heuristic_crunchbase_url(self, company_name):
@@ -996,3 +1106,116 @@ class CoreSignalService:
         except Exception as e:
             print(f"   ❌ Failed to generate heuristic Crunchbase URL: {e}")
             return None
+
+
+def search_profiles_by_company_ids(
+    company_ids: List[int],
+    title: Optional[str] = None,
+    seniority: Optional[str] = None,
+    location: Optional[str] = None,
+    max_per_company: int = 20
+) -> List[Dict[str, Any]]:
+    """
+    Search for employee profiles at multiple companies using CoreSignal.
+
+    Args:
+        company_ids: List of CoreSignal company IDs to search
+        title: Optional job title filter (e.g., "engineer")
+        seniority: Optional seniority level (e.g., "senior")
+        location: Optional location filter (e.g., "San Francisco")
+        max_per_company: Maximum profiles per company
+
+    Returns:
+        List of employee profile dictionaries
+    """
+    import os
+    import requests
+
+    api_key = os.getenv("CORESIGNAL_API_KEY")
+    if not api_key:
+        raise ValueError("CORESIGNAL_API_KEY not found")
+
+    base_url = "https://api.coresignal.com"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    all_profiles = []
+
+    for company_id in company_ids:
+        # Build query for this company
+        must_clauses = [
+            {"term": {"last_company_id": company_id}}
+        ]
+
+        if title:
+            must_clauses.append({
+                "match": {
+                    "title": {
+                        "query": title,
+                        "fuzziness": "AUTO"
+                    }
+                }
+            })
+
+        if seniority:
+            must_clauses.append({
+                "match": {
+                    "title": {
+                        "query": seniority,
+                        "fuzziness": "AUTO"
+                    }
+                }
+            })
+
+        if location:
+            must_clauses.append({
+                "match": {
+                    "location": {
+                        "query": location,
+                        "fuzziness": "AUTO"
+                    }
+                }
+            })
+
+        payload = {
+            "query": {
+                "bool": {
+                    "must": must_clauses
+                }
+            },
+            "size": max_per_company
+        }
+
+        try:
+            response = requests.post(
+                f"{base_url}/v2/employee_clean/search/es_dsl/preview",
+                json=payload,
+                headers=headers,
+                timeout=10
+            )
+            response.raise_for_status()
+
+            data = response.json()
+            hits = data.get("hits", {}).get("hits", [])
+
+            for hit in hits:
+                source = hit.get("_source", {})
+                all_profiles.append({
+                    "employee_id": source.get("id"),
+                    "full_name": source.get("name"),
+                    "title": source.get("title"),
+                    "company_id": company_id,
+                    "company_name": source.get("last_company_name"),
+                    "location": source.get("location"),
+                    "linkedin_url": source.get("url"),
+                    "headline": source.get("headline"),
+                    "score": hit.get("_score")
+                })
+
+        except requests.exceptions.RequestException as e:
+            print(f"[CORESIGNAL] Error searching company {company_id}: {e}")
+            continue
+
+    return all_profiles

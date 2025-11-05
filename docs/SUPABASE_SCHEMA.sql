@@ -136,6 +136,72 @@ COMMENT ON COLUMN recruiter_feedback.feedback_type IS 'Type: like, dislike, or n
 COMMENT ON COLUMN recruiter_feedback.recruiter_name IS 'Who gave the feedback (Jon or Mary)';
 
 -- ============================================
+-- TABLE 5: company_lists
+-- Purpose: Store custom company lists for recruiting
+-- Features: Reusable lists, category filtering, JD association
+-- ============================================
+CREATE TABLE IF NOT EXISTS company_lists (
+    id SERIAL PRIMARY KEY,
+    list_name TEXT NOT NULL,
+    description TEXT,
+    jd_title TEXT,  -- Associated job description title
+    jd_session_id TEXT,  -- Research session that generated this list
+    total_companies INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for faster lookups
+CREATE INDEX IF NOT EXISTS idx_company_lists_created_at
+    ON company_lists(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_company_lists_jd_session_id
+    ON company_lists(jd_session_id);
+
+COMMENT ON TABLE company_lists IS 'Stores custom company lists for recruiting from Company Research';
+COMMENT ON COLUMN company_lists.list_name IS 'User-provided name for the list (e.g., "Voice AI Competitors Q1 2025")';
+COMMENT ON COLUMN company_lists.description IS 'Optional description of the list purpose';
+COMMENT ON COLUMN company_lists.jd_title IS 'Job title from the JD that generated this list';
+COMMENT ON COLUMN company_lists.jd_session_id IS 'Research session ID that generated this list';
+COMMENT ON COLUMN company_lists.total_companies IS 'Total number of companies in this list';
+
+-- ============================================
+-- TABLE 6: company_list_items
+-- Purpose: Individual companies in each list
+-- Features: Company metadata, category, relevance score
+-- ============================================
+CREATE TABLE IF NOT EXISTS company_list_items (
+    id SERIAL PRIMARY KEY,
+    list_id INTEGER NOT NULL REFERENCES company_lists(id) ON DELETE CASCADE,
+    company_name TEXT NOT NULL,
+    company_domain TEXT,  -- Website domain
+    category TEXT,  -- direct_competitor, adjacent_company, etc.
+    relevance_score NUMERIC(4,2),  -- 0-10 score
+    relevance_reasoning TEXT,  -- AI reasoning for this company
+    industry TEXT,
+    employee_count INTEGER,
+    funding_stage TEXT,
+    company_metadata JSONB,  -- Full company data from research
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for faster lookups
+CREATE INDEX IF NOT EXISTS idx_company_list_items_list_id
+    ON company_list_items(list_id);
+CREATE INDEX IF NOT EXISTS idx_company_list_items_category
+    ON company_list_items(category);
+CREATE INDEX IF NOT EXISTS idx_company_list_items_relevance_score
+    ON company_list_items(relevance_score DESC);
+
+COMMENT ON TABLE company_list_items IS 'Individual companies in each company list';
+COMMENT ON COLUMN company_list_items.list_id IS 'Foreign key to company_lists table';
+COMMENT ON COLUMN company_list_items.company_name IS 'Name of the company (e.g., "Deepgram", "AssemblyAI")';
+COMMENT ON COLUMN company_list_items.company_domain IS 'Company website domain (e.g., "deepgram.com")';
+COMMENT ON COLUMN company_list_items.category IS 'Competitive category (direct_competitor, adjacent_company, etc.)';
+COMMENT ON COLUMN company_list_items.relevance_score IS 'AI relevance score (0-10)';
+COMMENT ON COLUMN company_list_items.relevance_reasoning IS 'AI explanation of why this company is relevant';
+COMMENT ON COLUMN company_list_items.company_metadata IS 'Full company data JSON from research';
+
+-- ============================================
 -- TRIGGERS: Auto-update updated_at timestamp
 -- ============================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -170,6 +236,12 @@ CREATE TRIGGER update_recruiter_feedback_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_company_lists_updated_at ON company_lists;
+CREATE TRIGGER update_company_lists_updated_at
+    BEFORE UPDATE ON company_lists
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- ============================================
 -- ROW LEVEL SECURITY (RLS) - CRITICAL!
 -- ============================================
@@ -181,6 +253,8 @@ ALTER TABLE stored_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stored_companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE candidate_assessments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE recruiter_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE company_lists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE company_list_items ENABLE ROW LEVEL SECURITY;
 
 -- Allow ANON role (API key) to do everything
 -- This is safe since this is a single-user recruiter tool
@@ -205,6 +279,18 @@ CREATE POLICY "Allow anon access to candidate_assessments"
 DROP POLICY IF EXISTS "Allow anon access to recruiter_feedback" ON recruiter_feedback;
 CREATE POLICY "Allow anon access to recruiter_feedback"
     ON recruiter_feedback FOR ALL
+    TO anon
+    USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow anon access to company_lists" ON company_lists;
+CREATE POLICY "Allow anon access to company_lists"
+    ON company_lists FOR ALL
+    TO anon
+    USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow anon access to company_list_items" ON company_list_items;
+CREATE POLICY "Allow anon access to company_list_items"
+    ON company_list_items FOR ALL
     TO anon
     USING (true) WITH CHECK (true);
 
@@ -234,16 +320,16 @@ COMMENT ON FUNCTION cleanup_temporary_data IS 'Deletes old temporary data. Run p
 -- VERIFICATION QUERIES
 -- Run these after creating tables to verify
 -- ============================================
--- Check that all 4 tables were created
+-- Check that all 6 tables were created
 SELECT table_name,
        (SELECT count(*) FROM information_schema.columns WHERE table_name = t.table_name) as column_count
 FROM information_schema.tables t
 WHERE table_schema = 'public'
-  AND table_name IN ('stored_profiles', 'stored_companies', 'candidate_assessments', 'recruiter_feedback')
+  AND table_name IN ('stored_profiles', 'stored_companies', 'candidate_assessments', 'recruiter_feedback', 'company_lists', 'company_list_items')
 ORDER BY table_name;
 
 -- Verify RLS policies are set correctly (should show policies for anon role)
 SELECT schemaname, tablename, policyname, roles
 FROM pg_policies
-WHERE tablename IN ('stored_profiles', 'stored_companies', 'candidate_assessments', 'recruiter_feedback')
+WHERE tablename IN ('stored_profiles', 'stored_companies', 'candidate_assessments', 'recruiter_feedback', 'company_lists', 'company_list_items')
 ORDER BY tablename, policyname;

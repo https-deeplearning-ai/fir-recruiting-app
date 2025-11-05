@@ -8,7 +8,7 @@ import './WorkExperienceCard.css';
  * Displays a single work experience in LinkedIn-style format
  * with hoverable company name that shows enriched company data
  */
-const WorkExperienceCard = ({ experience, index }) => {
+const WorkExperienceCard = ({ experience, index, onRegenerateUrl, onCrunchbaseClick, onEditUrl }) => {
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [modalVisible, setModalVisible] = useState(false);
@@ -259,6 +259,10 @@ const WorkExperienceCard = ({ experience, index }) => {
             enrichedData={experience.company_enriched}
             companyName={experience.company_name}
             visible={tooltipVisible}
+            companyId={experience.company_id}
+            onRegenerateUrl={onRegenerateUrl}
+            onCrunchbaseClick={onCrunchbaseClick}
+            onEditUrl={onEditUrl}
           />
         </div>
       )}
@@ -272,6 +276,10 @@ const WorkExperienceCard = ({ experience, index }) => {
               enrichedData={experience.company_enriched}
               companyName={experience.company_name}
               visible={true}
+              companyId={experience.company_id}
+              onRegenerateUrl={onRegenerateUrl}
+              onCrunchbaseClick={onCrunchbaseClick}
+              onEditUrl={onEditUrl}
             />
           </div>
         </div>

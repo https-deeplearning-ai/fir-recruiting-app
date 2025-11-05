@@ -1,5 +1,7 @@
 import React from 'react';
+import { TbRefresh } from "react-icons/tb";
 import './CompanyTooltip.css';
+import CrunchbaseEditModal from './CrunchbaseEditModal';
 
 /**
  * CompanyTooltip Component
@@ -7,10 +9,77 @@ import './CompanyTooltip.css';
  * Displays enriched company intelligence on hover
  * Shows: Company description, funding stage, amount raised, company type, HQ location, growth signals
  */
-const CompanyTooltip = ({ enrichedData, companyName, visible }) => {
+const CompanyTooltip = ({ enrichedData, companyName, visible, companyId, onRegenerateUrl, onCrunchbaseClick, onEditUrl }) => {
   const [showFullDescription, setShowFullDescription] = React.useState(false);
+  const [isRegenerating, setIsRegenerating] = React.useState(false);
+  const [clickedUrl, setClickedUrl] = React.useState(null);
+  const [showEditModal, setShowEditModal] = React.useState(false);
+
+  // DEBUG: Log Crunchbase URL presence
+  if (enrichedData && visible) {
+    console.log(`[CompanyTooltip] ${companyName}:`, {
+      hasCrunchbaseUrl: !!enrichedData.crunchbase_company_url,
+      crunchbaseUrl: enrichedData.crunchbase_company_url,
+      allKeys: Object.keys(enrichedData)
+    });
+  }
 
   if (!enrichedData || !visible) return null;
+
+  // Handler for regenerating Crunchbase URL
+  const handleRegenerateUrl = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!onRegenerateUrl || isRegenerating) return;
+
+    setIsRegenerating(true);
+    try {
+      await onRegenerateUrl(companyName, companyId, enrichedData.crunchbase_company_url);
+    } catch (error) {
+      console.error('Error regenerating URL:', error);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
+  // Handler for clicking Crunchbase link
+  const handleCrunchbaseClick = (e) => {
+    // Don't prevent default - let the link open in new tab
+    e.stopPropagation();
+
+    const crunchbaseUrl = enrichedData.crunchbase_company_url || enrichedData.crunchbase_url;
+
+    // Track the click for validation modal
+    setClickedUrl(crunchbaseUrl);
+
+    // Notify parent component after a delay (user will see the page first)
+    if (onCrunchbaseClick) {
+      setTimeout(() => {
+        onCrunchbaseClick({
+          companyId,
+          companyName,
+          crunchbaseUrl,
+          source: enrichedData.crunchbase_source
+        });
+      }, 1000); // 1 second delay so modal doesn't block the new tab
+    }
+  };
+
+  // Handler for editing Crunchbase URL
+  const handleEditUrl = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowEditModal(true);
+  };
+
+  // Handler for saving edited URL
+  const handleSaveEditedUrl = async (data) => {
+    if (onEditUrl) {
+      await onEditUrl(data);
+    }
+    setShowEditModal(false);
+  };
 
   const formatFundingAmount = (amount) => {
     if (!amount) return null;
@@ -214,18 +283,91 @@ const CompanyTooltip = ({ enrichedData, companyName, visible }) => {
             <span className="tooltip-label">Quick Links:</span>
             <div className="company-links-pills">
               {/* Crunchbase Company Page */}
-              {(enrichedData.crunchbase_company_url || enrichedData.crunchbase_url) && (
-                <a
-                  href={enrichedData.crunchbase_company_url || enrichedData.crunchbase_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="link-pill crunchbase-pill"
-                  onClick={(e) => e.stopPropagation()}
-                  title="View company on Crunchbase"
-                >
-                  <span className="pill-icon">📊</span>
-                  <span className="pill-text">Crunchbase</span>
-                </a>
+              {enrichedData.crunchbase_source === 'not_found' ? (
+                <div className="crunchbase-link-container">
+                  <span className="link-pill crunchbase-pill crunchbase-not-found">
+                    <span className="pill-icon">📊</span>
+                    <span className="pill-text">Crunchbase: Not found</span>
+                    <span className="inline-error" title="No Crunchbase profile found">✗</span>
+                  </span>
+                  <button
+                    className="edit-btn-inline"
+                    onClick={handleEditUrl}
+                    title="Add Crunchbase URL manually"
+                  >
+                    ✎
+                  </button>
+                </div>
+              ) : (enrichedData.crunchbase_company_url || enrichedData.crunchbase_url) && (
+                <div className="crunchbase-link-container">
+                  <a
+                    href={enrichedData.crunchbase_company_url || enrichedData.crunchbase_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`link-pill crunchbase-pill ${
+                      enrichedData.crunchbase_source === 'tavily_fallback' ||
+                      enrichedData.crunchbase_source === 'tavily_single' ||
+                      enrichedData.crunchbase_source === 'heuristic' ||
+                      enrichedData.crunchbase_source === 'legacy'
+                        ? 'crunchbase-uncertain'
+                        : ''
+                    }`}
+                    onClick={handleCrunchbaseClick}
+                    title="View company on Crunchbase"
+                  >
+                    <span className="pill-icon">📊</span>
+                    <span className="pill-text">Crunchbase</span>
+                    {/* Small inline indicator for CoreSignal verified */}
+                    {enrichedData.crunchbase_source === 'coresignal' && (
+                      <span className="inline-check" title="Verified by CoreSignal">✓</span>
+                    )}
+                    {/* Small inline indicator for AI-validated */}
+                    {enrichedData.crunchbase_source === 'websearch_validated' && (
+                      <span className="inline-check ai" title="Validated by AI WebSearch">✓</span>
+                    )}
+                    {/* Small inline indicator for user-verified */}
+                    {enrichedData.crunchbase_source === 'user_verified' && (
+                      <span className="inline-check user" title="Verified by User">✓</span>
+                    )}
+                    {/* Warning indicator for uncertain URLs */}
+                    {(enrichedData.crunchbase_source === 'tavily_fallback' ||
+                      enrichedData.crunchbase_source === 'tavily_single' ||
+                      enrichedData.crunchbase_source === 'timeout_fallback') && (
+                      <span className="inline-warning" title={`AI-Generated (${(enrichedData.crunchbase_confidence * 100).toFixed(0)}% confidence)`}>
+                        ⚠️
+                      </span>
+                    )}
+                    {(enrichedData.crunchbase_source === 'heuristic' ||
+                      enrichedData.crunchbase_source === 'legacy') && (
+                      <span className="inline-warning" title="Estimated URL">⚠️</span>
+                    )}
+                  </a>
+
+                  {/* Deep Search button - only for uncertain URLs */}
+                  {(enrichedData.crunchbase_source === 'tavily_fallback' ||
+                    enrichedData.crunchbase_source === 'tavily_single' ||
+                    enrichedData.crunchbase_source === 'timeout_fallback' ||
+                    enrichedData.crunchbase_source === 'heuristic' ||
+                    enrichedData.crunchbase_source === 'legacy') && onRegenerateUrl && (
+                    <button
+                      className={`regenerate-btn-inline ${isRegenerating ? 'loading' : ''}`}
+                      onClick={handleRegenerateUrl}
+                      disabled={isRegenerating}
+                      title="Use Claude WebSearch to verify/correct this URL"
+                    >
+                      <TbRefresh size={14} />
+                    </button>
+                  )}
+
+                  {/* Edit button - always show pencil icon for all URL states */}
+                  <button
+                    className="edit-btn-inline"
+                    onClick={handleEditUrl}
+                    title="Edit Crunchbase URL"
+                  >
+                    ✎
+                  </button>
+                </div>
               )}
 
               {/* Funding Round Details */}
@@ -317,6 +459,16 @@ const CompanyTooltip = ({ enrichedData, companyName, visible }) => {
           <p>Limited company data available</p>
         </div>
       )}
+
+      {/* Edit Modal */}
+      <CrunchbaseEditModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        companyName={companyName}
+        companyId={companyId}
+        currentUrl={enrichedData.crunchbase_company_url}
+        onSave={handleSaveEditedUrl}
+      />
     </div>
   );
 };
