@@ -1,7 +1,14 @@
+import sys
+import os
+
+# Add backend directory to sys.path FIRST to allow utils imports
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import json
-import os
 import asyncio
 import aiohttp
 from concurrent.futures import ThreadPoolExecutor
@@ -68,6 +75,25 @@ except ImportError as e:
                     continue
                 return (False, None, str(e))
         return (False, None, "Max retries exceeded")
+
+# Import Domain Search routes (new feature)
+try:
+    from jd_analyzer.api.domain_search import register_domain_search_routes
+    register_domain_search_routes(app)
+    print("✓ Domain Search routes registered successfully")
+except ImportError as e:
+    import traceback
+    print(f"Warning: Could not import Domain Search routes: {e}")
+    print(f"sys.path: {sys.path[:3]}")  # Debug: show first 3 paths
+    traceback.print_exc()
+
+# Import Test Endpoint (temporary)
+try:
+    from test_endpoints_api import register_test_routes
+    register_test_routes(app)
+    print("✓ Test endpoint registered successfully")
+except ImportError as e:
+    print(f"Warning: Could not import test endpoint: {e}")
 
 # CoreSignal API configuration
 CORESIGNAL_API_KEY = os.getenv("CORESIGNAL_API_KEY")
@@ -3359,4 +3385,5 @@ if __name__ == '__main__':
     if not os.getenv("ANTHROPIC_API_KEY"):
         print("Warning: ANTHROPIC_API_KEY environment variable not set!")
 
+    app.run(debug=True, host='0.0.0.0', port=5001)
     app.run(debug=True, host='0.0.0.0', port=5001)

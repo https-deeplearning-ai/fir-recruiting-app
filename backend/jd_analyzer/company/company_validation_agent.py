@@ -33,7 +33,7 @@ class CompanyValidationAgent:
             raise ValueError("ANTHROPIC_API_KEY not found in environment variables")
 
         self.client = Anthropic(api_key=api_key)
-        self.model = "claude-haiku-4-5-20250929"  # Fast, cheap model for validation
+        self.model = "claude-haiku-4-5-20251001"  # Fast, cheap model for validation
 
     async def validate_company(
         self,

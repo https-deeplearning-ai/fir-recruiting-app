@@ -1115,6 +1115,111 @@ class CoreSignalService:
             return None
 
 
+def search_profiles_with_endpoint(
+    query: Dict[str, Any],
+    endpoint: str = "employee_clean",
+    max_results: int = 20
+) -> Dict[str, Any]:
+    """
+    Execute custom ES DSL search query against specified CoreSignal endpoint.
+
+    Args:
+        query: Elasticsearch DSL query dict
+        endpoint: CoreSignal endpoint (employee_base, employee_clean, multi_source_employee)
+        max_results: Maximum number of results to return
+
+    Returns:
+        Dict with 'success', 'results' (list of employee IDs or profiles), 'total'
+    """
+    import os
+    import requests
+
+    api_key = os.getenv("CORESIGNAL_API_KEY")
+    if not api_key:
+        return {"success": False, "error": "CORESIGNAL_API_KEY not found"}
+
+    headers = {
+        "accept": "application/json",
+        "apikey": api_key,
+        "Content-Type": "application/json"
+    }
+
+    # Build full URL - use preview endpoint for pagination
+    base_url = f"https://api.coresignal.com/cdapi/v2/{endpoint}/search/es_dsl/preview"
+
+    # NOTE: CoreSignal preview endpoint does NOT accept "size" in request body
+    # It returns max 20 results per page, controlled by ?page= URL param
+    # Remove size from query if present (causes HTTP 422)
+    if "size" in query:
+        del query["size"]
+
+    try:
+        print(f"🔍 Searching {endpoint} with custom query...")
+        print(f"   Query size: {query.get('size', 'not set')}")
+
+        response = requests.post(
+            base_url,
+            json=query,
+            headers=headers,
+            timeout=30
+        )
+
+        print(f"   Response status: {response.status_code}")
+
+        if response.status_code != 200:
+            error_text = response.text[:200]
+            print(f"   ❌ Search failed: {error_text}")
+            return {
+                "success": False,
+                "error": f"Search failed with status {response.status_code}",
+                "details": error_text
+            }
+
+        data = response.json()
+        print(f"   ✅ Search successful")
+
+        # Handle both preview (list of IDs) and full search (hits structure)
+        if isinstance(data, list):
+            # Preview endpoint returns list of employee IDs
+            results = data
+            total = len(data)
+        elif isinstance(data, dict) and "hits" in data:
+            # Full search returns hits structure
+            hits = data["hits"]["hits"]
+            results = [hit["_source"] for hit in hits]
+            total = data["hits"]["total"]["value"]
+        else:
+            results = data
+            total = len(results) if isinstance(results, list) else 0
+
+        print(f"   Found {total} results")
+
+        return {
+            "success": True,
+            "results": results,
+            "total": total,
+            "endpoint": endpoint
+        }
+
+    except requests.exceptions.Timeout:
+        return {
+            "success": False,
+            "error": "Request timeout - CoreSignal API slow to respond"
+        }
+    except requests.exceptions.RequestException as e:
+        return {
+            "success": False,
+            "error": f"Network error: {str(e)}"
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "success": False,
+            "error": f"Unexpected error: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
+
+
 def search_profiles_by_company_ids(
     company_ids: List[int],
     title: Optional[str] = None,
