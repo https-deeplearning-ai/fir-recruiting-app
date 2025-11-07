@@ -5446,8 +5446,8 @@ function App() {
         )}
 
 
-        {/* Combined Results Panel - Always Visible */}
-        {(() => {
+        {/* Combined Results Panel - Single Profile Tab Only */}
+        {!batchMode && !searchMode && !jdAnalyzerMode && !companyResearchMode && !listsMode && (() => {
           // Create unified list of all candidates and sort by weighted score
           const allCandidates = [];
           
