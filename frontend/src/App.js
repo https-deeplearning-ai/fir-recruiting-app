@@ -3891,7 +3891,8 @@ function App() {
                         <span className="discovered-badge evaluated">Evaluated</span>
                       )}
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
 
                 {/* Evaluation Progress */}
