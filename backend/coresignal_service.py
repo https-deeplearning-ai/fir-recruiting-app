@@ -18,7 +18,8 @@ class CoreSignalService:
     def __init__(self):
         self.api_key = os.getenv("CORESIGNAL_API_KEY")
         if not self.api_key:
-            raise ValueError("CORESIGNAL_API_KEY environment variable is not set")
+            print("Warning: CORESIGNAL_API_KEY environment variable is not set")
+            # Don't raise - allow service to be created, will fail on first actual use
         self.headers = {
             "accept": "application/json",
             "apikey": self.api_key,
@@ -26,6 +27,11 @@ class CoreSignalService:
         }
         # Company data cache to avoid duplicate API calls
         self.company_cache = {}
+
+    def _check_api_key(self):
+        """Check if API key is available before making requests"""
+        if not self.api_key:
+            raise ValueError("CORESIGNAL_API_KEY environment variable is not set")
 
     def fetch_linkedin_profile(self, linkedin_url):
         """
@@ -41,6 +47,7 @@ class CoreSignalService:
         Returns:
             dict: Profile data or error information
         """
+        self._check_api_key()  # Check API key is available
         try:
             print(f"🔍 Fetching profile: {linkedin_url}")
 
