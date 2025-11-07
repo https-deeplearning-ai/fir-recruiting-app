@@ -30,12 +30,21 @@ class MultiLLMQueryGenerator:
 
     def __init__(self):
         """Initialize LLM clients and load configs."""
-        self.anthropic_client = anthropic.Anthropic(
-            api_key=os.getenv("ANTHROPIC_API_KEY")
-        )
-        self.openai_client = openai.OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY")
-        )
+        try:
+            self.anthropic_client = anthropic.Anthropic(
+                api_key=os.getenv("ANTHROPIC_API_KEY")
+            )
+        except Exception as e:
+            print(f"Warning: Failed to initialize Anthropic client: {e}")
+            self.anthropic_client = None
+
+        try:
+            self.openai_client = openai.OpenAI(
+                api_key=os.getenv("OPENAI_API_KEY")
+            )
+        except Exception as e:
+            print(f"Warning: Failed to initialize OpenAI client: {e}")
+            self.openai_client = None
 
         # Gemini uses per-request client initialization (new google-genai SDK)
         # No global configuration needed
@@ -681,6 +690,12 @@ Return the JSON query."""
             {"query": {...}, "reasoning": "...", "model": "..."}
         """
         try:
+            if self.anthropic_client is None:
+                return {
+                    "error": "Anthropic client not initialized. Check ANTHROPIC_API_KEY environment variable.",
+                    "model": self.claude_config.display_name
+                }
+
             # Build user prompt from shared method
             user_prompt = self._build_user_prompt(jd_requirements)
 
@@ -785,6 +800,12 @@ Return the JSON query."""
             {"query": {...}, "reasoning": "...", "model": "..."}
         """
         try:
+            if self.openai_client is None:
+                return {
+                    "error": "OpenAI client not initialized. Check OPENAI_API_KEY environment variable.",
+                    "model": self.openai_config.display_name
+                }
+
             # Build user prompt from shared method
             user_prompt = self._build_user_prompt(jd_requirements)
 
