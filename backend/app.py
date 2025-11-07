@@ -2003,12 +2003,16 @@ def save_feedback():
         feedback_type = data.get('feedback_type')  # 'like', 'dislike', 'note'
         feedback_text = data.get('feedback_text', '')  # Optional for like/dislike
         recruiter_name = data.get('recruiter_name', 'Unknown')
+        source_tab = data.get('source_tab', 'single')  # Track which tab feedback came from
 
         if not linkedin_url or not feedback_type:
             return jsonify({'error': 'linkedin_url and feedback_type are required'}), 400
 
         if feedback_type not in ['like', 'dislike', 'note']:
             return jsonify({'error': 'feedback_type must be like, dislike, or note'}), 400
+
+        if source_tab not in ['single', 'batch', 'search', 'company_research']:
+            source_tab = 'single'  # Default to single if invalid
 
         headers = {
             'apikey': SUPABASE_KEY,
@@ -2021,7 +2025,8 @@ def save_feedback():
             'candidate_linkedin_url': linkedin_url,
             'feedback_type': feedback_type,
             'feedback_text': feedback_text,
-            'recruiter_name': recruiter_name
+            'recruiter_name': recruiter_name,
+            'source_tab': source_tab
         }
 
         url = f"{SUPABASE_URL}/rest/v1/recruiter_feedback"
@@ -2047,10 +2052,16 @@ def get_feedback(linkedin_url):
     """
     Get all feedback for a specific candidate
     Returns array of feedback sorted by created_at DESC
+    Optionally filters by source_tab query parameter
     """
     try:
         import urllib.parse
         encoded_url = urllib.parse.quote(linkedin_url, safe='')
+
+        # Get source_tab filter from query parameters (optional)
+        source_tab = request.args.get('source_tab', 'single')
+        if source_tab not in ['single', 'batch', 'search', 'company_research']:
+            source_tab = 'single'  # Default to single if invalid
 
         headers = {
             'apikey': SUPABASE_KEY,
@@ -2058,8 +2069,8 @@ def get_feedback(linkedin_url):
             'Content-Type': 'application/json'
         }
 
-        # Get all feedback for this candidate, sorted by newest first
-        url = f"{SUPABASE_URL}/rest/v1/recruiter_feedback?candidate_linkedin_url=eq.{encoded_url}&order=created_at.desc"
+        # Get feedback for this candidate filtered by source_tab, sorted by newest first
+        url = f"{SUPABASE_URL}/rest/v1/recruiter_feedback?candidate_linkedin_url=eq.{encoded_url}&source_tab=eq.{source_tab}&order=created_at.desc"
         response = requests.get(url, headers=headers)
 
         if response.status_code == 200:
@@ -3231,10 +3242,38 @@ def get_research_results(jd_id):
 
         session = session_result.data[0]
 
-        if session['status'] not in ['completed', 'running']:
+        if session['status'] not in ['completed', 'running', 'discovered']:
             return jsonify({
                 'error': f"Research {session['status']}. Cannot retrieve results."
             }), 400
+
+        # Special handling for "discovered" status - return only discovered companies (no evaluated yet)
+        if session['status'] == 'discovered':
+            search_config = session.get('search_config') or {}
+            discovered_companies_list = search_config.get('discovered_companies_list', [])
+            screened_companies = search_config.get('screened_companies', [])
+            total_discovered = session.get('total_discovered', len(discovered_companies_list))
+
+            return jsonify({
+                'success': True,
+                'results': {
+                    'discovered_companies': discovered_companies_list[:100],
+                    'screened_companies': screened_companies[:100],
+                    'companies_by_category': {},  # Empty until evaluation
+                    'evaluated_companies': [],  # No evaluated companies yet
+                    'summary': {
+                        'total_companies': 0,
+                        'avg_relevance_score': 0,
+                        'top_company': None,
+                        'total_discovered': total_discovered,
+                        'total_evaluated': 0,
+                        'evaluation_progress': {
+                            'evaluated_count': 0,
+                            'remaining_count': len(screened_companies)
+                        }
+                    }
+                }
+            })
 
         # Build query
         query = supabase.table("target_companies").select("*").eq("jd_id", jd_id)

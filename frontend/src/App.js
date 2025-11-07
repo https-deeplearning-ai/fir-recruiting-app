@@ -95,6 +95,7 @@ function App() {
   const [screenedCompanies, setScreenedCompanies] = useState([]); // Screened/ranked companies
   const [evaluatedCount, setEvaluatedCount] = useState(25); // Number of companies evaluated so far
   const [evaluatingMore, setEvaluatingMore] = useState(false); // Loading state for "Evaluate More"
+  const [companySearchTerm, setCompanySearchTerm] = useState(''); // Search/filter term for discovered companies
   const [expandedCompanies, setExpandedCompanies] = useState({}); // Track which company cards are expanded for details
   const [showWeightedRequirements, setShowWeightedRequirements] = useState(false); // Accordion toggle for weighted requirements
   const [jdSearching, setJdSearching] = useState(false); // Loading state during JD → CoreSignal search
@@ -297,6 +298,12 @@ function App() {
   // Save recruiter feedback with debounce
   const saveFeedback = async (linkedinUrl, feedbackType, feedbackText = '') => {
     try {
+      // Determine current tab/mode for feedback scoping
+      let sourceTab = 'single'; // Default
+      if (batchMode) sourceTab = 'batch';
+      else if (searchMode) sourceTab = 'search';
+      else if (companyResearchMode) sourceTab = 'company_research';
+
       const response = await fetch('/save-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -304,7 +311,8 @@ function App() {
           linkedin_url: linkedinUrl,
           feedback_type: feedbackType,
           feedback_text: feedbackText,
-          recruiter_name: selectedRecruiter
+          recruiter_name: selectedRecruiter,
+          source_tab: sourceTab
         })
       });
 
@@ -563,7 +571,13 @@ function App() {
   // Load feedback history for a candidate
   const loadFeedbackHistory = async (linkedinUrl) => {
     try {
-      const response = await fetch(`/get-feedback/${encodeURIComponent(linkedinUrl)}`);
+      // Determine current tab/mode for feedback filtering
+      let sourceTab = 'single'; // Default
+      if (batchMode) sourceTab = 'batch';
+      else if (searchMode) sourceTab = 'search';
+      else if (companyResearchMode) sourceTab = 'company_research';
+
+      const response = await fetch(`/get-feedback/${encodeURIComponent(linkedinUrl)}?source_tab=${sourceTab}`);
       const data = await response.json();
       if (data.success) {
         setFeedbackHistory(prev => ({
@@ -2374,7 +2388,8 @@ function App() {
           >
             Company Research
           </button>
-          <button
+          {/* HIDDEN: Batch Processing - not needed currently */}
+          {/* <button
             className={`mode-btn ${batchMode && !searchMode ? 'active' : ''}`}
             onClick={() => {
               setBatchMode(true);
@@ -2385,7 +2400,7 @@ function App() {
             }}
           >
             Batch Processing
-          </button>
+          </button> */}
           {/* HIDDEN: Lists tab - commented out to avoid confusion */}
           {/* <button
             className={`mode-btn ${listsMode ? 'active' : ''}`}
@@ -3759,12 +3774,90 @@ function App() {
                   Found {discoveredCompanies.length} companies via seed expansion + web search
                 </p>
 
+                {/* Search and Selection Controls */}
+                <div style={{ marginBottom: '15px' }}>
+                  <input
+                    type="text"
+                    placeholder="Search companies by name or source..."
+                    value={companySearchTerm}
+                    onChange={(e) => setCompanySearchTerm(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      marginBottom: '10px'
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button
+                      onClick={() => {
+                        const allNames = discoveredCompanies.map(c => c.name || c.company_name).filter(Boolean);
+                        setSelectedCompanies(allNames);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '13px',
+                        background: '#6366f1',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Select All
+                    </button>
+                    <button
+                      onClick={() => setSelectedCompanies([])}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '13px',
+                        background: '#e5e7eb',
+                        color: '#374151',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Clear Selection
+                    </button>
+                    <span style={{ fontSize: '13px', color: '#6b7280' }}>
+                      {selectedCompanies.length} selected
+                    </span>
+                  </div>
+                </div>
+
                 {/* Compact list view */}
                 <div className="discovered-list">
-                  {discoveredCompanies.slice(0, 100).map((company, idx) => (
-                    <div key={idx} className="discovered-item">
-                      <span className="discovered-rank">#{idx + 1}</span>
-                      <span className="discovered-name">{company.name || company.company_name || 'Unknown'}</span>
+                  {discoveredCompanies
+                    .filter(company => {
+                      if (!companySearchTerm) return true;
+                      const name = (company.name || company.company_name || '').toLowerCase();
+                      const source = (company.discovered_via || '').toLowerCase();
+                      const searchLower = companySearchTerm.toLowerCase();
+                      return name.includes(searchLower) || source.includes(searchLower);
+                    })
+                    .slice(0, 100)
+                    .map((company, idx) => {
+                      const companyName = company.name || company.company_name;
+                      const isSelected = selectedCompanies.includes(companyName);
+                      return (
+                        <div key={idx} className="discovered-item">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedCompanies([...selectedCompanies, companyName]);
+                              } else {
+                                setSelectedCompanies(selectedCompanies.filter(n => n !== companyName));
+                              }
+                            }}
+                            style={{ marginRight: '8px', cursor: 'pointer' }}
+                          />
+                          <span className="discovered-rank">#{idx + 1}</span>
+                          <span className="discovered-name">{companyName || 'Unknown'}</span>
                       {company.source_url && (
                         <a
                           href={company.source_url}
@@ -3815,6 +3908,17 @@ function App() {
                 </div>
 
                 {/* Evaluate More Button */}
+                {(() => {
+                  // Debug logging for button visibility
+                  console.log('[Evaluate Button Debug]', {
+                    discoveredCompanies_length: discoveredCompanies.length,
+                    evaluatedCount: evaluatedCount,
+                    shouldShow: evaluatedCount < discoveredCompanies.length,
+                    evaluatingMore: evaluatingMore,
+                    companyResearchStatus: companyResearchStatus
+                  });
+                  return null;
+                })()}
                 {evaluatedCount < discoveredCompanies.length && (
                   <button
                     className="evaluate-more-btn"

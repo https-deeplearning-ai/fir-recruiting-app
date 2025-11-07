@@ -117,6 +117,7 @@ CREATE TABLE IF NOT EXISTS recruiter_feedback (
     feedback_text TEXT,
     feedback_type TEXT NOT NULL CHECK (feedback_type IN ('like', 'dislike', 'note')),
     recruiter_name TEXT NOT NULL,
+    source_tab TEXT NOT NULL DEFAULT 'single' CHECK (source_tab IN ('single', 'batch', 'search', 'company_research')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -128,6 +129,8 @@ CREATE INDEX IF NOT EXISTS idx_recruiter_feedback_created_at
     ON recruiter_feedback(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_recruiter_feedback_recruiter_name
     ON recruiter_feedback(recruiter_name);
+CREATE INDEX IF NOT EXISTS idx_recruiter_feedback_source_tab
+    ON recruiter_feedback(source_tab);
 
 COMMENT ON TABLE recruiter_feedback IS 'Stores recruiter feedback (Jon/Mary) for candidates';
 COMMENT ON COLUMN recruiter_feedback.candidate_linkedin_url IS 'LinkedIn URL of the candidate';
