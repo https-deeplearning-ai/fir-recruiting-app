@@ -3589,6 +3589,12 @@ function App() {
                         }
 
                         if (streamData.success && streamData.session) {
+                          console.log('[STREAM UI] Received update:', {
+                            status: streamData.session.status,
+                            phase: streamData.session.search_config?.current_phase,
+                            action: streamData.session.search_config?.current_action,
+                            progress: streamData.session.progress_percentage
+                          });
                           setCompanyResearchStatus(streamData.session);
 
                           // Extract discovered companies from stream (live updates during discovery)
@@ -3673,6 +3679,11 @@ function App() {
                 <h3>Research Progress</h3>
 
                 {/* Phase Indicators */}
+                {(() => {
+                  const currentPhase = companyResearchStatus.search_config?.current_phase;
+                  console.log('[PHASE RENDER]', { currentPhase, hasSearchConfig: !!companyResearchStatus.search_config });
+                  return null;
+                })()}
                 <div className="phase-indicators">
                   <div className={`phase-item ${
                     companyResearchStatus.search_config?.current_phase === 'discovery' ? 'active' :
