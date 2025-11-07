@@ -6,6 +6,8 @@ import { TbRefresh } from "react-icons/tb";
 import WorkExperienceSection from './components/WorkExperienceSection';
 import ListsView from './components/ListsView';
 import CrunchbaseValidationModal from './components/CrunchbaseValidationModal';
+import { getBackendUrl } from './utils/api';
+// import { useSSEStream } from './hooks/useSSEStream'; // TODO: Refactor streaming to use this hook
 import './App.css';
 
 // Constants for credit tracking and data sources
@@ -641,7 +643,7 @@ function App() {
     setEvaluatingMore(true);
 
     try {
-      const response = await fetch('/evaluate-more-companies', {
+      const response = await fetch(`${getBackendUrl()}/evaluate-more-companies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2078,34 +2080,53 @@ function App() {
       const data = await response.json();
 
       if (response.ok && data.session_id) {
+        const candidatesFound = data.stage2_previews || [];
+
         setDomainSearchSessionId(data.session_id);
-        setDomainSearchCandidates(data.stage2_previews || []);
+        setDomainSearchCandidates(candidatesFound);
         setDomainSessionStats(data.session_stats);
 
-        // Store cache info if present
-        if (data.from_cache) {
-          setSearchCacheInfo({
-            from_cache: true,
-            cache_age_days: data.cache_age_days || 0
+        // If no candidates found, show warning but keep session ID for reset button
+        if (candidatesFound.length === 0) {
+          showNotification('Search completed but found 0 candidates. Try different companies or criteria.', 'warning');
+          console.warn('⚠️ Domain search returned 0 candidates:', {
+            session: data.session_id,
+            companies_discovered: data.total_companies_discovered
           });
-          showNotification(`Found ${(data.stage2_previews || []).length} candidates (from cache, ${data.cache_age_days} days old)`, 'success');
         } else {
-          setSearchCacheInfo(null);
-          showNotification(`Found ${(data.stage2_previews || []).length} candidates from first batch`, 'success');
-        }
+          // Store cache info if present
+          if (data.from_cache) {
+            setSearchCacheInfo({
+              from_cache: true,
+              cache_age_days: data.cache_age_days || 0
+            });
+            showNotification(`Found ${candidatesFound.length} candidates (from cache, ${data.cache_age_days} days old)`, 'success');
+          } else {
+            setSearchCacheInfo(null);
+            showNotification(`Found ${candidatesFound.length} candidates from first batch`, 'success');
+          }
 
-        console.log('✅ Domain search started:', {
-          session: data.session_id,
-          candidates: (data.stage2_previews || []).length,
-          stats: data.session_stats,
-          cached: data.from_cache || false
-        });
+          console.log('✅ Domain search started:', {
+            session: data.session_id,
+            candidates: candidatesFound.length,
+            stats: data.session_stats,
+            cached: data.from_cache || false
+          });
+        }
       } else {
         showNotification(data.error || 'Domain search failed', 'error');
+        // Clear session state on error
+        setDomainSearchSessionId(null);
+        setDomainSearchCandidates([]);
+        setDomainSessionStats(null);
       }
     } catch (error) {
       console.error('❌ Domain search error:', error);
       showNotification('Domain search failed: ' + error.message, 'error');
+      // Clear session state on exception
+      setDomainSearchSessionId(null);
+      setDomainSearchCandidates([]);
+      setDomainSessionStats(null);
     } finally {
       setDomainSearching(false);
     }
@@ -3523,7 +3544,7 @@ function App() {
                     showNotification('Starting company research...', 'info');
 
                     // Step 4: Start company research
-                    const response = await fetch('/research-companies', {
+                    const response = await fetch(`${getBackendUrl()}/research-companies`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
@@ -3548,7 +3569,9 @@ function App() {
                         setCompanyResearchStatus({ status: 'completed', progress_percentage: 100 });
 
                         // Fetch cached results immediately
-                        const resultsResponse = await fetch(`/research-companies/${data.session_id}/results`);
+                        const resultsUrl = `${getBackendUrl()}/research-companies/${data.session_id}/results`;
+                        console.log('[CACHE] Fetching cached results from:', resultsUrl);
+                        const resultsResponse = await fetch(resultsUrl);
                         const resultsData = await resultsResponse.json();
 
                         if (resultsData.success) {
@@ -3575,13 +3598,42 @@ function App() {
                       showNotification('Company research started!', 'success');
 
                       // Use Server-Sent Events for real-time streaming
-                      const eventSource = new EventSource(`/research-companies/${data.session_id}/stream`);
+                      // CRITICAL: Connect directly to backend (bypass React proxy which buffers SSE)
+                      const streamUrl = `${getBackendUrl()}/research-companies/${data.session_id}/stream`;
+                      console.log('[STREAM UI] Opening EventSource to:', streamUrl);
+                      const eventSource = new EventSource(streamUrl);
+
+                      // CRITICAL: Add connection debugging
+                      eventSource.onopen = (event) => {
+                        console.log('[STREAM UI] ✅ EventSource connection opened!', event);
+                      };
+
+                      eventSource.onerror = (event) => {
+                        console.error('[STREAM UI] ❌ EventSource error:', event);
+                        console.error('[STREAM UI] ReadyState:', eventSource.readyState);
+                        console.error('[STREAM UI] URL:', eventSource.url);
+
+                        // ReadyState: 0 = CONNECTING, 1 = OPEN, 2 = CLOSED
+                        if (eventSource.readyState === 2) {
+                          console.error('[STREAM UI] Connection closed by server');
+                          showNotification('Stream connection closed', 'error');
+                          setCompanyResearching(false);
+                        }
+                      };
 
                       eventSource.onmessage = async (event) => {
+                        console.log('[STREAM UI] 📨 Raw message received:', event.data);
+
                         const streamData = JSON.parse(event.data);
 
+                        // Handle initial connection message
+                        if (streamData.connected) {
+                          console.log('[STREAM UI] ✅ Stream connected!');
+                          return;
+                        }
+
                         if (streamData.error) {
-                          console.error('Stream error:', streamData.error);
+                          console.error('[STREAM UI] Stream error:', streamData.error);
                           eventSource.close();
                           showNotification('Stream error: ' + streamData.error, 'error');
                           setCompanyResearching(false);
@@ -3593,20 +3645,34 @@ function App() {
                             status: streamData.session.status,
                             phase: streamData.session.search_config?.current_phase,
                             action: streamData.session.search_config?.current_action,
-                            progress: streamData.session.progress_percentage
+                            progress: streamData.session.progress_percentage,
+                            search_config_exists: !!streamData.session.search_config
                           });
-                          setCompanyResearchStatus(streamData.session);
+
+                          // CRITICAL: Force React to recognize this as a new object
+                          const updatedSession = {
+                            ...streamData.session,
+                            search_config: streamData.session.search_config || {},
+                            // Force timestamp to ensure re-render
+                            _updated_at: Date.now()
+                          };
+
+                          console.log('[STREAM UI] Setting state with:', updatedSession);
+                          setCompanyResearchStatus(updatedSession);
 
                           // Extract discovered companies from stream (live updates during discovery)
                           if (streamData.session.search_config && streamData.session.search_config.discovered_companies_list) {
                             setDiscoveredCompanies(streamData.session.search_config.discovered_companies_list);
                           }
 
+                          // Handle completed status
                           if (streamData.session.status === 'completed') {
                             console.log('[STREAM] Status completed - closing stream and fetching results');
                             eventSource.close();
                             // Fetch results
-                            const resultsResponse = await fetch(`/research-companies/${data.session_id}/results`);
+                            const resultsUrl = `${getBackendUrl()}/research-companies/${data.session_id}/results`;
+                            console.log('[RESULTS] Fetching from:', resultsUrl);
+                            const resultsResponse = await fetch(resultsUrl);
                             const resultsData = await resultsResponse.json();
                             console.log('[RESULTS] Fetched results:', {
                               success: resultsData.success,
@@ -3944,6 +4010,40 @@ function App() {
                     )}
                   </button>
                 )}
+
+                {/* Search for People Button */}
+                {!domainSearchSessionId && selectedCompanies.length > 0 && (
+                  <div style={{
+                    marginTop: '20px',
+                    paddingTop: '20px',
+                    borderTop: '1px solid #ddd'
+                  }}>
+                    <button
+                      onClick={() => handleStartDomainSearch(selectedCompanies)}
+                      disabled={domainSearching}
+                      style={{
+                        padding: '12px 24px',
+                        fontSize: '15px',
+                        background: domainSearching ? '#9ca3af' : '#6366f1',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: domainSearching ? 'not-allowed' : 'pointer',
+                        fontWeight: '600',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      {domainSearching ? '🔄 Searching...' : `🔍 Search for People at ${selectedCompanies.length} ${selectedCompanies.length === 1 ? 'Company' : 'Companies'}`}
+                    </button>
+                    <p style={{
+                      marginTop: '8px',
+                      fontSize: '13px',
+                      color: '#6b7280'
+                    }}>
+                      Find employees at selected companies who match this job description
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -3971,7 +4071,7 @@ function App() {
                     <button
                       className="export-csv-btn"
                       onClick={async () => {
-                        const response = await fetch(`/research-companies/${companySessionId}/export-csv`);
+                        const response = await fetch(`${getBackendUrl()}/research-companies/${companySessionId}/export-csv`);
                         const data = await response.json();
                         if (data.success) {
                           const blob = new Blob([data.csv_data], { type: 'text/csv' });
@@ -4085,56 +4185,54 @@ function App() {
                   </button>
                 </div>
 
-                {/* Stage 3: Domain Search with Company Batching */}
-                {!domainSearchSessionId && (
-                  <div className="domain-search-section" style={{
-                    margin: '30px 0',
-                    padding: '25px',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    borderRadius: '12px',
-                    color: 'white'
-                  }}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '20px', fontWeight: '700' }}>🔍 Stage 3: Search Candidates (Progressive Loading)</h3>
-                    <p style={{ margin: '0 0 20px 0', fontSize: '14px', lineHeight: '1.5', opacity: 0.95 }}>
-                      Search CoreSignal using discovered companies with batching (5 companies per batch).
-                      Control credit usage by loading more on demand.
-                    </p>
-                    <button
-                      onClick={() => {
-                        const selected = [];
-                        Object.entries(companyResearchResults.companies_by_category).forEach(([cat, companies]) => {
-                          if (selectedCategories[cat]) {
-                            selected.push(...companies.map(c => c.company_name || c.name));
-                          }
-                        });
-                        if (selected.length === 0) {
-                          showNotification('Please select at least one category above', 'error');
-                          return;
-                        }
-                        handleStartDomainSearch(selected);
-                      }}
-                      disabled={domainSearching}
-                      style={{
-                        padding: '12px 30px',
-                        backgroundColor: domainSearching ? '#9ca3af' : 'white',
-                        color: domainSearching ? 'white' : '#667eea',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '16px',
-                        fontWeight: '700',
-                        cursor: domainSearching ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.3s ease',
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                      }}
-                    >
-                      {domainSearching ? '🔄 Searching...' : '🚀 Start Domain Search'}
-                    </button>
-                  </div>
-                )}
 
                 {/* Display Candidates with Load More */}
                 {domainSearchSessionId && (
                   <div className="domain-candidates-section" style={{ margin: '30px 0' }}>
+                    {/* Empty State - Show Reset Button */}
+                    {domainSearchCandidates.length === 0 && !domainSearching && (
+                      <div style={{
+                        background: '#fef3c7',
+                        border: '2px solid #fbbf24',
+                        borderRadius: '12px',
+                        padding: '30px',
+                        textAlign: 'center',
+                        marginBottom: '20px'
+                      }}>
+                        <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#92400e', margin: '0 0 10px 0' }}>
+                          ⚠️ No Candidates Found
+                        </h3>
+                        <p style={{ color: '#78350f', margin: '0 0 20px 0', fontSize: '15px' }}>
+                          The search didn't return any candidates, or there was an error loading results.
+                        </p>
+                        <button
+                          onClick={() => {
+                            setDomainSearchSessionId(null);
+                            setDomainSearchCandidates([]);
+                            setDomainSessionStats(null);
+                            setSearchCacheInfo(null);
+                            showNotification('Search reset. You can try again.', 'info');
+                          }}
+                          style={{
+                            padding: '12px 24px',
+                            background: '#ef4444',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '15px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.background = '#dc2626'}
+                          onMouseOut={(e) => e.currentTarget.style.background = '#ef4444'}
+                        >
+                          🔄 Reset Search & Try Again
+                        </button>
+                      </div>
+                    )}
+
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                       <h3 style={{ fontSize: '20px', fontWeight: '700', margin: 0 }}>
                         Candidates Found ({domainSearchCandidates.length})
@@ -6081,7 +6179,7 @@ function App() {
                   color: '#6b7280',
                   marginBottom: '12px'
                 }}>
-                  {profileModalData.location || 'Location not specified'}
+                  {profileModalData.location_raw_address || profileModalData.location || 'Location not specified'}
                 </div>
                 {profileModalData.url && (
                   <a

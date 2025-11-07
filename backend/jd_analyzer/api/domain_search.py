@@ -56,11 +56,21 @@ from coresignal_company_lookup import CoreSignalCompanyLookup
 # Import config for credit costs
 from config import CORESIGNAL_CREDIT_PER_FETCH, CORESIGNAL_CREDIT_USD
 
-# Initialize Anthropic client for AI evaluation
+# Initialize Anthropic client for AI evaluation (lazy loading to prevent import crashes)
 anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
-if not anthropic_api_key:
-    raise ValueError("ANTHROPIC_API_KEY environment variable is not set")
-anthropic_client = anthropic.Anthropic(api_key=anthropic_api_key)
+anthropic_client = None
+
+def get_anthropic_client():
+    """
+    Lazy-load Anthropic client to prevent module import crashes.
+    Only raises error when actually needed for a route.
+    """
+    global anthropic_client
+    if anthropic_client is None:
+        if not anthropic_api_key:
+            raise ValueError("ANTHROPIC_API_KEY environment variable is required for this operation")
+        anthropic_client = anthropic.Anthropic(api_key=anthropic_api_key)
+    return anthropic_client
 
 # Create Blueprint
 domain_search_bp = Blueprint('domain_search', __name__)
@@ -1158,7 +1168,7 @@ Provide your evaluation in the following JSON format:
 }}"""
 
             # Call Claude API
-            message = anthropic_client.messages.create(
+            message = get_anthropic_client().messages.create(
                 model="claude-sonnet-4-5-20250929",
                 max_tokens=1000,
                 temperature=0.1,  # Low temperature for consistent evaluation
@@ -1517,6 +1527,108 @@ def domain_company_evaluate_stream():
 
     except Exception as e:
         print(f"Error in evaluate stream endpoint: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@domain_search_bp.route('/api/jd/load-more-previews', methods=['POST'])
+def load_more_previews():
+    """
+    Load more candidate previews from next company batch.
+
+    Request Body:
+    {
+        "session_id": "search_...",
+        "count": 20,
+        "mode": "company_batch"
+    }
+
+    Response:
+    {
+        "success": true,
+        "new_profiles": [...],
+        "session_stats": {...},
+        "remaining_batches": 5
+    }
+    """
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id')
+        count = data.get('count', 20)
+
+        if not session_id:
+            return jsonify({"success": False, "error": "session_id is required"}), 400
+
+        # Get session from manager
+        session_manager = SearchSessionManager()
+        session = session_manager.get_session(session_id)
+
+        if not session:
+            return jsonify({"success": False, "error": "Session not found or expired"}), 404
+
+        # Get next batch of companies
+        next_batch = session_manager.get_next_batch(session_id)
+
+        if not next_batch:
+            return jsonify({
+                "success": True,
+                "new_profiles": [],
+                "session_stats": session_manager.get_session_stats(session_id),
+                "remaining_batches": 0,
+                "message": "No more company batches available"
+            })
+
+        # Parse search query from session
+        import json as json_lib
+        search_query = json_lib.loads(session['search_query'])
+        jd_requirements = search_query.get('jd_requirements', {})
+        endpoint = search_query.get('endpoint', 'employee_clean')
+        max_previews = search_query.get('max_previews', count)
+
+        # Create session logger (reuse existing session directory)
+        from utils.session_logger import SessionLogger
+        session_logger = SessionLogger(session_id=session_id)
+
+        # Run Stage 2 with next batch
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        # Convert batch companies to dict format
+        companies_to_search = [{'name': c} for c in next_batch]
+
+        stage2_results = loop.run_until_complete(
+            stage2_preview_search(
+                companies=companies_to_search,
+                jd_requirements=jd_requirements,
+                endpoint=endpoint,
+                max_previews=max_previews,
+                session_logger=session_logger,
+                create_session=False,  # Don't create new session
+                session_id=session_id,  # Continue existing session
+                batch_size=5
+            )
+        )
+        loop.close()
+
+        # Get updated session stats
+        session_stats = session_manager.get_session_stats(session_id)
+
+        # Calculate remaining batches
+        company_batches = json_lib.loads(session['company_batches'])
+        current_batch_index = session.get('batch_index', 0)
+        remaining_batches = len(company_batches) - current_batch_index - 1
+
+        return jsonify({
+            "success": True,
+            "new_profiles": stage2_results.get('previews', []),
+            "session_stats": session_stats,
+            "remaining_batches": remaining_batches,
+            "batch_companies": next_batch
+        })
+
+    except Exception as e:
+        print(f"Error in load-more-previews: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500

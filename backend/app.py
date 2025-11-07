@@ -1345,10 +1345,14 @@ def fetch_profile_by_id(employee_id):
             # Enrich with company data (logos, funding, etc.)
             print(f"Enriching cached profile with company data...")
             storage_functions = get_storage_functions()
-            enriched_profile = coresignal_service.enrich_profile_with_company_data(
+            enriched_result = coresignal_service.enrich_profile_with_company_data(
                 profile_data,
                 storage_functions=storage_functions
             )
+
+            # Extract profile_data and enrichment_summary from result
+            enriched_profile = enriched_result['profile_data']
+            enrichment_summary = enriched_result['enrichment_summary']
 
             # Extract profile summary
             profile_summary = extract_profile_summary(enriched_profile)
@@ -1357,6 +1361,7 @@ def fetch_profile_by_id(employee_id):
                 'success': True,
                 'profile': enriched_profile,
                 'profile_summary': profile_summary,
+                'enrichment_summary': enrichment_summary,
                 'data_source': DATA_SOURCE_STORAGE,
                 'storage_age_days': storage_age_days
             })
@@ -1373,10 +1378,14 @@ def fetch_profile_by_id(employee_id):
         # Enrich with company data (logos, funding, etc.)
         print(f"Enriching profile with company data...")
         storage_functions = get_storage_functions()
-        enriched_profile = coresignal_service.enrich_profile_with_company_data(
+        enriched_result = coresignal_service.enrich_profile_with_company_data(
             profile_data,
             storage_functions=storage_functions
         )
+
+        # Extract profile_data and enrichment_summary from result
+        enriched_profile = enriched_result['profile_data']
+        enrichment_summary = enriched_result['enrichment_summary']
 
         # Save to storage for next time (if we can extract LinkedIn URL)
         linkedin_url = None
@@ -1397,6 +1406,7 @@ def fetch_profile_by_id(employee_id):
             'success': True,
             'profile': enriched_profile,
             'profile_summary': profile_summary,
+            'enrichment_summary': enrichment_summary,
             'data_source': DATA_SOURCE_CORESIGNAL,
             'employee_id': employee_id
         })
@@ -3157,13 +3167,24 @@ def stream_research_status(jd_id):
     - Lower server load
     - Professional streaming experience
     """
+    from flask import stream_with_context
+
+    @stream_with_context
     def generate():
         from supabase import create_client
         supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 
+        # Track specific fields instead of entire JSON to detect real changes
         last_status = None
+        last_phase = None
+        last_action = None
+        last_progress = None
+
         retry_count = 0
         max_retries = 10  # Wait up to 5 seconds for session to be created
+
+        # Send initial connection message
+        yield f"data: {json.dumps({'connected': True})}\n\n"
 
         while True:
             try:
@@ -3185,20 +3206,26 @@ def stream_research_status(jd_id):
                 session = result.data[0]
                 status = session['status']
                 search_config = session.get('search_config') or {}
+                current_phase = search_config.get('current_phase')
+                current_action = search_config.get('current_action')
 
                 # Debug logging
-                print(f"[STREAM] JD: {jd_id}, Status: {status}, Phase: {search_config.get('current_phase')}, Action: {search_config.get('current_action')}")
+                print(f"[STREAM] JD: {jd_id}, Status: {status}, Phase: {current_phase}, Action: {current_action}")
 
                 # Calculate progress based on phase
-                if status == 'completed':
-                    progress = 100
-                elif status == 'failed':
+                if status == 'failed':
                     progress = 0
+                elif status == 'completed' and (current_phase == 'discovery' or not current_phase):
+                    # Discovery complete (status=completed, phase=discovery), show 100%
+                    progress = 100
+                elif status == 'completed':
+                    # Evaluation complete
+                    progress = 100
                 else:
-                    current_phase = search_config.get('current_phase', 'discovery')
+                    phase = current_phase or 'discovery'
 
-                    if current_phase == 'discovery':
-                        # Discovery phase: 0-30% (estimate based on time)
+                    if phase == 'discovery':
+                        # Discovery phase: 0-30%
                         total_discovered = session.get('total_discovered', 0)
                         if total_discovered > 0:
                             # Scale based on discovered companies (target ~100)
@@ -3206,7 +3233,7 @@ def stream_research_status(jd_id):
                         else:
                             progress = 5  # Show some progress even if count not available
 
-                    elif current_phase == 'screening':
+                    elif phase == 'screening':
                         # Screening phase: 30-60%
                         total_discovered = session.get('total_discovered', 0)
                         total_screened = len(search_config.get('screened_companies', []))
@@ -3216,7 +3243,7 @@ def stream_research_status(jd_id):
                         else:
                             progress = 45  # Mid-point of screening phase
 
-                    elif current_phase == 'deep_research' or current_phase == 'evaluation':
+                    elif phase == 'deep_research' or phase == 'evaluation':
                         # Evaluation phase: 60-100%
                         total_expected = session.get('max_companies', 25)
                         evaluated = session.get('total_evaluated', 0)
@@ -3231,27 +3258,44 @@ def stream_research_status(jd_id):
 
                 session['progress_percentage'] = progress
 
-                # Only send update if status changed
-                current_status = json.dumps(session)
-                if current_status != last_status:
-                    print(f"[STREAM] Sending update: status={status}, progress={progress}%")
+                # CRITICAL FIX: Send update if ANY key field changed (not entire JSON)
+                fields_changed = (
+                    status != last_status or
+                    current_phase != last_phase or
+                    current_action != last_action or
+                    progress != last_progress
+                )
+
+                if fields_changed:
+                    print(f"[STREAM] Sending update: status={status}, phase={current_phase}, progress={progress}%")
                     yield f"data: {json.dumps({'success': True, 'session': session})}\n\n"
-                    last_status = current_status
+
+                    # Update tracking variables
+                    last_status = status
+                    last_phase = current_phase
+                    last_action = current_action
+                    last_progress = progress
 
                 # Stop streaming if completed or failed
                 if status in ['completed', 'failed']:
+                    print(f"[STREAM] Ending stream for status: {status}")
                     break
 
                 # Stream every 500ms
                 time.sleep(0.5)
 
             except Exception as e:
+                print(f"[STREAM] Error: {e}")
+                import traceback
+                traceback.print_exc()
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
                 break
 
     return Response(generate(), mimetype='text/event-stream', headers={
         'Cache-Control': 'no-cache',
-        'X-Accel-Buffering': 'no'
+        'X-Accel-Buffering': 'no',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*'  # Allow CORS for local development
     })
 
 
@@ -3277,14 +3321,17 @@ def get_research_results(jd_id):
 
         session = session_result.data[0]
 
-        if session['status'] not in ['completed', 'running', 'discovered']:
+        if session['status'] not in ['completed', 'running']:
             return jsonify({
                 'error': f"Research {session['status']}. Cannot retrieve results."
             }), 400
 
-        # Special handling for "discovered" status - return only discovered companies (no evaluated yet)
-        if session['status'] == 'discovered':
-            search_config = session.get('search_config') or {}
+        # Special handling for discovery complete (status=completed, phase=discovery)
+        # Return only discovered companies (no evaluation yet)
+        search_config = session.get('search_config') or {}
+        current_phase = search_config.get('phase')
+
+        if session['status'] == 'completed' and current_phase == 'discovery':
             discovered_companies_list = search_config.get('discovered_companies_list', [])
             screened_companies = search_config.get('screened_companies', [])
             total_discovered = session.get('total_discovered', len(discovered_companies_list))

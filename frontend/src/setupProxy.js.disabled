@@ -1,0 +1,53 @@
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
+module.exports = function(app) {
+  // Configure proxy for Server-Sent Events streaming
+  // CRITICAL FIX: Use selfHandleResponse + manual piping to avoid buffering
+  // This is the only way to make SSE work through create-react-app's proxy
+  app.use(
+    createProxyMiddleware(
+      // Filter function to match streaming endpoints
+      (pathname, req) => {
+        const isStream = pathname.match(/^\/research-companies\/[^\/]+\/stream$/);
+        if (isStream) {
+          console.log('[PROXY] Matched SSE stream endpoint:', pathname);
+        }
+        return isStream;
+      },
+      {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+        // CRITICAL: Must use selfHandleResponse for streaming
+        selfHandleResponse: true,
+        // Manually handle the response to avoid buffering
+        onProxyRes: function (proxyRes, req, res) {
+          console.log('[PROXY] SSE response received, piping to client...');
+
+          // Set SSE headers on the response
+          res.writeHead(proxyRes.statusCode, proxyRes.headers);
+
+          // Pipe the response directly (NO BUFFERING)
+          proxyRes.pipe(res);
+        },
+        onProxyReq: function (proxyReq, req, res) {
+          console.log('[PROXY] Proxying SSE request to backend:', req.url);
+        },
+        onError: function (err, req, res) {
+          console.error('[PROXY] SSE proxy error:', err.message);
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end('Proxy error: ' + err.message);
+        },
+        logLevel: 'debug'
+      }
+    )
+  );
+
+  // Regular proxy for all other API calls
+  app.use(
+    ['/research-companies', '/api', '/fetch-profile', '/assess-profile', '/search-profiles', '/save-feedback', '/get-feedback'],
+    createProxyMiddleware({
+      target: 'http://localhost:5001',
+      changeOrigin: true
+    })
+  );
+};
