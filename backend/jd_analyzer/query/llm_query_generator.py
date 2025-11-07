@@ -47,29 +47,21 @@ class MultiLLMQueryGenerator:
             self.anthropic_client = None
 
         try:
-            # Initialize OpenAI client - handle Render proxy environment variables
-            # Render may set HTTP_PROXY/HTTPS_PROXY that conflict with OpenAI SDK
+            # Initialize OpenAI client - use custom httpx client to bypass proxy issues
+            # Render's proxy environment variables cause OpenAI SDK to fail
+            import httpx
 
-            # Temporarily clear proxy env vars that might cause issues
-            old_http_proxy = os.environ.pop('HTTP_PROXY', None)
-            old_https_proxy = os.environ.pop('HTTPS_PROXY', None)
-            old_http_proxy_lower = os.environ.pop('http_proxy', None)
-            old_https_proxy_lower = os.environ.pop('https_proxy', None)
+            # Create httpx client with explicit proxy settings (none/disabled)
+            http_client = httpx.Client(
+                timeout=httpx.Timeout(60.0, connect=10.0),
+                proxies={}  # Empty dict explicitly disables proxies
+            )
 
-            try:
-                self.openai_client = openai.OpenAI(
-                    api_key=os.getenv("OPENAI_API_KEY")
-                )
-            finally:
-                # Restore proxy env vars for other services that might need them
-                if old_http_proxy:
-                    os.environ['HTTP_PROXY'] = old_http_proxy
-                if old_https_proxy:
-                    os.environ['HTTPS_PROXY'] = old_https_proxy
-                if old_http_proxy_lower:
-                    os.environ['http_proxy'] = old_http_proxy_lower
-                if old_https_proxy_lower:
-                    os.environ['https_proxy'] = old_https_proxy_lower
+            self.openai_client = openai.OpenAI(
+                api_key=os.getenv("OPENAI_API_KEY"),
+                http_client=http_client
+            )
+            print("✓ OpenAI client initialized successfully with custom httpx client")
 
         except Exception as e:
             self.openai_init_error = str(e)
