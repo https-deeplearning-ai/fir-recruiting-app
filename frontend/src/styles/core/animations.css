@@ -1,0 +1,204 @@
+/**
+ * ANIMATIONS - Central Keyframes Library
+ *
+ * All @keyframes animations in one place to avoid duplicates.
+ * Previously, 'spin' was defined 6 times and 'fadeIn' 3 times across files.
+ *
+ * Usage: animation: spin 1s linear infinite;
+ */
+
+/* ========================================
+   LOADING & SPINNERS
+   ======================================== */
+
+/**
+ * Spin - For loading spinners
+ * Previously duplicated 6 times (App.css x4, CompanyTooltip.css, CrunchbaseValidationModal.css, ListsView.css)
+ */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-360deg);
+  }
+}
+
+/**
+ * Shimmer - For skeleton loaders
+ * Used in loading placeholders
+ */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/**
+ * Pulse - Generic pulsing effect
+ * Used for loading states, attention indicators
+ */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/**
+ * Recording Pulse - For voice recording indicator
+ * Pulsing red/active state for mic button
+ */
+@keyframes recording-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+/**
+ * Pulse Feedback - For feedback button interaction
+ * Box shadow pulse effect
+ */
+@keyframes pulse-feedback {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+}
+
+/* ========================================
+   FADE ANIMATIONS
+   ======================================== */
+
+/**
+ * Fade In - Generic fade in
+ * Previously duplicated 3 times (App.css x2, CrunchbaseValidationModal.css)
+ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/**
+ * Tooltip Fade In - For tooltip appearances
+ * Slight delay and scale for smoother entrance
+ */
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
+   SLIDE ANIMATIONS
+   ======================================== */
+
+/**
+ * Slide Up - For modal/content rising from bottom
+ * Used in modals, drawers
+ */
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/**
+ * Slide Down - For dropdown menus, expanding content
+ */
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/**
+ * Slide In - For side panel/drawer from right
+ * Used in feedback drawer, side navigation
+ */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/**
+ * Slide In From Left
+ */
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+/**
+ * Pre-defined animation classes for common use cases
+ * Apply these classes to elements for instant animations
+ */
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}

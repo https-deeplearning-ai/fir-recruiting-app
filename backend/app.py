@@ -6,6 +6,7 @@ BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
+from config import DATA_SOURCE_CORESIGNAL, DATA_SOURCE_STORAGE
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import json
@@ -13,7 +14,7 @@ import asyncio
 import aiohttp
 from concurrent.futures import ThreadPoolExecutor
 from anthropic import Anthropic
-from datetime import datetime
+from datetime import datetime, timedelta
 import calendar
 import time
 import random
@@ -22,6 +23,7 @@ from dotenv import load_dotenv
 import requests
 import csv
 from io import StringIO
+import hashlib
 
 # Load environment variables from .env file
 load_dotenv()
@@ -86,6 +88,14 @@ except ImportError as e:
     print(f"Warning: Could not import Domain Search routes: {e}")
     print(f"sys.path: {sys.path[:3]}")  # Debug: show first 3 paths
     traceback.print_exc()
+
+# Import Load More Endpoints for company batching
+try:
+    from jd_analyzer.api.load_more_endpoint import bp as load_more_bp
+    app.register_blueprint(load_more_bp)
+    print("✓ Load More endpoints registered successfully")
+except ImportError as e:
+    print(f"Warning: Could not import Load More endpoints: {e}")
 
 # Import Test Endpoint (temporary)
 try:
@@ -270,6 +280,57 @@ def get_stored_profile(linkedin_url):
         print(f"⚠️ Error checking profile storage: {str(e)}")
         return None
 
+def get_stored_profile_by_employee_id(employee_id):
+    """
+    Check if profile with this employee_id is stored in database
+
+    This searches through stored profiles to find one matching the employee_id.
+    Since employee_id is stored inside profile_data JSONB, we need to query that.
+
+    Returns: dict with profile_data and metadata, or None if not found
+    """
+    try:
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json'
+        }
+
+        # Query for profiles where profile_data->>'id' matches the employee_id
+        # Using JSONB operator ->> to extract 'id' field
+        url = f"{SUPABASE_URL}/rest/v1/stored_profiles?profile_data->>id=eq.{employee_id}"
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            results = response.json()
+            if results and len(results) > 0:
+                stored = results[0]
+                # Calculate age
+                from datetime import datetime
+                last_fetched = datetime.fromisoformat(stored['last_fetched'].replace('Z', '+00:00'))
+                age = datetime.now(last_fetched.tzinfo) - last_fetched
+                age_days = age.days
+
+                # FORCE fresh pull if > 90 days (3 months)
+                if age_days >= 90:
+                    print(f"Stored profile is {age_days} days old (>90 days) - FORCING fresh pull")
+                    return None
+
+                # Use stored data if < 90 days
+                print(f"Using stored profile (age: {age_days} days) - SAVED 1 Collect credit!")
+
+                return {
+                    'profile_data': stored['profile_data'],
+                    'checked_at': stored.get('checked_at'),
+                    'last_fetched': stored.get('last_fetched'),
+                    'storage_age_days': age_days,
+                    'is_stale': age_days >= 3
+                }
+        return None
+    except Exception as e:
+        print(f"Error checking profile storage by employee_id: {str(e)}")
+        return None
+
 def save_stored_profile(linkedin_url, profile_data, checked_at=None):
     """Save profile to storage"""
     try:
@@ -382,6 +443,111 @@ def save_stored_company(company_id, company_data):
             return False
     except Exception as e:
         print(f"⚠️ Error saving company to storage: {str(e)}")
+        return False
+
+def get_storage_functions():
+    """
+    Get storage functions dict for passing to enrichment methods.
+
+    Returns:
+        dict: {'get': get_stored_company, 'save': save_stored_company}
+    """
+    return {
+        'get': get_stored_company,
+        'save': save_stored_company
+    }
+
+def generate_search_cache_key(jd_requirements, endpoint):
+    """
+    Generate a cache key from search parameters
+    Uses MD5 hash of normalized search criteria
+    """
+    import hashlib
+
+    # Normalize the search parameters
+    cache_data = {
+        'target_domain': jd_requirements.get('target_domain', ''),
+        'mentioned_companies': sorted(jd_requirements.get('mentioned_companies', [])),  # Sort for consistency
+        'endpoint': endpoint
+    }
+
+    # Create hash
+    cache_string = json.dumps(cache_data, sort_keys=True)
+    cache_key = hashlib.md5(cache_string.encode()).hexdigest()
+    return cache_key
+
+def get_cached_search_results(cache_key, freshness_days=7):
+    """
+    Check if search results are cached and fresh
+    Returns cached data if fresh, None if needs refresh
+    """
+    try:
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json'
+        }
+
+        url = f"{SUPABASE_URL}/rest/v1/cached_searches?cache_key=eq.{cache_key}"
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            results = response.json()
+            if results and len(results) > 0:
+                cached = results[0]
+                # Check freshness
+                from datetime import datetime, timedelta
+                last_fetched = datetime.fromisoformat(cached['created_at'].replace('Z', '+00:00'))
+                age = datetime.now(last_fetched.tzinfo) - last_fetched
+
+                if age.days < freshness_days:
+                    print(f"✅ Using cached search results (age: {age.days} days) - SAVED API credits!")
+                    return {
+                        'stage1_companies': cached['stage1_companies'],
+                        'stage2_previews': cached['stage2_previews'],
+                        'session_id': cached.get('session_id'),
+                        'from_cache': True,
+                        'cache_age_days': age.days
+                    }
+                else:
+                    print(f"⚠️ Cached search is {age.days} days old (>7 days) - fetching fresh results")
+        return None
+    except Exception as e:
+        print(f"⚠️ Error checking cached search: {str(e)}")
+        return None
+
+def save_search_results(cache_key, stage1_companies, stage2_previews, session_id, jd_requirements, endpoint):
+    """Save search results to cache"""
+    try:
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+        }
+
+        data = {
+            'cache_key': cache_key,
+            'stage1_companies': stage1_companies,
+            'stage2_previews': stage2_previews,
+            'session_id': session_id,
+            'search_params': {
+                'jd_requirements': jd_requirements,
+                'endpoint': endpoint
+            }
+        }
+
+        url = f"{SUPABASE_URL}/rest/v1/cached_searches"
+        response = requests.post(url, json=data, headers=headers)
+
+        if response.status_code in [200, 201]:
+            print(f"💾 Saved search results to cache")
+            return True
+        else:
+            print(f"⚠️ Failed to save search to cache: {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"⚠️ Error saving search to cache: {str(e)}")
         return False
 
 def process_user_prompt_for_search(user_prompt: str) -> dict:
@@ -1087,8 +1253,8 @@ def fetch_profile():
             # Build result dict for cached profile (for response building later)
             result = {
                 'success': True,
-                'method': 'storage',
-                'data_source': 'storage',
+                'method': DATA_SOURCE_STORAGE,
+                'data_source': DATA_SOURCE_STORAGE,
                 'is_fresh': False,
                 'storage_age_days': storage_age_days
             }
@@ -1138,7 +1304,7 @@ def fetch_profile():
             'success': True,
             'profile_data': profile_data,
             'profile_summary': profile_summary,  # Add profile summary for frontend
-            'data_source': result.get('method', result.get('data_source', 'coresignal')),
+            'data_source': result.get('method', result.get('data_source', DATA_SOURCE_CORESIGNAL)),
             'is_fresh': result.get('is_fresh', False)
         }
 
@@ -1159,6 +1325,85 @@ def fetch_profile():
     except Exception as e:
         import traceback
         traceback.print_exc()  # Print full traceback to console
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+@app.route('/fetch-profile-by-id/<employee_id>', methods=['GET'])
+def fetch_profile_by_id(employee_id):
+    """Fetch full profile data by CoreSignal employee ID"""
+    try:
+        print(f"Fetching profile for employee ID: {employee_id}")
+
+        # Check storage first to save API credits
+        # Try to find by employee_id in existing stored profiles
+        stored_result = get_stored_profile_by_employee_id(employee_id)
+
+        if stored_result:
+            print(f"Using stored profile for employee ID {employee_id} (saves 1 Collect credit!)")
+            profile_data = stored_result['profile_data']
+            storage_age_days = stored_result.get('storage_age_days', 0)
+
+            # Enrich with company data (logos, funding, etc.)
+            print(f"Enriching cached profile with company data...")
+            storage_functions = get_storage_functions()
+            enriched_profile = coresignal_service.enrich_profile_with_company_data(
+                profile_data,
+                storage_functions=storage_functions
+            )
+
+            # Extract profile summary
+            profile_summary = extract_profile_summary(enriched_profile)
+
+            return jsonify({
+                'success': True,
+                'profile': enriched_profile,
+                'profile_summary': profile_summary,
+                'data_source': DATA_SOURCE_STORAGE,
+                'storage_age_days': storage_age_days
+            })
+
+        # Not in storage - fetch from CoreSignal
+        print(f"Fetching fresh profile from CoreSignal for ID {employee_id}...")
+        result = coresignal_service.fetch_profile_by_id(employee_id)
+
+        if not result['success']:
+            return jsonify({'error': result['error']}), 400
+
+        profile_data = result['profile_data']
+
+        # Enrich with company data (logos, funding, etc.)
+        print(f"Enriching profile with company data...")
+        storage_functions = get_storage_functions()
+        enriched_profile = coresignal_service.enrich_profile_with_company_data(
+            profile_data,
+            storage_functions=storage_functions
+        )
+
+        # Save to storage for next time (if we can extract LinkedIn URL)
+        linkedin_url = None
+        if 'url' in enriched_profile:
+            linkedin_url = enriched_profile['url']
+        elif 'websites_professional_network' in enriched_profile and enriched_profile['websites_professional_network']:
+            linkedin_url = enriched_profile['websites_professional_network'][0] if isinstance(enriched_profile['websites_professional_network'], list) else enriched_profile['websites_professional_network']
+
+        if linkedin_url:
+            print(f"Saving enriched profile to storage for future use...")
+            checked_at = enriched_profile.get('checked_at')
+            save_stored_profile(linkedin_url, enriched_profile, checked_at)
+
+        # Extract profile summary
+        profile_summary = extract_profile_summary(enriched_profile)
+
+        return jsonify({
+            'success': True,
+            'profile': enriched_profile,
+            'profile_summary': profile_summary,
+            'data_source': DATA_SOURCE_CORESIGNAL,
+            'employee_id': employee_id
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/assess-profile', methods=['POST'])
@@ -2650,6 +2895,18 @@ def get_company_research_service():
             print(f"Warning: Could not initialize Company Research Service: {e}")
     return company_research_service
 
+def generate_jd_cache_key(jd_text):
+    """
+    Generate a deterministic cache key from JD text.
+    Same JD text always produces the same key.
+    """
+    # Normalize text: lowercase, strip whitespace
+    normalized = jd_text.strip().lower()
+    # Generate SHA256 hash
+    hash_obj = hashlib.sha256(normalized.encode('utf-8'))
+    # Return first 16 chars of hex digest (sufficient for uniqueness)
+    return f"jd_{hash_obj.hexdigest()[:16]}"
+
 @app.route('/research-companies', methods=['POST'])
 def research_companies_endpoint():
     """
@@ -2683,14 +2940,20 @@ def research_companies_endpoint():
 
         data = request.get_json()
 
-        # Generate JD ID if not provided
-        import uuid
-        jd_id = data.get('jd_id', str(uuid.uuid4()))
         jd_data = data.get('jd_data')
         config = data.get('config', {})
+        jd_text = data.get('jd_text', '')  # Original JD text for cache key
+        force_refresh = data.get('force_refresh', False)  # Bypass cache if True
 
         if not jd_data:
             return jsonify({'error': 'jd_data is required'}), 400
+
+        # Generate JD ID from cache key (if jd_text provided) or use provided ID or UUID
+        if jd_text and not data.get('jd_id'):
+            jd_id = generate_jd_cache_key(jd_text)
+        else:
+            import uuid
+            jd_id = data.get('jd_id', str(uuid.uuid4()))
 
         # ============= DEBUG LOGGING =============
         print(f"\n{'='*100}")
@@ -2708,7 +2971,7 @@ def research_companies_endpoint():
         print(f"{'='*100}\n")
         # =========================================
 
-        # Check for existing session
+        # Check for existing session (cache)
         from supabase import create_client
         supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 
@@ -2716,11 +2979,41 @@ def research_companies_endpoint():
             "jd_id", jd_id
         ).execute()
 
-        if existing.data and existing.data[0].get('status') == 'running':
-            return jsonify({
-                'success': False,
-                'error': 'Research already in progress for this JD'
-            }), 409
+        # Cache hit: Return cached results if available and not expired (unless force_refresh)
+        if existing.data and not force_refresh:
+            session = existing.data[0]
+
+            # If research is currently running, reject
+            if session.get('status') == 'running':
+                return jsonify({
+                    'success': False,
+                    'error': 'Research already in progress for this JD'
+                }), 409
+
+            # If research is completed, check cache expiration (48 hours)
+            if session.get('status') == 'completed':
+                created_at = datetime.fromisoformat(session.get('created_at').replace('Z', '+00:00'))
+                cache_age = datetime.now(created_at.tzinfo) - created_at
+                cache_ttl = timedelta(hours=48)
+
+                if cache_age < cache_ttl:
+                    # Cache hit! Return cached results
+                    hours_ago = cache_age.total_seconds() / 3600
+                    print(f"✅ CACHE HIT: Returning cached research from {hours_ago:.1f} hours ago")
+
+                    return jsonify({
+                        'success': True,
+                        'session_id': jd_id,
+                        'status': 'completed',
+                        'from_cache': True,
+                        'cache_age_hours': hours_ago,
+                        'message': f'Using cached research from {hours_ago:.1f} hours ago'
+                    })
+                else:
+                    print(f"⏰ Cache expired ({cache_age.total_seconds()/3600:.1f} hours old), running fresh research")
+
+        if force_refresh:
+            print("🔄 Force refresh requested, bypassing cache")
 
         # Start async research in background
         async def run_research():
@@ -3005,6 +3298,29 @@ def get_research_results(jd_id):
                     }
                 }
             }
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/research-companies/<jd_id>/reset', methods=['DELETE', 'POST'])
+def reset_research_session(jd_id):
+    """Delete/reset a research session to allow fresh start."""
+    try:
+        from supabase import create_client
+        supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+        # Delete the session
+        supabase.table("company_research_sessions").delete().eq("jd_id", jd_id).execute()
+
+        print(f"✅ Deleted session: {jd_id}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Session {jd_id} deleted successfully'
         })
 
     except Exception as e:

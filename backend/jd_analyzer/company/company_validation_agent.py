@@ -90,16 +90,22 @@ CRITICAL:
 """
 
         try:
-            # Claude API call (no built-in web search in current SDK)
-            # For now, use Claude's knowledge - in production, integrate with web search tool
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=1000,
-                temperature=0.2,
-                messages=[{"role": "user", "content": prompt}]
-            )
+            # Run synchronous Anthropic call in thread executor to avoid blocking
+            import concurrent.futures
 
-            response_text = response.content[0].text
+            def sync_api_call():
+                response = self.client.messages.create(
+                    model=self.model,
+                    max_tokens=1000,
+                    temperature=0.2,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                return response.content[0].text
+
+            # Use thread executor for synchronous API call
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                response_text = await loop.run_in_executor(executor, sync_api_call)
 
             # Parse JSON from response
             import json

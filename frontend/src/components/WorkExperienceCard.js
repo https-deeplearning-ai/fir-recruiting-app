@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import CompanyTooltip from './CompanyTooltip';
 import './WorkExperienceCard.css';
 
@@ -13,6 +14,55 @@ const WorkExperienceCard = ({ experience, index, onRegenerateUrl, onCrunchbaseCl
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [modalVisible, setModalVisible] = useState(false);
   const hoverTimeoutRef = React.useRef(null);
+  const targetElementRef = React.useRef(null); // Store the hovered element
+  const [debugInfo, setDebugInfo] = useState(null); // Store debug information
+  const DEBUG_MODE = false; // Set to true to enable debugging with persistent tooltips
+
+  // Function to calculate tooltip position from target element
+  const calculateTooltipPosition = () => {
+    if (!targetElementRef.current) {
+      console.log('❌ No target element reference');
+      return;
+    }
+
+    // Use offsetTop/offsetLeft for position relative to parent card
+    const targetElement = targetElementRef.current;
+    const offsetTop = targetElement.offsetTop;
+    const offsetLeft = targetElement.offsetLeft;
+
+    // Constants for tooltip dimensions (matches CompanyTooltip.css)
+    const HORIZONTAL_OFFSET = 250; // Fixed offset from left edge of company name
+
+    // Simple positioning: always to the right with fixed offset from left edge
+    let left = offsetLeft + HORIZONTAL_OFFSET;
+    let top = offsetTop;
+
+    console.log(`📍 ${experience.company_name}: offsetTop=${offsetTop}, offsetLeft=${offsetLeft}, top=${top}, left=${left}`);
+
+    // Store debug info
+    const debug = {
+      offset: {
+        top: offsetTop,
+        left: offsetLeft
+      },
+      calculated: {
+        top,
+        left
+      }
+    };
+
+    if (DEBUG_MODE) {
+      console.log('🎯 TOOLTIP POSITIONING DEBUG:', {
+        company: experience.company_name,
+        ...debug
+      });
+      setDebugInfo(debug);
+    }
+
+    setTooltipPosition({ top, left });
+  };
+
+  // No scroll listener needed - tooltip stays at initial position
 
   const handleMouseEnter = (e) => {
     console.log('🖱️ HOVER: Mouse entered company name', experience.company_name);
@@ -22,44 +72,31 @@ const WorkExperienceCard = ({ experience, index, onRegenerateUrl, onCrunchbaseCl
       clearTimeout(hoverTimeoutRef.current);
     }
 
-    const rect = e.target.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
-    const spaceBelow = viewportHeight - rect.bottom;
+    // Store the target element for position recalculation on scroll
+    targetElementRef.current = e.target;
 
-    // Constants for tooltip dimensions
-    const TOOLTIP_WIDTH = 550;
+    // Calculate initial tooltip position
+    calculateTooltipPosition();
 
-    // Always show below for simplicity (tooltips grow downward from top position)
-    // This avoids complex "show above" calculations
-    let top = rect.bottom + 8;
-    console.log('📍 HOVER: Showing tooltip BELOW company name');
-
-    // Calculate horizontal position (prevent going off-screen)
-    let left = rect.left;
-    if (left + TOOLTIP_WIDTH > viewportWidth) {
-      left = viewportWidth - TOOLTIP_WIDTH - 20; // 20px margin from right edge
-    }
-    left = Math.max(8, left); // Prevent going off left edge
-
-    console.log('📍 HOVER: Final position (viewport coordinates)', { top, left });
     console.log('✅ HOVER: Setting tooltip visible to TRUE');
-
-    setTooltipPosition({
-      top: top,
-      left: left
-    });
     setTooltipVisible(true);
   };
 
   const handleMouseLeave = () => {
+    if (DEBUG_MODE) {
+      console.log('🚪 Mouse left company name - tooltip will stay open in DEBUG_MODE');
+      // In debug mode, don't auto-hide - let user manually close
+      return;
+    }
     // Add small delay before hiding to allow moving to tooltip
     hoverTimeoutRef.current = setTimeout(() => {
       setTooltipVisible(false);
+      targetElementRef.current = null; // Clear reference when hiding
     }, 200);
   };
 
   const handleTooltipMouseEnter = () => {
+    console.log('🖱️ Mouse entered tooltip');
     // Cancel hide if mouse enters tooltip
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
@@ -67,13 +104,27 @@ const WorkExperienceCard = ({ experience, index, onRegenerateUrl, onCrunchbaseCl
   };
 
   const handleTooltipMouseLeave = () => {
+    if (DEBUG_MODE) {
+      console.log('🚪 Mouse left tooltip - will stay open in DEBUG_MODE');
+      // In debug mode, don't auto-hide
+      return;
+    }
     setTooltipVisible(false);
+    targetElementRef.current = null; // Clear reference when hiding
+  };
+
+  const handleCloseTooltip = () => {
+    console.log('❌ Manually closing tooltip');
+    setTooltipVisible(false);
+    targetElementRef.current = null;
+    setDebugInfo(null);
   };
 
   const handleClick = (e) => {
     e.stopPropagation();
     setModalVisible(true);
     setTooltipVisible(false); // Hide tooltip when modal opens
+    targetElementRef.current = null; // Clear reference
   };
 
   const handleCloseModal = (e) => {
@@ -247,14 +298,70 @@ const WorkExperienceCard = ({ experience, index, onRegenerateUrl, onCrunchbaseCl
         <div
           className="tooltip-wrapper"
           style={{
-            position: 'fixed',
+            position: 'absolute',
             top: `${tooltipPosition.top}px`,
             left: `${tooltipPosition.left}px`,
-            zIndex: 9999
+            zIndex: 'var(--z-tooltip, 9999)'
           }}
           onMouseEnter={handleTooltipMouseEnter}
           onMouseLeave={handleTooltipMouseLeave}
         >
+          {/* Debug Mode: Close Button */}
+          {DEBUG_MODE && (
+            <button
+              onClick={handleCloseTooltip}
+              style={{
+                position: 'absolute',
+                top: '-10px',
+                right: '-10px',
+                width: '30px',
+                height: '30px',
+                borderRadius: '50%',
+                background: '#ef4444',
+                color: 'white',
+                border: '2px solid white',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                zIndex: 10000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+              }}
+            >
+              ✕
+            </button>
+          )}
+
+          {/* Debug Mode: Positioning Debug Overlay */}
+          {DEBUG_MODE && debugInfo && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '-80px',
+                left: '0',
+                background: 'rgba(0, 0, 0, 0.9)',
+                color: '#00ff00',
+                padding: '8px 12px',
+                borderRadius: '4px',
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                whiteSpace: 'pre',
+                zIndex: 10001,
+                maxWidth: '400px',
+                border: '1px solid #00ff00',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
+              }}
+            >
+              <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#ffff00' }}>
+                🎯 {experience.company_name}
+              </div>
+              <div>Offset: top={Math.round(debugInfo.offset.top)} left={Math.round(debugInfo.offset.left)}</div>
+              <div>Tooltip: top={Math.round(debugInfo.calculated.top)} left={Math.round(debugInfo.calculated.left)}</div>
+            </div>
+          )}
+
           <CompanyTooltip
             enrichedData={experience.company_enriched}
             companyName={experience.company_name}
@@ -267,11 +374,11 @@ const WorkExperienceCard = ({ experience, index, onRegenerateUrl, onCrunchbaseCl
         </div>
       )}
 
-      {/* Modal (on click) */}
-      {hasEnrichedData && modalVisible && (
+      {/* Modal (on click) - Rendered via Portal at document root */}
+      {hasEnrichedData && modalVisible && ReactDOM.createPortal(
         <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={handleCloseModal}>✕</button>
+          <div className="modal-content company-details-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={handleCloseModal}>✕</button>
             <CompanyTooltip
               enrichedData={experience.company_enriched}
               companyName={experience.company_name}
@@ -282,7 +389,8 @@ const WorkExperienceCard = ({ experience, index, onRegenerateUrl, onCrunchbaseCl
               onEditUrl={onEditUrl}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

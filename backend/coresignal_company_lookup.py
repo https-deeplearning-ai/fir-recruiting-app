@@ -31,7 +31,8 @@ class CoreSignalCompanyLookup:
 
         self.base_url = "https://api.coresignal.com"
         self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "accept": "application/json",
+            "apikey": self.api_key,
             "Content-Type": "application/json"
         }
 
@@ -41,7 +42,10 @@ class CoreSignalCompanyLookup:
         limit: int = 5
     ) -> List[Dict[str, Any]]:
         """
-        Search for companies by name using CoreSignal API.
+        Search for companies by name using CoreSignal API (two-step workflow).
+
+        Step 1: Search endpoint returns company IDs
+        Step 2: Collect endpoint fetches full data for those IDs
 
         Args:
             company_name: Company name to search for
@@ -50,64 +54,79 @@ class CoreSignalCompanyLookup:
         Returns:
             List of company data dictionaries with company_id, name, website, etc.
         """
-        url = f"{self.base_url}/v2/company_clean/search/es_dsl/preview"
+        # STEP 1: Search for company IDs
+        search_url = f"{self.base_url}/cdapi/v2/company_base/search/es_dsl"
 
-        # Build search query - exact match on name with fuzzy fallback
+        # Build search query using query_string
         payload = {
             "query": {
-                "bool": {
-                    "should": [
-                        # Exact match (highest priority)
-                        {
-                            "match_phrase": {
-                                "name": {
-                                    "query": company_name,
-                                    "boost": 3.0
-                                }
-                            }
-                        },
-                        # Fuzzy match (fallback)
-                        {
-                            "match": {
-                                "name": {
-                                    "query": company_name,
-                                    "fuzziness": "AUTO",
-                                    "boost": 1.0
-                                }
-                            }
-                        }
-                    ],
-                    "minimum_should_match": 1
+                "query_string": {
+                    "query": company_name,
+                    "default_field": "name",
+                    "default_operator": "and"
                 }
-            },
-            "size": limit
+            }
         }
 
         try:
-            response = requests.post(url, json=payload, headers=self.headers, timeout=10)
+            # Search returns a list of company IDs
+            response = requests.post(search_url, json=payload, headers=self.headers, timeout=10)
             response.raise_for_status()
 
-            data = response.json()
-            companies = []
+            company_ids = response.json()  # List of integers
 
-            for hit in data.get("hits", {}).get("hits", []):
-                source = hit.get("_source", {})
-                companies.append({
-                    "company_id": source.get("id"),
-                    "name": source.get("name"),
-                    "website": source.get("website"),
-                    "location": source.get("location"),
-                    "industry": source.get("industry"),
-                    "employee_count": source.get("employees_count"),
-                    "founded": source.get("founded"),
-                    "score": hit.get("_score")  # Relevance score
-                })
+            if not company_ids:
+                return []
+
+            # Take only top N results
+            company_ids = company_ids[:limit]
+
+            # STEP 2: Fetch full data for each company ID
+            companies = []
+            for company_id in company_ids:
+                company_data = self._fetch_company_by_id(company_id)
+                if company_data:
+                    companies.append(company_data)
 
             return companies
 
         except requests.exceptions.RequestException as e:
             print(f"[CORESIGNAL LOOKUP] Error searching for company '{company_name}': {e}")
             return []
+
+    def _fetch_company_by_id(self, company_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Fetch full company data by ID using the collect endpoint.
+
+        Args:
+            company_id: CoreSignal company ID
+
+        Returns:
+            Company data dictionary or None if fetch fails
+        """
+        collect_url = f"{self.base_url}/cdapi/v2/company_base/collect/{company_id}"
+
+        try:
+            response = requests.get(collect_url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+
+            data = response.json()
+
+            # Extract relevant fields
+            return {
+                "company_id": data.get("id"),
+                "name": data.get("name"),
+                "website": data.get("website"),
+                "location": data.get("location"),
+                "industry": data.get("industry"),
+                "employee_count": data.get("employees_count"),
+                "founded": data.get("founded"),
+                "score": 1.0  # No relevance score from collect endpoint
+            }
+
+        except requests.exceptions.RequestException as e:
+            print(f"[CORESIGNAL LOOKUP] Error fetching company ID {company_id}: {e}")
+            return None
 
     def get_best_match(
         self,

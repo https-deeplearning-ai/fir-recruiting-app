@@ -65,6 +65,14 @@ class JDParser:
 
         system_prompt = """You are an expert at analyzing job descriptions and extracting structured requirements.
 
+**CRITICAL: You MUST return valid JSON, even for very short or incomplete job descriptions.**
+
+If the JD is short or missing fields:
+- Return empty arrays [] for missing fields
+- Use "unknown" for missing seniority_level
+- Use "" (empty string) for missing location/role_title
+- Still return a complete, valid JSON structure
+
 Your task is to parse the job description and extract:
 
 1. **Must-Have Requirements** - Hard requirements that are explicitly stated as required
@@ -153,7 +161,9 @@ Return a JSON object with this structure:
 - These help find companies in adjacent/overlapping domains
 - Example: For voice AI role → "conversational AI, speech recognition, TTS, voice synthesis"
 
-Be specific and extract as much detail as possible."""
+Be specific and extract as much detail as possible.
+
+**IMPORTANT: Return ONLY the JSON object, no explanations or additional text. Even if the JD is short or incomplete, you MUST return valid JSON matching the structure above.**"""
 
         # LOG POINT 1: Before Claude API call
         debug_log.jd_parse("Parsing JD text", jd_text=jd_text)
@@ -184,8 +194,27 @@ Be specific and extract as much detail as possible."""
             else:
                 json_str = response_text.strip()
 
+            # Validate that we have content to parse
+            if not json_str:
+                debug_log.error("Empty JSON string after extraction",
+                              context={"model": self.model, "step": "json_extraction"},
+                              raw_data=response_text)
+                print(f"ERROR: Claude returned response but JSON extraction failed.")
+                print(f"Full Claude response:\n{response_text}")
+                return self._get_empty_structure()
+
             # Parse to dict first, then validate with Pydantic
-            parsed_data = json.loads(json_str)
+            try:
+                parsed_data = json.loads(json_str)
+            except json.JSONDecodeError as json_err:
+                debug_log.error("JSON decode error",
+                              exception=json_err,
+                              context={"model": self.model, "step": "json_parsing"},
+                              raw_data={"response_text": response_text, "extracted_json": json_str})
+                print(f"ERROR: Failed to parse JSON from Claude response")
+                print(f"Extracted JSON string:\n{json_str}")
+                print(f"Full Claude response:\n{response_text}")
+                return self._get_empty_structure()
 
             # LOG POINT 3: After JSON parsing
             jd_requirements = JDRequirements.from_dict(parsed_data)

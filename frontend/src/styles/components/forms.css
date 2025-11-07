@@ -1,0 +1,395 @@
+/**
+ * FORMS - Single Profile Page Form Styles
+ *
+ * Form components used in the single profile assessment workflow.
+ * Includes input fields, textareas, labels, and form groups.
+ *
+ * Sections:
+ * - Form Layout: Containers and groups
+ * - Form Controls: Inputs, textareas, labels
+ * - Weighted Requirements: Custom requirements section
+ * - Error States: Validation and error displays
+ *
+ * Usage with CSS Variables from variables.css
+ */
+
+/* ========================================
+   FORM LAYOUT
+   ======================================== */
+
+/**
+ * Input Form Container
+ * Main form wrapper with padding
+ */
+.input-form {
+  padding: 30px;
+}
+
+/**
+ * Form Group
+ * Individual form field container with spacing
+ */
+.form-group {
+  margin-bottom: var(--spacing-xl);
+  position: relative;
+}
+
+/**
+ * Button Group
+ * Horizontal button container with centered layout
+ */
+.button-group {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin: 30px auto 40px;
+  max-width: 600px;
+  justify-content: center;
+}
+
+/* ========================================
+   FORM CONTROLS
+   ======================================== */
+
+/**
+ * Labels
+ * Form field labels with emphasis
+ */
+label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-weight-semibold);
+  color: #333;
+  font-size: var(--font-size-xl);
+}
+
+/**
+ * Text Inputs and Textareas
+ * Main form input styling with focus states
+ */
+textarea,
+input[type="text"] {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: var(--border-width-thick) solid #e1e5e9;
+  border-radius: var(--border-radius-lg);
+  font-size: var(--font-size-base);
+  transition: all var(--transition-medium);
+  font-family: 'Monaco', 'Menlo', monospace;
+  box-sizing: border-box;
+}
+
+/**
+ * Textarea Specific Styles
+ */
+textarea {
+  resize: vertical;
+  min-height: 200px;
+}
+
+/**
+ * Specific Textarea IDs
+ * User prompt textareas with minimum dimensions
+ */
+#userPrompt,
+#batchUserPrompt {
+  width: 100%;
+  min-width: 500px;
+  min-height: 80px;
+  resize: vertical;
+}
+
+/**
+ * Focus States
+ * Purple focus ring matching brand colors
+ */
+textarea:focus,
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--color-primary-start);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* ========================================
+   WEIGHTED REQUIREMENTS SECTION
+   ======================================== */
+
+/**
+ * Weighted Requirements Container
+ * Gray background container for requirements management
+ */
+.weighted-requirements {
+  background-color: #fafafa;
+  border: var(--border-width) solid #e5e5e5;
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-sm);
+}
+
+/**
+ * Add Requirement Row
+ * Input + button combo for adding new requirements
+ */
+.add-requirement {
+  display: flex;
+  gap: 0;
+  margin-bottom: var(--spacing-lg);
+}
+
+/**
+ * Add Requirement Input
+ * Text input with no right border (connects to button)
+ */
+.add-requirement input {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: var(--border-width) solid #ddd;
+  border-right: none;
+  border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm);
+  font-size: var(--font-size-md);
+  transition: border-color var(--transition-fast);
+}
+
+.add-requirement input:focus {
+  outline: none;
+  border-color: #999;
+}
+
+/**
+ * Total Warning
+ * Alert when weight total exceeds 100%
+ */
+.total-warning {
+  background-color: #fff9e6;
+  border: var(--border-width) solid #e6d9a3;
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin: var(--spacing-sm) 0;
+  text-align: center;
+  color: #8b7d3a;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-normal);
+}
+
+/* ========================================
+   REQUIREMENT ITEMS & SLIDERS
+   ======================================== */
+
+/**
+ * Requirement Item
+ * Individual requirement row with slider
+ */
+.requirement-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: 6px 0;
+  border-bottom: var(--border-width) solid #eee;
+}
+
+.requirement-item:last-child {
+  border-bottom: none;
+}
+
+/**
+ * General Fit Requirement
+ * Special styling for auto-calculated general fit
+ */
+.requirement-item.general-fit {
+  background-color: #f5f5f5;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  margin-top: var(--spacing-sm);
+  border: var(--border-width) solid #ddd;
+}
+
+/**
+ * Requirement Text Label
+ */
+.requirement-text {
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-secondary);
+  width: 260px;
+  flex-shrink: 0;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+}
+
+/**
+ * Slider Container
+ */
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  max-width: none;
+}
+
+/**
+ * Weight Slider
+ * Range input for adjusting requirement weights
+ */
+.weight-slider {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #e5e5e5;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.weight-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--border-radius-full);
+  background: #666;
+  cursor: pointer;
+  border: none;
+}
+
+.weight-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--border-radius-full);
+  background: #666;
+  cursor: pointer;
+  border: none;
+}
+
+/**
+ * Slider States
+ */
+.weight-slider.at-max {
+  background: #e5e5e5;
+}
+
+.weight-slider.at-max::-webkit-slider-thumb {
+  background: #666;
+}
+
+.weight-slider.at-max::-moz-range-thumb {
+  background: #666;
+}
+
+/**
+ * General Fit Slider
+ * Disabled/read-only slider for general fit
+ */
+.general-slider {
+  background: #ddd;
+}
+
+.general-slider::-webkit-slider-thumb {
+  background: #999;
+}
+
+.general-slider::-moz-range-thumb {
+  background: #999;
+}
+
+/**
+ * Weight Value Display
+ */
+.weight-value {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  min-width: 65px;
+  text-align: right;
+  font-size: var(--font-size-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.weight-value.at-max {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+/**
+ * Helper Text
+ */
+.max-indicator {
+  font-size: 0.85em;
+  color: #777;
+  font-weight: var(--font-weight-normal);
+}
+
+.max-allowed {
+  font-size: 0.85em;
+  color: #999;
+  font-weight: var(--font-weight-normal);
+}
+
+/* ========================================
+   ERROR STATES
+   ======================================== */
+
+/**
+ * Error Message Box
+ * Red alert box for error messages
+ * NOTE: Also defined in layout.css for global use
+ */
+.error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  margin: var(--spacing-lg) 30px;
+  border-left: 4px solid var(--color-error);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+  .input-form {
+    padding: var(--spacing-lg);
+  }
+
+  #userPrompt,
+  #batchUserPrompt {
+    min-width: 100%;
+  }
+
+  .button-group {
+    flex-direction: column;
+    max-width: 100%;
+  }
+
+  .requirement-text {
+    width: auto;
+    min-width: 150px;
+  }
+
+  .weight-value {
+    min-width: 50px;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/**
+ * Focus states for keyboard navigation
+ */
+textarea:focus-visible,
+input[type="text"]:focus-visible {
+  outline: 2px solid var(--color-primary-start);
+  outline-offset: 2px;
+  border-color: var(--color-primary-start);
+}
+
+/**
+ * Reduce motion for accessibility
+ */
+@media (prefers-reduced-motion: reduce) {
+  textarea,
+  input[type="text"],
+  .add-requirement input,
+  .weight-slider {
+    transition: none;
+  }
+}

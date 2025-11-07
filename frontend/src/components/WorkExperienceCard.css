@@ -183,109 +183,183 @@
   z-index: 9999;
 }
 
+/* NO position property on .company-tooltip - defaults to static, works correctly in fixed wrapper */
 .tooltip-wrapper .company-tooltip {
-  position: relative;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
-/* Modal Overlay & Content */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  padding: 12px;
-  backdrop-filter: blur(4px);
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.modal-content {
-  position: relative;
-  max-width: 500px;
-  width: auto; /* Changed from 100% to auto */
-  max-height: 85vh;
-  overflow-y: auto;
-  overflow-x: hidden; /* Prevent horizontal scroll */
-  background: transparent;
-  border-radius: 12px;
-  animation: slideUp 0.3s ease;
+/* Company Details Modal Styling */
+.modal-content.company-details-modal {
+  max-width: 85vw !important;
+  width: 85vw !important;
+  max-height: 90vh;
   padding: 0;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
 }
 
-.modal-content .company-tooltip {
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+/* Style the CompanyTooltip when inside modal */
+.company-details-modal .company-tooltip {
   border: none;
-  max-width: 600px; /* Larger max width for modal */
-  min-width: 400px; /* Minimum readable width */
-  width: auto; /* Let content determine width */
-  max-height: none; /* Remove height constraint in modal */
-  margin: 0;
-}
-
-/* Modal-specific overrides to prevent horizontal scrolling */
-.modal-content .company-freshness-details,
-.modal-content .company-links-pills,
-.modal-content .tooltip-content,
-.modal-content .description-text {
+  box-shadow: none;
+  border-radius: 0;
+  min-width: 100%;
   max-width: 100%;
-  box-sizing: border-box;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-}
-
-.modal-content .company-tooltip {
+  padding: 40px;
+  max-height: calc(90vh - 80px);
+  overflow-y: auto;
   overflow-x: hidden;
 }
 
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+/* AGGRESSIVE OVERRIDES - Remove all inherited spacing from tooltip CSS */
+
+/* Override tooltip-content gap - eliminate inherited 8px gap */
+.company-details-modal .tooltip-content {
+  gap: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
-.modal-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: rgba(0, 0, 0, 0.1);
+/* Override ALL tooltip-row spacing */
+.company-details-modal .tooltip-row {
+  padding: 6px 0 !important;
+  margin: 0 !important;
+  gap: 12px !important;
+  font-size: 15px;
+}
+
+/* Remove any inherited margins/padding from sections */
+.company-details-modal .tooltip-row > * {
+  margin: 0 !important;
+}
+
+/* Better company name header in modal */
+.company-details-modal .tooltip-company-name {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 8px !important;
+  margin-top: 0 !important;
+}
+
+/* Adjust header spacing */
+.company-details-modal .tooltip-header {
+  margin-bottom: 16px !important;
+  margin-top: 0 !important;
+  padding-bottom: 12px;
+  padding-top: 0 !important;
+  border-bottom: 2px solid #e8e8e8;
+}
+
+.company-details-modal .tooltip-label {
+  min-width: 140px;
+  font-weight: 600;
   color: #666;
-  font-size: 20px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  z-index: 1;
 }
 
-.modal-close:hover {
-  background: rgba(0, 0, 0, 0.2);
-  color: #000;
-  transform: scale(1.1);
+.company-details-modal .tooltip-value {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+/* Override ALL section spacing */
+.company-details-modal .links-row {
+  margin-top: 16px !important;
+  margin-bottom: 0 !important;
+  padding-top: 12px !important;
+  padding-bottom: 0 !important;
+}
+
+.company-details-modal .company-links-pills {
+  gap: 10px !important;
+  margin-top: 8px !important;
+  margin-bottom: 0 !important;
+}
+
+.company-details-modal .link-pill {
+  padding: 8px 16px;
+  font-size: 14px;
+  margin: 0 !important;
+}
+
+/* Description styling */
+.company-details-modal .description-text {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #444;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.company-details-modal .company-description-section {
+  margin: 12px 0 0 0 !important;
+  padding: 0 !important;
+}
+
+/* Eliminate ALL default section spacing */
+.company-details-modal .tooltip-content > div {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.company-details-modal .tooltip-content > .tooltip-row {
+  padding: 6px 0 !important;
+}
+
+/* Freshness box spacing */
+.company-details-modal .company-freshness-row {
+  margin: 12px 0 0 0 !important;
+  padding: 12px 0 0 0 !important;
+}
+
+/* Override signals row */
+.company-details-modal .signals-row {
+  gap: 4px !important;
+  margin: 0 !important;
+  padding: 6px 0 !important;
+}
+
+.company-details-modal .growth-signals {
+  gap: 6px !important;
+  margin-top: 4px !important;
+  margin-bottom: 0 !important;
+}
+
+/* Scroll styling */
+.company-details-modal .company-tooltip::-webkit-scrollbar {
+  width: 8px;
+}
+
+.company-details-modal .company-tooltip::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.company-details-modal .company-tooltip::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.company-details-modal .company-tooltip::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive modal */
+@media (max-width: 768px) {
+  .company-details-modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .company-details-modal .company-tooltip {
+    padding: 24px;
+  }
+
+  .company-details-modal .tooltip-company-name {
+    font-size: 20px;
+  }
 }
 
 /* Responsive Design */

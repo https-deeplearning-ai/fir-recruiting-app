@@ -1,0 +1,208 @@
+/**
+ * BUTTONS - Single Profile Page Button Styles
+ *
+ * Button components used in the single profile assessment workflow.
+ * Includes primary action buttons, secondary buttons, and utility buttons.
+ *
+ * Sections:
+ * - Primary Buttons: Main call-to-action buttons
+ * - Secondary Buttons: Alternative actions
+ * - Utility Buttons: Add/remove requirement buttons
+ *
+ * Usage with CSS Variables from variables.css
+ */
+
+/* ========================================
+   PRIMARY BUTTONS
+   ======================================== */
+
+/**
+ * Submit Button
+ * Main call-to-action button with gradient background
+ * Used for: Profile submission, assessment triggering
+ */
+.submit-btn {
+  background: var(--color-primary-gradient);
+  color: var(--color-text-white);
+  border: none;
+  padding: var(--padding-btn);
+  border-radius: var(--border-radius-lg);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-medium);
+  flex: 1;
+  max-width: 350px;
+}
+
+/**
+ * Submit Button Variant - With Subtitle
+ * Multi-line button layout for additional context
+ */
+.submit-btn.search-btn-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--spacing-md) 30px;
+}
+
+.btn-subtitle {
+  font-size: 0.85em;
+  font-weight: var(--font-weight-normal);
+  opacity: 0.9;
+}
+
+/**
+ * Submit Button States
+ */
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   SECONDARY BUTTONS
+   ======================================== */
+
+/**
+ * Secondary Button
+ * Alternative action button with outline style
+ * Transforms to gradient on hover
+ */
+.secondary-btn {
+  background: var(--color-bg-white);
+  color: var(--color-primary-start);
+  border: var(--border-width-thick) solid var(--color-primary-start);
+  padding: var(--padding-btn);
+  border-radius: var(--border-radius-lg);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-medium);
+  margin-left: var(--spacing-lg);
+}
+
+.secondary-btn:hover {
+  background: var(--color-primary-gradient);
+  color: var(--color-text-white);
+  border-color: var(--color-primary-start);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* ========================================
+   UTILITY BUTTONS
+   ======================================== */
+
+/**
+ * Add Button
+ * Used for adding new weighted requirements
+ * Compact style for inline use with input fields
+ */
+.add-btn {
+  background: var(--color-text-secondary);
+  color: var(--color-text-white);
+  border: none;
+  padding: var(--spacing-sm) 18px;
+  border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+  cursor: pointer;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  transition: background-color var(--transition-fast);
+}
+
+.add-btn:hover:not(:disabled) {
+  background: #333;
+}
+
+.add-btn:disabled {
+  background: #ccc;
+  color: #888;
+  cursor: not-allowed;
+}
+
+/**
+ * Remove Button
+ * Small square button for removing requirement items
+ * Compact design for list item actions
+ */
+.remove-btn {
+  background: #777;
+  color: var(--color-text-white);
+  border: none;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.remove-btn:hover {
+  background: var(--color-text-secondary);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+  .submit-btn,
+  .secondary-btn {
+    font-size: var(--font-size-lg);
+    padding: var(--padding-btn-sm);
+    max-width: 100%;
+  }
+
+  .secondary-btn {
+    margin-left: 0;
+    margin-top: var(--spacing-md);
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/**
+ * Reduce motion for accessibility
+ */
+@media (prefers-reduced-motion: reduce) {
+  .submit-btn,
+  .secondary-btn,
+  .add-btn,
+  .remove-btn {
+    transition: none;
+  }
+
+  .submit-btn:hover:not(:disabled),
+  .secondary-btn:hover {
+    transform: none;
+  }
+}
+
+/**
+ * Focus states for keyboard navigation
+ */
+.submit-btn:focus-visible,
+.secondary-btn:focus-visible,
+.add-btn:focus-visible,
+.remove-btn:focus-visible {
+  outline: 2px solid var(--color-primary-start);
+  outline-offset: 2px;
+}

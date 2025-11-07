@@ -25,14 +25,14 @@ class LLMConfig:
 # Model configurations (updated with actual available models as of Jan 2025)
 LLM_CONFIGS = {
     "claude": LLMConfig(
-        model_name="claude-haiku-4-5-20251001",  # Claude Haiku 4.5 (Oct 2025) - latest, fastest, cheapest
+        model_name="claude-haiku-4-5-20251015",  # Claude Haiku 4.5 (Oct 2025) - latest, fastest, cheapest
         display_name="Claude Haiku 4.5",
         provider="anthropic",
         supports_temperature=True,
         supports_system_prompt=True,
         max_tokens=4096,
         reasoning="Claude Haiku 4.5: Sonnet 4-level performance at 1/3 cost, 2x faster. Best for structured tasks.",
-        fallback_model="claude-3-5-haiku-20241022"
+        fallback_model="claude-sonnet-4-5-20250929"  # FIXED: Fallback to Sonnet 4.5 instead of old 3.5
     ),
     "openai": LLMConfig(
         model_name="gpt-4o",  # Latest GPT-4o (May 2024, still current)

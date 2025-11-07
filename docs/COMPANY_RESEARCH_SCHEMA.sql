@@ -134,6 +134,35 @@ CREATE TRIGGER update_target_companies_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+-- TABLE: company_discovery_cache
+-- Purpose: Cache competitor discovery results to reduce API calls
+CREATE TABLE IF NOT EXISTS company_discovery_cache (
+    id BIGSERIAL PRIMARY KEY,
+    seed_company TEXT NOT NULL,                  -- The company we searched competitors for (lowercase)
+    discovered_companies JSONB NOT NULL,         -- Array of discovered competitor companies
+    search_queries JSONB NOT NULL,               -- The 3 queries used (for debugging)
+
+    -- Timestamps
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '7 days'),
+
+    -- Constraints
+    UNIQUE(seed_company)
+);
+
+-- Indexes for performance
+CREATE INDEX idx_company_discovery_seed
+    ON company_discovery_cache(seed_company);
+CREATE INDEX idx_company_discovery_expiry
+    ON company_discovery_cache(expires_at);
+
+-- RLS Policy
+ALTER TABLE company_discovery_cache ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow anon access to company_discovery_cache"
+    ON company_discovery_cache FOR ALL TO anon
+    USING (true) WITH CHECK (true);
+
 -- ============================================
 -- Verification Query
 -- ============================================
@@ -143,4 +172,4 @@ SELECT
     table_type
 FROM information_schema.tables
 WHERE table_schema = 'public'
-AND table_name IN ('target_companies', 'company_research_sessions');
+AND table_name IN ('target_companies', 'company_research_sessions', 'company_discovery_cache');

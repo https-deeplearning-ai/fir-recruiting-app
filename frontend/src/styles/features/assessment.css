@@ -1,0 +1,588 @@
+/**
+ * ASSESSMENT - Single Profile Assessment Display
+ *
+ * Styles for displaying AI assessment results including:
+ * - Score displays with visual bars
+ * - Weighted requirements analysis
+ * - Strengths and weaknesses sections
+ * - Recommendation badges
+ *
+ * Dependencies:
+ * - Uses @keyframes shimmer from core/animations.css
+ * - Uses CSS variables from core/variables.css
+ */
+
+/* ========================================
+   MAIN SCORE SECTION
+   ======================================== */
+
+/**
+ * Score Section Container
+ * Main container for score display with light background
+ */
+.score-section {
+  text-align: center;
+  margin-bottom: 30px;
+  background: #f8f9ff;
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+}
+
+/* ========================================
+   SCORE DISPLAY COMPONENTS
+   ======================================== */
+
+/**
+ * Score Container
+ * Horizontal layout for score bar and text
+ */
+.score-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+/**
+ * Score Bar
+ * Visual progress bar background
+ */
+.score-bar {
+  width: 200px;
+  height: 20px;
+  background-color: #e1e5e9;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+/**
+ * Score Fill
+ * Animated fill portion of the score bar
+ * Uses shimmer animation from core/animations.css
+ */
+.score-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.8s ease;
+  position: relative;
+}
+
+.score-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
+  animation: shimmer 2s infinite;
+}
+
+/**
+ * Score Text
+ * Numeric score display
+ */
+.score-text {
+  font-size: 1.2em;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+/**
+ * Score Display Layout
+ * Vertical layout for label and value
+ */
+.score-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: var(--spacing-sm);
+}
+
+/**
+ * Score Label
+ * Small label above score value
+ */
+.score-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+/**
+ * Score Value
+ * Large bold score number
+ */
+.score-value {
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+/**
+ * Candidate Score
+ * Container for score in candidate card
+ */
+.candidate-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-left: var(--spacing-lg);
+}
+
+/**
+ * Final Score
+ * Special styling for final weighted score display
+ */
+.final-score {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 10px var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  border: var(--border-width) solid rgba(255, 255, 255, 0.2);
+}
+
+/* ========================================
+   WEIGHTED ANALYSIS SECTION
+   ======================================== */
+
+/**
+ * Weighted Analysis Container
+ * Main container for requirement breakdowns
+ */
+.weighted-analysis {
+  background-color: var(--color-bg-light);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+/**
+ * Weighted Summary
+ * Highlighted summary of final weighted score
+ */
+.score-section .weighted-summary {
+  background-color: rgba(102, 126, 234, 0.15) !important;
+  color: black;
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  text-align: center;
+  margin-top: 1px;
+  border: var(--border-width) solid rgba(102, 126, 234, 0.3);
+}
+
+.weighted-summary h4 {
+  margin: 0;
+  font-size: 1.3em;
+  font-weight: var(--font-weight-semibold);
+  color: black;
+}
+
+.weighted-summary .weighted-score {
+  background-color: rgba(0,0,0,0.05);
+  color: black;
+  font-size: 1.4em;
+  margin-left: 10px;
+}
+
+/**
+ * Weighted Analysis Section
+ * Alternative layout for weighted requirements
+ */
+.weighted-analysis-section {
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background-color: #f0f8ff;
+  border-radius: var(--border-radius-lg);
+  border-left: 4px solid #2196f3;
+}
+
+.weighted-analysis-section h4 {
+  margin: 0 0 var(--spacing-lg) 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-lg);
+}
+
+/**
+ * Weighted Requirements Container
+ */
+.weighted-requirements {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.weighted-requirements .requirement-item {
+  background: var(--color-bg-white);
+  border: var(--border-width) solid #e0e0e0;
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+}
+
+/* ========================================
+   REQUIREMENT ANALYSIS CARDS
+   ======================================== */
+
+/**
+ * Requirement Analysis Card
+ * Individual card for each weighted requirement
+ */
+.requirement-analysis {
+  background-color: var(--color-bg-white);
+  border: var(--border-width) solid #e9ecef;
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.requirement-analysis:last-child {
+  margin-bottom: 0;
+}
+
+/**
+ * General Fit Analysis Variant
+ * Special styling for the auto-calculated general fit requirement
+ */
+.general-fit-analysis {
+  background-color: #e3f2fd;
+  border-color: #bbdefb;
+}
+
+/**
+ * Requirement Header
+ * Top section with title and score
+ */
+.requirement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: 10px;
+  border-bottom: var(--border-width) solid #e9ecef;
+  margin-right: var(--spacing-md);
+}
+
+.requirement-header h4 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xl);
+}
+
+.requirement-header h4 strong {
+  color: var(--color-primary-start);
+}
+
+/**
+ * Requirement Score Badge
+ * Score display in requirement header
+ */
+.requirement-score {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xl);
+}
+
+/**
+ * Weighted Score Badge
+ * Highlighted score with background
+ */
+.weighted-score {
+  font-weight: var(--font-weight-bold);
+  font-size: 1.2em;
+  padding: 4px var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  background-color: rgba(0,0,0,0.05);
+}
+
+/**
+ * Requirement Text Content
+ * Analysis text within requirement card
+ */
+.requirement-text {
+  margin: 0;
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+  font-size: 0.95em;
+}
+
+/* ========================================
+   RECOMMENDATION STYLING
+   ======================================== */
+
+/**
+ * Recommendation Banner
+ * Overall recommendation display
+ */
+.recommendation {
+  margin-top: var(--spacing-lg);
+  padding: 10px var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+}
+
+.recommendation.recommend {
+  background-color: #d4edda;
+  color: #155724;
+  border: var(--border-width-thick) solid #c3e6cb;
+}
+
+.recommendation.not-recommend {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: var(--border-width-thick) solid #f5c6cb;
+}
+
+/**
+ * Recommendation Badge
+ * Compact badge version for card headers
+ */
+.recommendation-badge {
+  padding: 4px var(--spacing-sm);
+  border-radius: var(--border-radius-xl);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  background-color: #e8f5e8;
+  color: #2e7d32;
+  border: var(--border-width) solid #c8e6c9;
+}
+
+.recommendation-badge.no-data {
+  background-color: var(--color-bg-gray);
+  color: var(--color-text-tertiary);
+  border-color: #ddd;
+}
+
+/* ========================================
+   ASSESSMENT RESULTS SECTION
+   ======================================== */
+
+/**
+ * Assessment Results Container
+ * Detailed analysis sections
+ */
+.assessment-results {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-light);
+  border-radius: var(--border-radius-lg);
+  border-left: 4px solid #007bff;
+}
+
+.assessment-results h4 {
+  margin: 0 0 var(--spacing-lg) 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-2xl);
+}
+
+/**
+ * Assessment Section
+ * Individual analysis section (e.g., strengths, weaknesses)
+ */
+.assessment-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.assessment-section h5 {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.assessment-section ul {
+  margin: 0;
+  padding-left: var(--spacing-lg);
+}
+
+.assessment-section li {
+  margin-bottom: 5px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-base);
+}
+
+/**
+ * Assessment Scores Container
+ * Alternative layout for scores section
+ */
+.assessment-scores {
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-light);
+  border-radius: var(--border-radius-lg);
+  border-left: 4px solid #007bff;
+}
+
+/* ========================================
+   STRENGTHS & WEAKNESSES SUMMARY
+   ======================================== */
+
+/**
+ * Assessment Summary Grid
+ * Two-column layout for strengths/weaknesses
+ */
+.assessment-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+/**
+ * Strengths Section
+ * Green-tinted card for candidate strengths
+ */
+.strengths-section {
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  background-color: #e8f5e8;
+  border-left: 4px solid #4caf50;
+}
+
+.strengths-section h4 {
+  margin: 0 0 10px 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.strengths-section ul {
+  margin: 0;
+  padding-left: var(--spacing-lg);
+}
+
+.strengths-section li {
+  margin-bottom: 5px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+}
+
+/**
+ * Weaknesses Section
+ * Red-tinted card for candidate weaknesses
+ */
+.weaknesses-section {
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  background-color: #ffebee;
+  border-left: 4px solid #f44336;
+}
+
+.weaknesses-section h4 {
+  margin: 0 0 10px 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.weaknesses-section ul {
+  margin: 0;
+  padding-left: var(--spacing-lg);
+}
+
+.weaknesses-section li {
+  margin-bottom: 5px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+  .assessment-summary {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+
+  .score-container {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .score-bar {
+    width: 100%;
+    max-width: 250px;
+  }
+
+  .requirement-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .candidate-score {
+    margin-left: 0;
+    align-items: flex-start;
+    margin-top: var(--spacing-sm);
+  }
+
+  .score-section .weighted-summary {
+    padding: var(--spacing-md);
+  }
+
+  .weighted-summary h4 {
+    font-size: 1.1em;
+  }
+
+  .weighted-summary .weighted-score {
+    font-size: 1.2em;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/**
+ * Reduce motion for accessibility
+ * Disables animated score fill for users who prefer reduced motion
+ */
+@media (prefers-reduced-motion: reduce) {
+  .score-fill {
+    transition: none;
+  }
+
+  .score-fill::after {
+    animation: none;
+  }
+}
+
+/**
+ * High contrast mode support
+ */
+@media (prefers-contrast: high) {
+  .requirement-analysis,
+  .strengths-section,
+  .weaknesses-section {
+    border-width: var(--border-width-thick);
+  }
+
+  .recommendation {
+    border-width: 3px;
+  }
+}
+
+/* ========================================
+   NOTES
+   ======================================== */
+
+/**
+ * IMPORTANT: This file does NOT define @keyframes shimmer
+ * The shimmer animation is defined in core/animations.css
+ *
+ * Previously, @keyframes shimmer was duplicated in App.css (lines 207-210)
+ * Now centralized in: core/animations.css
+ *
+ * This eliminates duplicate code and ensures consistency.
+ */

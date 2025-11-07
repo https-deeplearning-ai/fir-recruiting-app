@@ -1,4 +1,62 @@
-/* App.css */
+/**
+ * APP.CSS - Main Application Styles
+ *
+ * This file now uses modular CSS imports for better organization.
+ * Each import loads specific feature/component styles.
+ *
+ * REFACTORED: 2025-01-06
+ * - Extracted 6,757 lines into organized modules
+ * - Eliminated duplicate animations (6x @keyframes spin → 1x)
+ * - Centralized design tokens in variables.css
+ */
+
+/* ========================================
+   CORE STYLES (Load First)
+   ======================================== */
+
+/* CSS Variables - Design tokens for consistency */
+@import './styles/core/variables.css';
+
+/* Animations - Centralized @keyframes definitions */
+@import './styles/core/animations.css';
+
+/* ========================================
+   LAYOUT
+   ======================================== */
+
+/* App structure, container, header, error states */
+@import './styles/layout.css';
+
+/* ========================================
+   COMPONENTS (Reusable UI Elements)
+   ======================================== */
+
+/* Buttons - Primary, secondary, utility buttons */
+@import './styles/components/buttons.css';
+
+/* Forms - Input fields, textareas, weighted requirements */
+@import './styles/components/forms.css';
+
+/* Modals - Base modal styles for overlays */
+@import './styles/components/modals.css';
+
+/* Loading - Loading overlays, spinners, placeholders */
+@import './styles/components/loading.css';
+
+/* Feedback Drawer - Viewport-fixed recruiter feedback panel */
+@import './styles/components/feedback-drawer.css';
+
+/* ========================================
+   FEATURES (Page-Specific Styles)
+   ======================================== */
+
+/* Assessment - Score displays, weighted analysis, strengths/weaknesses */
+@import './styles/features/assessment.css';
+
+/* ========================================
+   APP-SPECIFIC OVERRIDES
+   ======================================== */
+
 .App {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1978,497 +2036,6 @@ textarea {
   line-height: 1.5 !important;
 }
 
-/* ========================================
-   FEEDBACK DRAWER - SLIDING PANEL
-   ======================================== */
-
-/* Drawer Container - Fixed positioning for consistent placement */
-.feedback-drawer {
-  position: fixed;
-  top: 120px;
-  right: 0;
-  z-index: 100;
-  display: flex;
-  justify-content: flex-end;
-  pointer-events: none;
-}
-
-.feedback-drawer > * {
-  pointer-events: auto;
-}
-
-/* Collapsed Tab - Slim edge indicator */
-.feedback-tab {
-  position: relative;
-  width: 15px;
-  min-height: 150px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 12px 0 0 12px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 15px 3px;
-  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
-}
-
-.feedback-tab:hover {
-  background: linear-gradient(135deg, #5568d3, #653a8b);
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.25);
-  transform: translateX(-2px);
-}
-
-.feedback-tab-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Status Indicator Dot */
-.feedback-status-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #cbd5e1;
-  transition: all 0.3s ease;
-}
-
-.feedback-status-dot.has-feedback {
-  background: #10b981;
-  animation: pulse-feedback 2s infinite;
-}
-
-@keyframes pulse-feedback {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-  }
-  50% {
-    opacity: 0.8;
-    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-  }
-}
-
-.feedback-tab-label {
-  color: white;
-  font-size: 11px;
-  font-weight: 600;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  letter-spacing: 1px;
-}
-
-.feedback-count {
-  background: #10b981;
-  color: white;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 10px;
-  min-width: 24px;
-  text-align: center;
-}
-
-.feedback-arrow {
-  color: white;
-  font-size: 16px;
-  margin-top: 5px;
-}
-
-/* Expanded Panel - Larger and More Responsive */
-.feedback-panel {
-  position: fixed;
-  right: 25px;
-  top: 50%;
-  transform: translate(calc(100% + 10px), -50%);
-  width: 550px; /* Increased from 400px */
-  max-width: 45vw; /* Responsive to screen width */
-  max-height: 90vh; /* Increased from 80vh */
-  overflow-y: auto;
-  background: white;
-  border-radius: 12px 0 0 12px;
-  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, visibility 0.3s ease;
-  opacity: 0;
-  visibility: hidden;
-  z-index: 1000;
-}
-
-.feedback-panel.expanded {
-  transform: translate(0, -50%);
-  opacity: 1;
-  visibility: visible;
-}
-
-/* Custom Scrollbar for Panel */
-.feedback-panel::-webkit-scrollbar {
-  width: 8px;
-}
-
-.feedback-panel::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 0 0 0 12px;
-}
-
-.feedback-panel::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-
-.feedback-panel::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Candidate Header - Sticky */
-.feedback-candidate-header {
-  position: sticky;
-  top: 0;
-  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
-  padding: 20px;
-  border-bottom: 2px solid #cbd5e1;
-  z-index: 101;
-  border-radius: 12px 0 0 0;
-}
-
-.feedback-candidate-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 6px;
-  line-height: 1.3;
-}
-
-.feedback-candidate-headline {
-  font-size: 14px;
-  color: #6b7280;
-  line-height: 1.4;
-  margin-bottom: 8px;
-}
-
-.feedback-context-reminder {
-  font-size: 12px;
-  color: #9ca3af;
-  font-style: italic;
-  padding-top: 8px;
-  border-top: 1px solid #e5e7eb;
-}
-
-/* Feedback History Section */
-.feedback-history-section {
-  padding: 15px 20px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.feedback-history-title {
-  cursor: pointer;
-  font-weight: 600;
-  color: #4a5568;
-  font-size: 14px;
-  list-style: none;
-  padding: 8px 0;
-  user-select: none;
-}
-
-.feedback-history-title::-webkit-details-marker {
-  display: none;
-}
-
-.feedback-history-title::before {
-  content: '▼';
-  display: inline-block;
-  margin-right: 8px;
-  transition: transform 0.3s ease;
-  font-size: 10px;
-}
-
-.feedback-history-section:not([open]) .feedback-history-title::before {
-  transform: rotate(-90deg);
-}
-
-.feedback-history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.feedback-history-item {
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  transition: all 0.2s ease;
-}
-
-.feedback-history-item.like {
-  background: #d1fae5;
-  border-color: #10b981;
-}
-
-.feedback-history-item.dislike {
-  background: #fee2e2;
-  border-color: #ef4444;
-}
-
-.feedback-history-item.note {
-  background: #fff;
-  border-color: #cbd5e1;
-}
-
-.feedback-history-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 600;
-  color: #1f2937;
-  font-size: 13px;
-  margin-bottom: 6px;
-}
-
-.feedback-history-date {
-  font-size: 11px;
-  color: #6b7280;
-  font-weight: 400;
-}
-
-.feedback-history-text {
-  color: #4b5563;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-/* Feedback Section */
-.feedback-section {
-  padding: 15px 20px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.feedback-section-title {
-  font-weight: 600;
-  color: #059669;
-  margin-bottom: 10px;
-  font-size: 13px;
-}
-
-.feedback-section-title.dislike {
-  color: #dc2626;
-}
-
-/* Feedback Buttons */
-.feedback-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.feedback-button {
-  padding: 8px 14px;
-  border-radius: 18px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: white;
-  position: relative;
-}
-
-.feedback-button.like-button {
-  border: 2px solid #10b981;
-  color: #059669;
-}
-
-.feedback-button.like-button:hover {
-  background: #d1fae5;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-}
-
-.feedback-button.like-button.selected {
-  background: #d1fae5;
-  border-color: #059669;
-  font-weight: 600;
-  padding-right: 28px;
-}
-
-.feedback-button.like-button.selected::after {
-  content: '✓';
-  position: absolute;
-  right: 10px;
-  font-size: 14px;
-  color: #059669;
-}
-
-.feedback-button.dislike-button {
-  border: 2px solid #ef4444;
-  color: #dc2626;
-}
-
-.feedback-button.dislike-button:hover {
-  background: #fee2e2;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
-}
-
-.feedback-button.dislike-button.selected {
-  background: #fee2e2;
-  border-color: #dc2626;
-  font-weight: 600;
-  padding-right: 28px;
-}
-
-.feedback-button.dislike-button.selected::after {
-  content: '✓';
-  position: absolute;
-  right: 10px;
-  font-size: 14px;
-  color: #dc2626;
-}
-
-/* Note Container */
-.feedback-note-container {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-}
-
-.feedback-note-textarea {
-  flex: 1;
-  padding: 12px;
-  border: 2px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: inherit;
-  resize: vertical;
-  min-height: 80px;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.feedback-note-textarea:focus {
-  border-color: #0073b1;
-  box-shadow: 0 0 0 3px rgba(0, 115, 177, 0.1);
-}
-
-/* Microphone Button */
-.feedback-mic-button {
-  width: 48px;
-  height: 48px;
-  border: 2px solid #0073b1;
-  border-radius: 8px;
-  background: white;
-  color: #0073b1;
-  cursor: pointer;
-  font-size: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.feedback-mic-button:hover {
-  background: #f0f9ff;
-  transform: scale(1.05);
-}
-
-.feedback-mic-button.recording {
-  background: #fee2e2;
-  border-color: #ef4444;
-  color: #dc2626;
-  animation: recording-pulse 1s infinite;
-}
-
-@keyframes recording-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
-  }
-}
-
-/* Action Buttons */
-.feedback-actions {
-  padding: 15px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.feedback-clear-button,
-.feedback-hide-ai-button {
-  width: 100%;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.feedback-clear-button {
-  background: white;
-  border: 2px solid #ef4444;
-  color: #dc2626;
-}
-
-.feedback-clear-button:hover {
-  background: #fee2e2;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
-}
-
-.feedback-hide-ai-button {
-  background: white;
-  border: 2px solid #cbd5e1;
-  color: #6b7280;
-}
-
-.feedback-hide-ai-button:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
-  color: #4b5563;
-}
-
-/* Mobile Responsiveness */
-@media (max-width: 768px) {
-  .feedback-panel {
-    width: 90vw; /* Full width on mobile */
-    max-width: 400px;
-  }
-
-  .feedback-candidate-name {
-    font-size: 16px;
-  }
-
-  .feedback-note-container {
-    flex-direction: column;
-  }
-
-  .feedback-mic-button {
-    width: 100%;
-  }
-}
-
-/* Tablet and Medium Screens */
-@media (min-width: 769px) and (max-width: 1200px) {
-  .feedback-panel {
-    width: 480px; /* Medium size for tablets */
-    max-width: 50vw;
-  }
-}
-
-/* Large Screens */
-@media (min-width: 1201px) {
-  .feedback-panel {
-    width: 600px; /* Even larger for big screens */
-    max-width: 40vw;
-  }
-}
-
 /* =================================================================
    AI ANALYSIS ACCORDION - Collapsed by Default
    ================================================================= */
@@ -4380,5 +3947,267 @@ span.result-candidate-name.no-link {
 
   .export-csv-btn {
     width: 100%;
+  }
+}
+/* Domain Search Section Styles */
+.candidate-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-color: #667eea;
+}
+
+.load-more-controls button:hover:not(:disabled) {
+  background: #667eea !important;
+  color: white !important;
+}
+
+.candidates-grid {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.session-stats span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ========================================
+   MODAL STYLES
+   ======================================== */
+
+/* Modal styles moved to styles/components/modals.css
+   This keeps modal styling centralized and uses CSS variables */
+
+
+
+/* ========================================
+   FEEDBACK DRAWER ENHANCEMENTS
+   ======================================== */
+
+/* Highlight candidate when feedback drawer is active */
+.candidate-card.feedback-active {
+  border-left: 4px solid #7c3aed;
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.05) 0%, transparent 100%);
+  transition: all 0.3s ease;
+}
+
+/* Feedback icon button next to LinkedIn icon */
+.candidate-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.feedback-icon-button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.feedback-icon-button:hover {
+  opacity: 1;
+  background: rgba(124, 58, 237, 0.1);
+  transform: scale(1.1);
+}
+
+.candidate-card.feedback-active .feedback-icon-button {
+  opacity: 1;
+  background: rgba(124, 58, 237, 0.15);
+}
+
+/* ============================================
+   Deep Research Styles
+   ============================================ */
+
+/* Website Link */
+.company-website a {
+  color: #7c3aed;
+  text-decoration: none;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  transition: all 0.2s ease;
+}
+
+.company-website a:hover {
+  text-decoration: underline;
+  color: #6d28d9;
+}
+
+/* Products Display */
+.company-products {
+  margin-top: 12px;
+}
+
+.company-products strong {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Funding Information */
+.company-funding {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Research Quality Indicator */
+.research-quality {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Expanded Details Section */
+.expanded-details {
+  animation: slideDown 0.3s ease;
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f9fafb;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+    transform: translateY(0);
+  }
+}
+
+/* Show More/Less Button */
+.company-card button {
+  transition: all 0.2s ease;
+}
+
+.company-card button:hover {
+  background-color: #f3f4f6 !important;
+  border-color: #6366f1 !important;
+}
+
+/* Export Button Hover Effects (defined in inline styles) */
+
+/* Verified Badge */
+.verified-badge {
+  padding: 2px 6px;
+  background-color: #dcfce7;
+  color: #166534;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Quality Progress Bar */
+.quality-fill {
+  height: 6px;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Product Badges */
+.product-badge {
+  padding: 2px 8px;
+  background-color: #f3f4f6;
+  border-radius: 4px;
+  font-size: 12px;
+  transition: background-color 0.2s ease;
+}
+
+.product-badge:hover {
+  background-color: #e5e7eb;
+}
+
+/* Tech Stack Badges */
+.tech-badge {
+  padding: 2px 6px;
+  background-color: #e0e7ff;
+  color: #3730a3;
+  border-radius: 3px;
+  font-size: 11px;
+  transition: all 0.2s ease;
+}
+
+.tech-badge:hover {
+  background-color: #c7d2fe;
+  color: #312e81;
+}
+
+/* Sample Employees List */
+.sample-employees {
+  margin-top: 8px;
+}
+
+.sample-employees ul {
+  list-style-type: disc;
+  margin-left: 20px;
+  margin-top: 4px;
+}
+
+.sample-employees li {
+  margin-bottom: 2px;
+  font-size: 13px;
+}
+
+/* Recent News List */
+.recent-news ul {
+  list-style-type: circle;
+  margin-left: 20px;
+  margin-top: 4px;
+}
+
+.recent-news li {
+  margin-bottom: 2px;
+  line-height: 1.5;
+}
+
+/* Key Customers */
+.key-customers {
+  font-size: 13px;
+  color: #374151;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  /* Stack export button on mobile */
+  button[style*="position: fixed"] {
+    bottom: 10px !important;
+    right: 10px !important;
+    padding: 10px 16px !important;
+    font-size: 12px !important;
+  }
+
+  /* Adjust company card padding */
+  .company-card {
+    padding: 16px !important;
+  }
+
+  /* Smaller product badges */
+  .company-products {
+    font-size: 11px;
   }
 }

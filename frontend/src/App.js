@@ -1,11 +1,20 @@
 // App.js
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import JsonView from '@uiw/react-json-view';
 import { TbRefresh } from "react-icons/tb";
 import WorkExperienceSection from './components/WorkExperienceSection';
 import ListsView from './components/ListsView';
 import CrunchbaseValidationModal from './components/CrunchbaseValidationModal';
 import './App.css';
+
+// Constants for credit tracking and data sources
+const DATA_SOURCE = {
+  CORESIGNAL: 'coresignal',
+  STORAGE: 'storage'
+};
+
+const CORESIGNAL_CREDIT_USD = 0.20; // $0.20 per credit
 
 function App() {
   const [linkedinUrl, setLinkedinUrl] = useState('');
@@ -69,6 +78,7 @@ function App() {
   const [companySessionId, setCompanySessionId] = useState(null); // Current research session ID
   const [companyResearchStatus, setCompanyResearchStatus] = useState(null); // Session status
   const [companyResearchResults, setCompanyResearchResults] = useState(null); // Research results
+  const [parsedJdRequirements, setParsedJdRequirements] = useState(null); // Parsed JD requirements from JD parser
   const [expandedCategories, setExpandedCategories] = useState({
     direct_competitor: true,    // Expanded by default (highest priority)
     adjacent_company: true,      // Expanded by default
@@ -85,6 +95,7 @@ function App() {
   const [screenedCompanies, setScreenedCompanies] = useState([]); // Screened/ranked companies
   const [evaluatedCount, setEvaluatedCount] = useState(25); // Number of companies evaluated so far
   const [evaluatingMore, setEvaluatingMore] = useState(false); // Loading state for "Evaluate More"
+  const [expandedCompanies, setExpandedCompanies] = useState({}); // Track which company cards are expanded for details
   const [showWeightedRequirements, setShowWeightedRequirements] = useState(false); // Accordion toggle for weighted requirements
   const [jdSearching, setJdSearching] = useState(false); // Loading state during JD → CoreSignal search
   const [jdSearchResults, setJdSearchResults] = useState(null); // Search results from CoreSignal
@@ -131,6 +142,20 @@ function App() {
   });
   const [companySearchResults, setCompanySearchResults] = useState(null); // {company_matches: [], people: []}
   const [searchingCompanies, setSearchingCompanies] = useState(false); // Loading state
+
+  // Domain Search (Company Batching) state
+  const [domainSearchSessionId, setDomainSearchSessionId] = useState(null); // Current session ID for batching
+  const [domainSearchCandidates, setDomainSearchCandidates] = useState([]); // All loaded candidates
+  const [domainSearching, setDomainSearching] = useState(false); // Loading state for initial search
+  const [domainLoadingMore, setDomainLoadingMore] = useState(false); // Loading state for "Load More"
+  const [domainSessionStats, setDomainSessionStats] = useState(null); // {batches_completed, total_batches, discovered_ids}
+  const [collectedProfiles, setCollectedProfiles] = useState({}); // Map of candidate.id -> full profile data
+  const [collectingProfiles, setCollectingProfiles] = useState(new Set()); // Set of IDs currently being collected
+  const [collectingAll, setCollectingAll] = useState(false); // Loading state for "Collect All"
+  const [searchCacheInfo, setSearchCacheInfo] = useState(null); // {from_cache: boolean, cache_age_days: number}
+  const [creditUsage, setCreditUsage] = useState({ profiles_fetched: 0, profiles_cached: 0 }); // Credit tracking for profile collection
+  const [profileModalOpen, setProfileModalOpen] = useState(false); // Profile modal visibility
+  const [profileModalData, setProfileModalData] = useState(null); // Profile data to show in modal
 
   // Save recruiter name to localStorage whenever it changes
   React.useEffect(() => {
@@ -647,6 +672,69 @@ function App() {
     } finally {
       setEvaluatingMore(false);
     }
+  };
+
+  // Export Deep Research Data to CSV
+  const exportDeepResearch = () => {
+    if (!companyResearchResults || !companyResearchResults.companies_by_category) {
+      alert('No research data to export');
+      return;
+    }
+
+    // Flatten all companies from categories
+    const allCompanies = Object.values(companyResearchResults.companies_by_category)
+      .flat();
+
+    // Create export data with deep research fields
+    const exportData = allCompanies.map(company => ({
+      name: company.company_name,
+      score: company.relevance_score,
+      category: company.category,
+      website: company.web_research?.website || '',
+      description: company.web_research?.description || '',
+      products: company.web_research?.products?.join(', ') || '',
+      funding_amount: company.web_research?.funding?.amount || '',
+      funding_stage: company.web_research?.funding?.stage || '',
+      funding_date: company.web_research?.funding?.date || '',
+      funding_investors: company.web_research?.funding?.investors?.join(', ') || '',
+      employee_count: company.web_research?.employee_count || company.employee_count || '',
+      founded: company.web_research?.founded || '',
+      headquarters: company.web_research?.headquarters || '',
+      tech_stack: company.web_research?.technology_stack?.join(', ') || '',
+      recent_news: company.web_research?.recent_news?.join(' | ') || '',
+      key_customers: company.web_research?.key_customers?.join(', ') || '',
+      competitive_position: company.web_research?.competitive_position || '',
+      market_focus: company.web_research?.market_focus || '',
+      research_quality: company.research_quality
+        ? `${(company.research_quality * 100).toFixed(0)}%`
+        : '',
+      coresignal_validated: company.coresignal_id ? 'Yes' : 'No',
+      coresignal_id: company.coresignal_id || '',
+      sample_employees: company.sample_employees
+        ? company.sample_employees.slice(0, 3).map(emp => `${emp.name} (${emp.title})`).join(' | ')
+        : '',
+      reasoning: company.relevance_reasoning
+    }));
+
+    // Convert to CSV
+    const headers = Object.keys(exportData[0]);
+    const csvContent = [
+      headers.join(','),
+      ...exportData.map(row =>
+        headers.map(header =>
+          `"${String(row[header]).replace(/"/g, '""')}"`
+        ).join(',')
+      )
+    ].join('\n');
+
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `deep_research_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // Save Company List
@@ -1184,6 +1272,12 @@ function App() {
       showNotification('Failed to save verification', 'error');
       throw error;
     }
+  };
+
+  // Handler for editing Crunchbase URL (reuses validation logic)
+  const handleEditUrl = async (editPayload) => {
+    // Edit modal sends the same payload format as validation modal
+    return handleValidation(editPayload);
   };
 
   const handleSubmit = async (e) => {
@@ -1929,6 +2023,231 @@ function App() {
       showNotification('Network error searching companies', 'error');
     } finally {
       setSearchingCompanies(false);
+    }
+  };
+
+  // Domain Search: Start initial search with company batching
+  const handleStartDomainSearch = async (selectedCompanies) => {
+    if (!selectedCompanies || selectedCompanies.length === 0) {
+      showNotification('Please select at least one company', 'error');
+      return;
+    }
+
+    if (!parsedJdRequirements) {
+      showNotification('Please analyze a JD first to extract requirements', 'error');
+      return;
+    }
+
+    setDomainSearching(true);
+    setDomainSearchCandidates([]);
+    setDomainSessionStats(null);
+
+    try {
+      console.log('🚀 Starting domain search with batching...', {
+        companies: selectedCompanies.length,
+        requirements: parsedJdRequirements
+      });
+
+      const response = await fetch('/api/jd/domain-company-preview-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jd_requirements: parsedJdRequirements,
+          mentioned_companies: selectedCompanies,
+          endpoint: 'employee_clean',
+          max_previews: 20,
+          create_session: true,
+          batch_size: 5
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.session_id) {
+        setDomainSearchSessionId(data.session_id);
+        setDomainSearchCandidates(data.stage2_previews || []);
+        setDomainSessionStats(data.session_stats);
+
+        // Store cache info if present
+        if (data.from_cache) {
+          setSearchCacheInfo({
+            from_cache: true,
+            cache_age_days: data.cache_age_days || 0
+          });
+          showNotification(`Found ${(data.stage2_previews || []).length} candidates (from cache, ${data.cache_age_days} days old)`, 'success');
+        } else {
+          setSearchCacheInfo(null);
+          showNotification(`Found ${(data.stage2_previews || []).length} candidates from first batch`, 'success');
+        }
+
+        console.log('✅ Domain search started:', {
+          session: data.session_id,
+          candidates: (data.stage2_previews || []).length,
+          stats: data.session_stats,
+          cached: data.from_cache || false
+        });
+      } else {
+        showNotification(data.error || 'Domain search failed', 'error');
+      }
+    } catch (error) {
+      console.error('❌ Domain search error:', error);
+      showNotification('Domain search failed: ' + error.message, 'error');
+    } finally {
+      setDomainSearching(false);
+    }
+  };
+
+  // Domain Search: Load more candidates from next batches
+  const handleLoadMoreCandidates = async (count) => {
+    if (!domainSearchSessionId) {
+      showNotification('No active domain search session', 'error');
+      return;
+    }
+
+    setDomainLoadingMore(true);
+
+    try {
+      console.log(`📥 Loading ${count} more candidates...`, {
+        session: domainSearchSessionId,
+        currentCount: domainSearchCandidates.length
+      });
+
+      const response = await fetch('/api/jd/load-more-previews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: domainSearchSessionId,
+          count: count,
+          mode: 'company_batch'
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const newProfiles = data.new_profiles || [];
+        setDomainSearchCandidates(prev => [...prev, ...newProfiles]);
+        setDomainSessionStats(data.session_stats);
+
+        const remaining = data.remaining_batches || 0;
+        showNotification(
+          `Loaded ${newProfiles.length} more candidates. ${remaining} batches remaining.`,
+          'success'
+        );
+
+        console.log('✅ Loaded more candidates:', {
+          newCount: newProfiles.length,
+          totalNow: domainSearchCandidates.length + newProfiles.length,
+          remaining: remaining
+        });
+      } else {
+        showNotification(data.error || 'Load more failed', 'error');
+      }
+    } catch (error) {
+      console.error('❌ Load more error:', error);
+      showNotification('Load more failed: ' + error.message, 'error');
+    } finally {
+      setDomainLoadingMore(false);
+    }
+  };
+
+  // Collect full profile for a single candidate
+  const handleCollectProfile = async (candidateId) => {
+    if (collectedProfiles[candidateId]) {
+      showNotification('Profile already collected', 'info');
+      return;
+    }
+
+    setCollectingProfiles(prev => new Set([...prev, candidateId]));
+
+    try {
+      const response = await fetch(`/fetch-profile-by-id/${candidateId}`);
+      const data = await response.json();
+
+      if (response.ok && data.profile) {
+        setCollectedProfiles(prev => ({
+          ...prev,
+          [candidateId]: data.profile
+        }));
+        showNotification('Profile collected successfully', 'success');
+      } else {
+        showNotification(data.error || 'Collection failed', 'error');
+      }
+    } catch (error) {
+      console.error('Collection error:', error);
+      showNotification('Collection failed: ' + error.message, 'error');
+    } finally {
+      setCollectingProfiles(prev => {
+        const updated = new Set(prev);
+        updated.delete(candidateId);
+        return updated;
+      });
+    }
+  };
+
+  // Collect all currently visible candidates
+  const handleCollectAllProfiles = async () => {
+    const uncollectedCandidates = domainSearchCandidates.filter(c => !collectedProfiles[c.id]);
+
+    if (uncollectedCandidates.length === 0) {
+      showNotification('All visible profiles already collected', 'info');
+      return;
+    }
+
+    setCollectingAll(true);
+    showNotification(`Collecting ${uncollectedCandidates.length} profiles...`, 'info');
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const candidate of uncollectedCandidates) {
+      try {
+        const response = await fetch(`/fetch-profile-by-id/${candidate.id}`);
+        const data = await response.json();
+
+        if (response.ok && data.profile) {
+          setCollectedProfiles(prev => ({
+            ...prev,
+            [candidate.id]: data.profile
+          }));
+
+          // Track credit usage immediately (fixes state synchronization issue)
+          if (data.data_source === DATA_SOURCE.CORESIGNAL) {
+            setCreditUsage(prev => ({
+              ...prev,
+              profiles_fetched: Math.max(0, prev.profiles_fetched + 1)
+            }));
+          } else if (data.data_source === DATA_SOURCE.STORAGE) {
+            setCreditUsage(prev => ({
+              ...prev,
+              profiles_cached: Math.max(0, prev.profiles_cached + 1)
+            }));
+          } else if (data.data_source) {
+            console.warn(`Unknown data_source: ${data.data_source} for candidate ${candidate.id}`);
+          }
+
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        console.error(`Collection error for ${candidate.id}:`, error);
+        failCount++;
+      }
+    }
+
+    setCollectingAll(false);
+    showNotification(
+      `Collected ${successCount} profiles. ${failCount > 0 ? failCount + ' failed.' : ''}`,
+      failCount > 0 ? 'warning' : 'success'
+    );
+  };
+
+  const handleViewProfile = (candidateId) => {
+    const profileData = collectedProfiles[candidateId];
+    if (profileData) {
+      setProfileModalData(profileData);
+      setProfileModalOpen(true);
     }
   };
 
@@ -2838,7 +3157,7 @@ function App() {
                       position: 'fixed',
                       left: `${tooltipPosition.x}px`,
                       top: `${tooltipPosition.y}px`,
-                      zIndex: 10000
+                      zIndex: 'var(--z-tooltip, 9999)'
                     }}
                   >
                     <div className="tooltip-header">
@@ -3157,6 +3476,9 @@ function App() {
                     // CRITICAL FIX: parseData.requirements contains the parsed fields, not parseData directly
                     const requirements = parseData.requirements || {};
 
+                    // Store parsed JD requirements for domain search (company batching)
+                    setParsedJdRequirements(requirements);
+
                     // Store excluded companies in state for UI display
                     setExcludedCompanies(requirements.excluded_companies || []);
                     const jdData = {
@@ -3190,6 +3512,7 @@ function App() {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
+                        jd_text: companyJdText,  // For cache key generation
                         jd_data: jdData,
                         config: {
                           max_companies: 50,
@@ -3203,6 +3526,36 @@ function App() {
 
                     if (data.success) {
                       setCompanySessionId(data.session_id);
+
+                      // Cache hit: Skip streaming and load results directly
+                      if (data.from_cache) {
+                        showNotification(`Using cached research from ${data.cache_age_hours.toFixed(1)} hours ago`, 'success');
+                        setCompanyResearchStatus({ status: 'completed', progress_percentage: 100 });
+
+                        // Fetch cached results immediately
+                        const resultsResponse = await fetch(`http://localhost:5001/research-companies/${data.session_id}/results`);
+                        const resultsData = await resultsResponse.json();
+
+                        if (resultsData.success) {
+                          const results = resultsData.results;
+                          setCompanyResearchResults(results);
+
+                          // CRITICAL: Only update if we actually have companies (don't clear with empty array)
+                          if (results.discovered_companies && results.discovered_companies.length > 0) {
+                            setDiscoveredCompanies(results.discovered_companies);
+                          }
+                          if (results.screened_companies) {
+                            setScreenedCompanies(results.screened_companies);
+                          }
+                          if (results.summary && results.summary.total_evaluated) {
+                            setEvaluatedCount(results.summary.total_evaluated);
+                          }
+                        }
+                        setCompanyResearching(false);
+                        return;
+                      }
+
+                      // Cache miss: Start streaming
                       setCompanyResearchStatus({ status: 'running', progress_percentage: 0 });
                       showNotification('Company research started!', 'success');
 
@@ -3229,18 +3582,33 @@ function App() {
                           }
 
                           if (streamData.session.status === 'completed') {
+                            console.log('[STREAM] Status completed - closing stream and fetching results');
                             eventSource.close();
                             // Fetch results
                             const resultsResponse = await fetch(`/research-companies/${data.session_id}/results`);
                             const resultsData = await resultsResponse.json();
+                            console.log('[RESULTS] Fetched results:', {
+                              success: resultsData.success,
+                              has_results: !!resultsData.results,
+                              discovered_count: resultsData.results?.discovered_companies?.length || 0
+                            });
 
                             if (resultsData.success) {
                               const results = resultsData.results;
                               setCompanyResearchResults(results);
 
                               // NEW: Store discovered and screened companies for progressive evaluation
-                              if (results.discovered_companies) {
+                              // CRITICAL: Only update if we actually have companies (don't clear with empty array)
+                              console.log('[DISCOVERED] Checking discovered_companies:', {
+                                exists: !!results.discovered_companies,
+                                length: results.discovered_companies?.length || 0,
+                                will_update: !!(results.discovered_companies && results.discovered_companies.length > 0)
+                              });
+                              if (results.discovered_companies && results.discovered_companies.length > 0) {
+                                console.log('[DISCOVERED] Setting discoveredCompanies state with', results.discovered_companies.length, 'companies');
                                 setDiscoveredCompanies(results.discovered_companies);
+                              } else {
+                                console.warn('[DISCOVERED] NOT setting discoveredCompanies - condition failed');
                               }
                               if (results.screened_companies) {
                                 setScreenedCompanies(results.screened_companies);
@@ -3250,7 +3618,10 @@ function App() {
                               }
 
                               showNotification('Research completed!', 'success');
+                            } else {
+                              console.error('[RESULTS] Results fetch failed - success=false');
                             }
+                            console.log('[STREAM] Setting companyResearching to false');
                             setCompanyResearching(false);
                           } else if (streamData.session.status === 'failed') {
                             eventSource.close();
@@ -3371,6 +3742,95 @@ function App() {
               </div>
             )}
 
+            {/* Discovered Companies Section - Show all discovered companies with sources */}
+            {/* MOVED OUTSIDE companyResearchResults conditional for immediate visibility */}
+            {(() => {
+              console.log('[RENDER] Checkbox list condition check:', {
+                discoveredCompanies_exists: !!discoveredCompanies,
+                discoveredCompanies_length: discoveredCompanies?.length || 0,
+                will_render: !!(discoveredCompanies && discoveredCompanies.length > 0)
+              });
+              return null;
+            })()}
+            {discoveredCompanies && discoveredCompanies.length > 0 && (
+              <div className="discovered-companies-section">
+                <h4>Discovered Companies ({discoveredCompanies.length})</h4>
+                <p className="discovered-subtitle">
+                  Found {discoveredCompanies.length} companies via seed expansion + web search
+                </p>
+
+                {/* Compact list view */}
+                <div className="discovered-list">
+                  {discoveredCompanies.slice(0, 100).map((company, idx) => (
+                    <div key={idx} className="discovered-item">
+                      <span className="discovered-rank">#{idx + 1}</span>
+                      <span className="discovered-name">{company.name || company.company_name || 'Unknown'}</span>
+                      {company.source_url && (
+                        <a
+                          href={company.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="source-link"
+                          title={`Search query: "${company.source_query || 'N/A'}"`}
+                          style={{
+                            fontSize: '11px',
+                            color: '#6366f1',
+                            textDecoration: 'none',
+                            padding: '2px 6px',
+                            background: '#eef2ff',
+                            borderRadius: '4px',
+                            marginLeft: '8px',
+                            border: '1px solid #c7d2fe'
+                          }}
+                        >
+                          📄 Source
+                          {company.source_result_rank !== undefined && company.source_result_rank !== null && (
+                            <span style={{ marginLeft: '3px', opacity: 0.8 }}>
+                              #{company.source_result_rank + 1}
+                            </span>
+                          )}
+                        </a>
+                      )}
+                      {company.discovered_via && (
+                        <span className="discovered-source">{company.discovered_via}</span>
+                      )}
+                      {idx < evaluatedCount && (
+                        <span className="discovered-badge evaluated">Evaluated</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Evaluation Progress */}
+                <div className="evaluation-progress">
+                  <div className="progress-bar-container">
+                    <div
+                      className="progress-bar"
+                      style={{ width: `${(evaluatedCount / discoveredCompanies.length) * 100}%` }}
+                    />
+                  </div>
+                  <p className="progress-text">
+                    {evaluatedCount} of {discoveredCompanies.length} companies evaluated ({Math.round((evaluatedCount / discoveredCompanies.length) * 100)}%)
+                  </p>
+                </div>
+
+                {/* Evaluate More Button */}
+                {evaluatedCount < discoveredCompanies.length && (
+                  <button
+                    className="evaluate-more-btn"
+                    onClick={evaluateMoreCompanies}
+                    disabled={evaluatingMore}
+                  >
+                    {evaluatingMore ? (
+                      <>Evaluating...</>
+                    ) : (
+                      <>Evaluate Next 25 Companies ({Math.min(evaluatedCount + 25, discoveredCompanies.length)}/{discoveredCompanies.length})</>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Results Display */}
             {companyResearchResults && (
               <div className="research-results-section">
@@ -3414,64 +3874,46 @@ function App() {
                 </div>
 
                 <div className="results-summary">
-                  <p>Total Companies: {companyResearchResults.summary.total_companies}</p>
-                  <p>Average Score: {companyResearchResults.summary.avg_relevance_score}</p>
-                  <p>Top Company: {companyResearchResults.summary.top_company}</p>
+                  <p>Total Companies: {companyResearchResults.summary.total_discovered || companyResearchResults.summary.total_companies || 0}</p>
+                  <p>Average Score: {companyResearchResults.summary.avg_relevance_score || 0}</p>
+                  <p>Top Company: {companyResearchResults.summary.top_company || 'N/A'}</p>
                 </div>
-
-                {/* Discovered Companies Section - Show all discovered before evaluation */}
-                {discoveredCompanies && discoveredCompanies.length > 0 && (
-                  <div className="discovered-companies-section">
-                    <h4>Discovered Companies ({discoveredCompanies.length})</h4>
-                    <p className="discovered-subtitle">
-                      Found {discoveredCompanies.length} companies via seed expansion + web search
-                    </p>
-
-                    {/* Compact list view */}
-                    <div className="discovered-list">
-                      {discoveredCompanies.slice(0, 100).map((company, idx) => (
-                        <div key={idx} className="discovered-item">
-                          <span className="discovered-rank">#{idx + 1}</span>
-                          <span className="discovered-name">{company.name || company.company_name || 'Unknown'}</span>
-                          {company.discovered_via && (
-                            <span className="discovered-source">{company.discovered_via}</span>
-                          )}
-                          {idx < evaluatedCount && (
-                            <span className="discovered-badge evaluated">Evaluated</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Evaluation Progress */}
-                    <div className="evaluation-progress">
-                      <div className="progress-bar-container">
-                        <div
-                          className="progress-bar"
-                          style={{ width: `${(evaluatedCount / discoveredCompanies.length) * 100}%` }}
-                        />
-                      </div>
-                      <p className="progress-text">
-                        {evaluatedCount} of {discoveredCompanies.length} companies evaluated ({Math.round((evaluatedCount / discoveredCompanies.length) * 100)}%)
-                      </p>
-                    </div>
-
-                    {/* Evaluate More Button */}
-                    {evaluatedCount < discoveredCompanies.length && (
-                      <button
-                        className="evaluate-more-btn"
-                        onClick={evaluateMoreCompanies}
-                        disabled={evaluatingMore}
-                      >
-                        {evaluatingMore ? (
-                          <>Evaluating...</>
-                        ) : (
-                          <>Evaluate Next 25 Companies ({Math.min(evaluatedCount + 25, discoveredCompanies.length)}/{discoveredCompanies.length})</>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                )}
+                {/* Export Deep Research Button (Fixed Position) */}
+                <button
+                  onClick={() => exportDeepResearch()}
+                  style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    right: '20px',
+                    padding: '12px 24px',
+                    backgroundColor: '#7c3aed',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(124, 58, 237, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    zIndex: 1000,
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#6d28d9';
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 16px rgba(124, 58, 237, 0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = '#7c3aed';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(124, 58, 237, 0.4)';
+                  }}
+                >
+                  <span>📥</span>
+                  Export Research Data
+                </button>
 
                 {/* Excluded Companies Section */}
                 {excludedCompanies && excludedCompanies.length > 0 && (
@@ -3527,6 +3969,445 @@ function App() {
                   </button>
                 </div>
 
+                {/* Stage 3: Domain Search with Company Batching */}
+                {!domainSearchSessionId && (
+                  <div className="domain-search-section" style={{
+                    margin: '30px 0',
+                    padding: '25px',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderRadius: '12px',
+                    color: 'white'
+                  }}>
+                    <h3 style={{ margin: '0 0 10px 0', fontSize: '20px', fontWeight: '700' }}>🔍 Stage 3: Search Candidates (Progressive Loading)</h3>
+                    <p style={{ margin: '0 0 20px 0', fontSize: '14px', lineHeight: '1.5', opacity: 0.95 }}>
+                      Search CoreSignal using discovered companies with batching (5 companies per batch).
+                      Control credit usage by loading more on demand.
+                    </p>
+                    <button
+                      onClick={() => {
+                        const selected = [];
+                        Object.entries(companyResearchResults.companies_by_category).forEach(([cat, companies]) => {
+                          if (selectedCategories[cat]) {
+                            selected.push(...companies.map(c => c.company_name || c.name));
+                          }
+                        });
+                        if (selected.length === 0) {
+                          showNotification('Please select at least one category above', 'error');
+                          return;
+                        }
+                        handleStartDomainSearch(selected);
+                      }}
+                      disabled={domainSearching}
+                      style={{
+                        padding: '12px 30px',
+                        backgroundColor: domainSearching ? '#9ca3af' : 'white',
+                        color: domainSearching ? 'white' : '#667eea',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        fontWeight: '700',
+                        cursor: domainSearching ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      {domainSearching ? '🔄 Searching...' : '🚀 Start Domain Search'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Display Candidates with Load More */}
+                {domainSearchSessionId && (
+                  <div className="domain-candidates-section" style={{ margin: '30px 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                      <h3 style={{ fontSize: '20px', fontWeight: '700', margin: 0 }}>
+                        Candidates Found ({domainSearchCandidates.length})
+                        {Object.keys(collectedProfiles).length > 0 && (
+                          <span style={{ fontSize: '14px', fontWeight: '500', color: '#10b981', marginLeft: '10px' }}>
+                            {Object.keys(collectedProfiles).length} collected
+                          </span>
+                        )}
+                        {searchCacheInfo && searchCacheInfo.from_cache && (
+                          <span style={{
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: '#6366f1',
+                            background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            marginLeft: '10px',
+                            border: '1px solid #c7d2fe',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            💾 Cached ({searchCacheInfo.cache_age_days} {searchCacheInfo.cache_age_days === 1 ? 'day' : 'days'} old)
+                          </span>
+                        )}
+                      </h3>
+                      {domainSearchCandidates.length > 0 && (
+                        <button
+                          onClick={handleCollectAllProfiles}
+                          disabled={collectingAll || domainSearchCandidates.every(c => collectedProfiles[c.id])}
+                          style={{
+                            padding: '10px 20px',
+                            background: collectingAll ? '#9ca3af' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            cursor: collectingAll || domainSearchCandidates.every(c => collectedProfiles[c.id]) ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.3s ease',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                          }}
+                        >
+                          {collectingAll ? 'Collecting...' :
+                           domainSearchCandidates.every(c => collectedProfiles[c.id]) ? 'All Collected' :
+                           `Collect All ${domainSearchCandidates.filter(c => !collectedProfiles[c.id]).length} Profiles`}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Credit Usage Meter */}
+                    {(creditUsage.profiles_fetched > 0 || creditUsage.profiles_cached > 0) && (
+                      <div className="credit-meter" style={{
+                        background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                        border: '1px solid #fbbf24',
+                        borderRadius: '8px',
+                        padding: '12px 16px',
+                        marginBottom: '15px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '20px',
+                        fontSize: '13px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '18px' }}>💳</span>
+                          <span style={{ fontWeight: '700', color: '#92400e' }}>API Credits:</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '16px', flex: 1 }}>
+                          <div>
+                            <span style={{ fontWeight: '600', color: '#dc2626' }}>Used: {creditUsage.profiles_fetched}</span>
+                            <span style={{ color: '#92400e', marginLeft: '4px' }}>
+                              (${(creditUsage.profiles_fetched * CORESIGNAL_CREDIT_USD).toFixed(2)})
+                            </span>
+                          </div>
+                          <div>
+                            <span style={{ fontWeight: '600', color: '#059669' }}>Saved: {creditUsage.profiles_cached}</span>
+                            <span style={{ color: '#92400e', marginLeft: '4px' }}>
+                              (${(creditUsage.profiles_cached * CORESIGNAL_CREDIT_USD).toFixed(2)})
+                            </span>
+                          </div>
+                          {(creditUsage.profiles_fetched + creditUsage.profiles_cached) > 0 && (
+                            <div>
+                              <span style={{ fontWeight: '600', color: '#92400e' }}>
+                                Efficiency: {(() => {
+                                  const total = creditUsage.profiles_fetched + creditUsage.profiles_cached;
+                                  return total > 0 ? Math.round((creditUsage.profiles_cached / total) * 100) : 0;
+                                })()}% cached
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Session Stats */}
+                    {domainSessionStats && (
+                      <div className="session-stats" style={{
+                        display: 'flex',
+                        gap: '20px',
+                        padding: '15px',
+                        background: '#f8f9fa',
+                        borderRadius: '8px',
+                        marginBottom: '20px',
+                        fontWeight: '500'
+                      }}>
+                        <span>📦 Batch: {domainSessionStats.batches_completed}/{domainSessionStats.total_batches}</span>
+                        <span>🔍 Discovered: {domainSessionStats.discovered_ids || domainSessionStats.total_discovered || 0}</span>
+                        <span>⏳ Remaining: {(domainSessionStats.total_batches || 0) - (domainSessionStats.batches_completed || 0)} batches</span>
+                      </div>
+                    )}
+
+                    {/* No Candidates - Show Reset Button */}
+                    {domainSearchCandidates.length === 0 && (
+                      <div style={{
+                        padding: '30px',
+                        background: 'linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%)',
+                        borderRadius: '12px',
+                        marginBottom: '20px',
+                        border: '2px solid #f59e0b'
+                      }}>
+                        <h4 style={{ margin: '0 0 10px 0', textAlign: 'center', color: '#92400e', fontSize: '18px', fontWeight: '700' }}>
+                          No Candidates Found
+                        </h4>
+                        <p style={{ margin: '0 0 20px 0', textAlign: 'center', color: '#78350f', fontSize: '14px' }}>
+                          The query returned 0 results. The backend has been updated to fix this issue.
+                          Click below to reset and try again.
+                        </p>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+                          <button
+                            onClick={() => {
+                              // Reset domain search state
+                              setDomainSearchSessionId(null);
+                              setDomainSearchCandidates([]);
+                              setDomainSessionStats(null);
+                              showNotification('Search reset. Please try again!', 'success');
+                            }}
+                            style={{
+                              padding: '12px 30px',
+                              backgroundColor: '#f59e0b',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontSize: '16px',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            Reset & Try Again
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Candidate Cards Grid */}
+                    <div className="candidates-grid" style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+                      gap: '20px',
+                      margin: '20px 0'
+                    }}>
+                      {domainSearchCandidates.map((candidate, idx) => (
+                        <div key={idx} className="candidate-card" style={{
+                          padding: '20px',
+                          background: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '12px',
+                          transition: 'all 0.3s ease',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                          position: 'relative'
+                        }}>
+                          {/* Relevance Score Badge */}
+                          {candidate._score && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '12px',
+                              right: '12px',
+                              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                              color: 'white',
+                              padding: '4px 10px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: '700'
+                            }}>
+                              {Math.round(candidate._score)}
+                            </div>
+                          )}
+
+                          {/* Name */}
+                          <div style={{ fontWeight: '700', fontSize: '18px', marginBottom: '8px', color: '#111827', paddingRight: '60px' }}>
+                            {candidate.full_name || 'Unknown'}
+                          </div>
+
+                          {/* Current Role & Company */}
+                          <div style={{ fontSize: '14px', color: '#4b5563', marginBottom: '12px', lineHeight: '1.4' }}>
+                            {candidate.job_title && (
+                              <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '4px' }}>
+                                {candidate.job_title}
+                              </div>
+                            )}
+                            {candidate.company_name && (
+                              <div style={{ color: '#667eea', fontWeight: '500' }}>
+                                at {candidate.company_name}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Headline */}
+                          {candidate.headline && (
+                            <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px', lineHeight: '1.5', fontStyle: 'italic' }}>
+                              "{candidate.headline}"
+                            </div>
+                          )}
+
+                          {/* Metadata Row */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                            {candidate.management_level && (
+                              <span style={{
+                                background: '#f3f4f6',
+                                color: '#374151',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '500'
+                              }}>
+                                {candidate.management_level}
+                              </span>
+                            )}
+                            {candidate.department && (
+                              <span style={{
+                                background: '#ede9fe',
+                                color: '#6d28d9',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '500'
+                              }}>
+                                {candidate.department}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Location & Connections */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                              {candidate.location_country || candidate.location_raw_address || 'Location N/A'}
+                            </div>
+                            {candidate.connections_count && (
+                              <div style={{ fontSize: '12px', color: '#9ca3af', fontWeight: '500' }}>
+                                {candidate.connections_count}+ connections
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Actions Row */}
+                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '12px' }}>
+                            {/* LinkedIn Link */}
+                            {candidate.websites_linkedin && (
+                              <a
+                                href={candidate.websites_linkedin}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  flex: 1,
+                                  color: '#0a66c2',
+                                  fontSize: '13px',
+                                  fontWeight: '600',
+                                  textDecoration: 'none',
+                                  transition: 'color 0.2s ease'
+                                }}
+                                onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                                onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                              >
+                                View LinkedIn →
+                              </a>
+                            )}
+
+                            {/* Collect/View Profile Button */}
+                            {collectedProfiles[candidate.id] ? (
+                              <button
+                                onClick={() => handleViewProfile(candidate.id)}
+                                style={{
+                                  padding: '6px 12px',
+                                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                              >
+                                View Profile
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleCollectProfile(candidate.id)}
+                                disabled={collectingProfiles.has(candidate.id)}
+                                style={{
+                                  padding: '6px 12px',
+                                  background: collectingProfiles.has(candidate.id) ? '#9ca3af' :
+                                             'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  cursor: collectingProfiles.has(candidate.id) ? 'not-allowed' : 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {collectingProfiles.has(candidate.id) ? 'Collecting...' : 'Collect Profile'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Load More Controls - Only show if we have candidates */}
+                    {domainSearchCandidates.length > 0 && (
+                    <div className="load-more-controls" style={{
+                      display: 'flex',
+                      gap: '15px',
+                      justifyContent: 'center',
+                      margin: '30px 0'
+                    }}>
+                      <button
+                        onClick={() => handleLoadMoreCandidates(20)}
+                        disabled={domainLoadingMore}
+                        style={{
+                          padding: '12px 24px',
+                          border: '2px solid #667eea',
+                          background: 'white',
+                          color: '#667eea',
+                          borderRadius: '8px',
+                          fontWeight: '600',
+                          cursor: domainLoadingMore ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.3s ease',
+                          opacity: domainLoadingMore ? 0.5 : 1
+                        }}
+                      >
+                        {domainLoadingMore ? 'Loading...' : 'Load +20 More'}
+                      </button>
+                      <button
+                        onClick={() => handleLoadMoreCandidates(40)}
+                        disabled={domainLoadingMore}
+                        style={{
+                          padding: '12px 24px',
+                          border: '2px solid #667eea',
+                          background: 'white',
+                          color: '#667eea',
+                          borderRadius: '8px',
+                          fontWeight: '600',
+                          cursor: domainLoadingMore ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.3s ease',
+                          opacity: domainLoadingMore ? 0.5 : 1
+                        }}
+                      >
+                        {domainLoadingMore ? 'Loading...' : 'Load +40 More'}
+                      </button>
+                      <button
+                        onClick={() => handleLoadMoreCandidates(100)}
+                        disabled={domainLoadingMore}
+                        style={{
+                          padding: '12px 24px',
+                          border: '2px solid #667eea',
+                          background: 'white',
+                          color: '#667eea',
+                          borderRadius: '8px',
+                          fontWeight: '600',
+                          cursor: domainLoadingMore ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.3s ease',
+                          opacity: domainLoadingMore ? 0.5 : 1
+                        }}
+                      >
+                        {domainLoadingMore ? 'Loading...' : 'Load +100 More'}
+                      </button>
+                    </div>
+                    )}
+                  </div>
+                )}
+
                 {Object.entries(companyResearchResults.companies_by_category).map(([category, companies]) => (
                   companies.length > 0 && (
                     <div key={category} className="category-section">
@@ -3545,15 +4426,219 @@ function App() {
                           {companies.map((company, idx) => (
                             <div key={idx} className="company-card">
                               <div className="company-header">
-                                <h5>{company.company_name}</h5>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <h5>{company.company_name}</h5>
+                                  {company.coresignal_id && (
+                                    <span style={{
+                                      padding: '2px 6px',
+                                      backgroundColor: '#dcfce7',
+                                      color: '#166534',
+                                      borderRadius: '4px',
+                                      fontSize: '11px',
+                                      fontWeight: '500'
+                                    }}>
+                                      ✓ Verified
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="score-badge">{company.relevance_score}/10</span>
                               </div>
+
+                              {/* Add website link */}
+                              {company.web_research && company.web_research.website && (
+                                <div className="company-website">
+                                  <a
+                                    href={`https://${company.web_research.website}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      color: '#7c3aed',
+                                      textDecoration: 'none',
+                                      fontSize: '14px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      marginTop: '8px'
+                                    }}
+                                  >
+                                    <span>🌐</span>
+                                    {company.web_research.website}
+                                  </a>
+                                </div>
+                              )}
+
                               <p className="reasoning">{company.relevance_reasoning}</p>
+
+                              {/* Display products */}
+                              {company.web_research && company.web_research.products && company.web_research.products.length > 0 && (
+                                <div className="company-products" style={{ marginTop: '12px' }}>
+                                  <strong style={{ fontSize: '12px', color: '#6b7280' }}>Products:</strong>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                                    {company.web_research.products.slice(0, 3).map((product, idx) => (
+                                      <span
+                                        key={idx}
+                                        style={{
+                                          padding: '2px 8px',
+                                          backgroundColor: '#f3f4f6',
+                                          borderRadius: '4px',
+                                          fontSize: '12px'
+                                        }}
+                                      >
+                                        {product}
+                                      </span>
+                                    ))}
+                                    {company.web_research.products.length > 3 && (
+                                      <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                                        +{company.web_research.products.length - 3} more
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Display funding */}
+                              {company.web_research && company.web_research.funding && company.web_research.funding.amount && (
+                                <div className="company-funding" style={{ marginTop: '8px' }}>
+                                  <span style={{ fontSize: '13px' }}>
+                                    💰 <strong>{company.web_research.funding.amount}</strong>
+                                    {company.web_research.funding.stage && ` (${company.web_research.funding.stage})`}
+                                    {company.web_research.funding.date && ` - ${company.web_research.funding.date}`}
+                                  </span>
+                                </div>
+                              )}
+
                               <div className="company-meta">
                                 <span>{company.industry}</span>
                                 {company.employee_count && <span>{company.employee_count} employees</span>}
                                 {company.funding_stage && <span>{company.funding_stage}</span>}
                               </div>
+
+                              {/* Research Quality Indicator */}
+                              {company.research_quality !== undefined && (
+                                <div className="research-quality" style={{ marginTop: '12px' }}>
+                                  <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    fontSize: '12px',
+                                    marginBottom: '4px'
+                                  }}>
+                                    <span style={{ color: '#6b7280' }}>Research Quality</span>
+                                    <span style={{ fontWeight: '600' }}>
+                                      {(company.research_quality * 100).toFixed(0)}%
+                                    </span>
+                                  </div>
+                                  <div style={{
+                                    width: '100%',
+                                    height: '6px',
+                                    backgroundColor: '#e5e7eb',
+                                    borderRadius: '3px',
+                                    overflow: 'hidden'
+                                  }}>
+                                    <div style={{
+                                      width: `${company.research_quality * 100}%`,
+                                      height: '100%',
+                                      background: company.research_quality > 0.7
+                                        ? 'linear-gradient(to right, #10b981, #34d399)'  // Green for high quality
+                                        : company.research_quality > 0.4
+                                        ? 'linear-gradient(to right, #f59e0b, #fbbf24)'  // Yellow for medium
+                                        : 'linear-gradient(to right, #ef4444, #f87171)',  // Red for low
+                                      transition: 'width 0.3s ease'
+                                    }} />
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Expand/Collapse for more details */}
+                              {company.web_research && (
+                                <button
+                                  onClick={() => setExpandedCompanies({
+                                    ...expandedCompanies,
+                                    [company.company_name]: !expandedCompanies[company.company_name]
+                                  })}
+                                  style={{
+                                    marginTop: '12px',
+                                    padding: '6px 12px',
+                                    backgroundColor: 'transparent',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '4px',
+                                    fontSize: '13px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                >
+                                  <span>{expandedCompanies[company.company_name] ? '▼' : '▶'}</span>
+                                  {expandedCompanies[company.company_name] ? 'Show Less' : 'Show More'}
+                                </button>
+                              )}
+
+                              {/* Expanded Details */}
+                              {expandedCompanies[company.company_name] && company.web_research && (
+                                <div style={{
+                                  marginTop: '12px',
+                                  padding: '12px',
+                                  backgroundColor: '#f9fafb',
+                                  borderRadius: '6px',
+                                  fontSize: '13px'
+                                }}>
+                                  {/* Recent News */}
+                                  {company.web_research.recent_news && company.web_research.recent_news.length > 0 && (
+                                    <div style={{ marginBottom: '12px' }}>
+                                      <strong>Recent News:</strong>
+                                      <ul style={{ marginTop: '4px', marginLeft: '20px' }}>
+                                        {company.web_research.recent_news.map((news, idx) => (
+                                          <li key={idx} style={{ marginBottom: '2px' }}>{news}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+
+                                  {/* Technology Stack */}
+                                  {company.web_research.technology_stack && company.web_research.technology_stack.length > 0 && (
+                                    <div style={{ marginBottom: '12px' }}>
+                                      <strong>Tech Stack:</strong>
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+                                        {company.web_research.technology_stack.map((tech, idx) => (
+                                          <span key={idx} style={{
+                                            padding: '2px 6px',
+                                            backgroundColor: '#e0e7ff',
+                                            color: '#3730a3',
+                                            borderRadius: '3px',
+                                            fontSize: '11px'
+                                          }}>
+                                            {tech}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Key Customers */}
+                                  {company.web_research.key_customers && company.web_research.key_customers.length > 0 && (
+                                    <div style={{ marginBottom: '12px' }}>
+                                      <strong>Key Customers:</strong>
+                                      <span style={{ marginLeft: '8px' }}>
+                                        {company.web_research.key_customers.join(', ')}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Sample Employees */}
+                                  {company.sample_employees && company.sample_employees.length > 0 && (
+                                    <div>
+                                      <strong>Sample Employees:</strong>
+                                      <ul style={{ marginTop: '4px', marginLeft: '20px' }}>
+                                        {company.sample_employees.slice(0, 3).map((emp, idx) => (
+                                          <li key={idx}>
+                                            {emp.name} - <em>{emp.title}</em>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -4363,7 +5448,7 @@ function App() {
                   {allCandidates.map((candidate, index) => (
                   <div
                     key={`${candidate.type}-${candidate.originalIndex || 0}`}
-                    className={`candidate-card ${drawerOpen[candidate.url] ? 'feedback-active' : ''}`}
+                    className={`candidate-card ${activeCandidate === candidate.url ? 'feedback-active' : ''}`}
                     data-candidate-url={candidate.url}
                   >
                   <div className="candidate-header">
@@ -4373,19 +5458,30 @@ function App() {
                     <div className="candidate-info">
                       <div className="candidate-name-row">
                         <h3>{candidate.name}</h3>
-                        {candidate.url && candidate.url !== 'Test Profile' && (
-                          <a 
-                            href={candidate.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="linkedin-icon"
-                            title="View LinkedIn Profile"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#0077b5">
-                              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                            </svg>
-                          </a>
-                        )}
+                        <div className="candidate-actions">
+                          {candidate.url && candidate.url !== 'Test Profile' && (
+                            <>
+                              <a
+                                href={candidate.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="linkedin-icon"
+                                title="View LinkedIn Profile"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#0077b5">
+                                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                                </svg>
+                              </a>
+                              <button
+                                className="feedback-icon-button"
+                                onClick={() => toggleDrawer(candidate.url, candidate.name)}
+                                title="Open Feedback Panel"
+                              >
+                                📝
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                       <div className="candidate-meta">
                           <span className="candidate-headline">{candidate.headline}</span>
@@ -4489,125 +5585,7 @@ function App() {
 
                       <div className="details-content">
 
-                          {/* Sliding Feedback Drawer - Inside Accordion */}
-                          {candidate.url && candidate.url !== 'Test Profile' && (
-                            <div className="feedback-drawer">
-                              {/* Collapsed Tab - Always Visible */}
-                              <div
-                                className="feedback-tab"
-                                onClick={() => toggleDrawer(candidate.url, candidate.name)}
-                                title={drawerOpen[candidate.url] ? "Close feedback panel" : "Open feedback panel"}
-                              >
-                                <div className="feedback-tab-content">
-                                  <div className={`feedback-status-dot ${(feedbackHistory[candidate.url] || []).length > 0 ? 'has-feedback' : ''}`}></div>
-                                  <span className="feedback-tab-label">Feedback</span>
-                                  {(feedbackHistory[candidate.url] || []).length > 0 && (
-                                    <span className="feedback-count">{(feedbackHistory[candidate.url] || []).length}</span>
-                                  )}
-                                  <span className="feedback-arrow">{drawerOpen[candidate.url] ? '▶' : '◀'}</span>
-                                </div>
-                              </div>
-
-                              {/* Expanded Panel */}
-                              <div className={`feedback-panel ${drawerOpen[candidate.url] ? 'expanded' : ''}`}>
-                                {/* Candidate Header - Sticky */}
-                                <div className="feedback-candidate-header">
-                                  <div className="feedback-candidate-name">{candidate.name}</div>
-                                  <div className="feedback-candidate-headline">{candidate.headline}</div>
-                                  <div className="feedback-context-reminder">Feedback for this candidate</div>
-                                </div>
-
-                                {/* Feedback History */}
-                                {(() => {
-                                  const history = feedbackHistory[candidate.url] || [];
-                                  return history.length > 0 ? (
-                                    <details open className="feedback-history-section">
-                                      <summary className="feedback-history-title">
-                                        💬 Previous Feedback ({history.length})
-                                      </summary>
-                                      <div className="feedback-history-list">
-                                        {history.map((fb, idx) => (
-                                          <div key={idx} className={`feedback-history-item ${fb.feedback_type}`}>
-                                            <div className="feedback-history-header">
-                                              <span>{fb.feedback_type === 'like' ? '👍' : fb.feedback_type === 'dislike' ? '👎' : '📝'} {fb.recruiter_name}</span>
-                                              <span className="feedback-history-date">{new Date(fb.created_at).toLocaleDateString()}</span>
-                                            </div>
-                                            {fb.feedback_text && <div className="feedback-history-text">{fb.feedback_text}</div>}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </details>
-                                  ) : null;
-                                })()}
-
-                                {/* HIDDEN: Quick Feedback Buttons - Keep code for future use */}
-                                {false && (
-                                <>
-                                <div className="feedback-section">
-                                  <div className="feedback-section-title">👍 Why do you like this candidate?</div>
-                                  <div className="feedback-buttons">
-                                    {likeReasons.map((reason, idx) => (
-                                      <button
-                                        key={idx}
-                                        className="feedback-button like-button"
-                                        onClick={() => handleQuickFeedback(candidate.url, 'like', reason)}
-                                      >
-                                        {reason}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                <div className="feedback-section">
-                                  <div className="feedback-section-title dislike">👎 Why pass on this candidate?</div>
-                                  <div className="feedback-buttons">
-                                    {passReasons.map((reason, idx) => (
-                                      <button
-                                        key={idx}
-                                        className="feedback-button dislike-button"
-                                        onClick={() => handleQuickFeedback(candidate.url, 'dislike', reason)}
-                                      >
-                                        {reason}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                                </>
-                                )}
-
-                                {/* Custom Notes */}
-                                <div className="feedback-section">
-                                  <div className="feedback-section-title">✍️ Custom Notes</div>
-                                  <div className="feedback-note-container">
-                                    <textarea
-                                      className="feedback-note-textarea"
-                                      value={candidateFeedback[candidate.url]?.note || ''}
-                                      onChange={(e) => handleNoteChange(candidate.url, e.target.value)}
-                                      onBlur={(e) => handleNoteBlur(candidate.url, e.target.value)}
-                                      placeholder="Type your feedback or click the microphone..."
-                                    />
-                                    <button
-                                      className={`feedback-mic-button ${isRecording[candidate.url] ? 'recording' : ''}`}
-                                      onClick={() => isRecording[candidate.url] ? stopVoiceRecording(candidate.url) : startVoiceRecording(candidate.url)}
-                                      title={isRecording[candidate.url] ? 'Stop recording' : 'Start voice input (Chrome only)'}
-                                    >
-                                      {isRecording[candidate.url] ? '⏹' : '🎤'}
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Action Buttons */}
-                                <div className="feedback-actions">
-                                  <button
-                                    className="feedback-clear-button"
-                                    onClick={() => clearMyFeedback(candidate.url, candidate.name)}
-                                  >
-                                    Clear My Feedback
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
+                          {/* Feedback drawer removed - now renders globally via Portal */}
 
                           {/* HIDDEN: Assessment Scores - Keep code for future use */}
                           {false && candidate.assessment && (
@@ -4749,6 +5727,7 @@ function App() {
                             profileSummary={candidate.profileSummary}
                             onRegenerateUrl={handleRegenerateCrunchbaseUrl}
                             onCrunchbaseClick={handleCrunchbaseClick}
+                            onEditUrl={handleEditUrl}
                           />
 
                             {/* Profile Not Found Message - only for batch results */}
@@ -4792,40 +5771,38 @@ function App() {
       {/* Save Company List Modal */}
       {showSaveListModal && (
         <div className="modal-overlay" onClick={() => setShowSaveListModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Save as Company List</h2>
-              <button className="close-btn" onClick={() => setShowSaveListModal(false)} style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer' }}>&times;</button>
+              <button className="close-btn" onClick={() => setShowSaveListModal(false)}>&times;</button>
             </div>
 
-            <div className="modal-body" style={{ padding: '20px' }}>
-              <div className="form-group" style={{ marginBottom: '20px' }}>
-                <label htmlFor="list-name" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>List Name *</label>
+            <div className="modal-body">
+              <div className="form-group">
+                <label htmlFor="list-name">List Name *</label>
                 <input
                   id="list-name"
                   type="text"
                   value={saveListName}
                   onChange={(e) => setSaveListName(e.target.value)}
                   placeholder="e.g., Voice AI Competitors Q1 2025"
-                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd' }}
                   autoFocus
                 />
               </div>
 
-              <div className="form-group" style={{ marginBottom: '20px' }}>
-                <label htmlFor="list-description" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Description (optional)</label>
+              <div className="form-group">
+                <label htmlFor="list-description">Description (optional)</label>
                 <textarea
                   id="list-description"
                   value={saveListDescription}
                   onChange={(e) => setSaveListDescription(e.target.value)}
                   placeholder="What is this list for?"
                   rows="3"
-                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd' }}
                 />
               </div>
 
               <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '12px', fontWeight: '500' }}>Select Categories to Include:</label>
+                <label>Select Categories to Include:</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   {Object.entries(companyResearchResults.companies_by_category).map(([category, companies]) => (
                     companies.length > 0 && (
@@ -4853,7 +5830,7 @@ function App() {
               </div>
             </div>
 
-            <div className="modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '20px', borderTop: '1px solid #e5e7eb' }}>
+            <div className="modal-footer">
               <button
                 onClick={() => setShowSaveListModal(false)}
                 style={{
@@ -4898,6 +5875,319 @@ function App() {
           onRegenerate={validationData.onRegenerate}
         />
       )}
+
+      {/* Profile View Modal */}
+      {profileModalOpen && profileModalData && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 'var(--z-modal, 10000)',
+            padding: '20px'
+          }}
+          onClick={() => setProfileModalOpen(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              maxWidth: '900px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              position: 'relative',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setProfileModalOpen(false)}
+              style={{
+                position: 'absolute',
+                top: '15px',
+                right: '15px',
+                background: 'white',
+                border: '2px solid #e5e7eb',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '20px',
+                color: '#6b7280',
+                zIndex: 10,
+                transition: 'all 0.2s ease'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                e.currentTarget.style.borderColor = '#9ca3af';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'white';
+                e.currentTarget.style.borderColor = '#e5e7eb';
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Modal Content */}
+            <div style={{ padding: '30px' }}>
+              {/* Profile Header */}
+              <div style={{ marginBottom: '25px', paddingRight: '50px' }}>
+                <h2 style={{
+                  fontSize: '28px',
+                  fontWeight: '700',
+                  color: '#111827',
+                  marginBottom: '8px'
+                }}>
+                  {profileModalData.full_name || 'Unknown'}
+                </h2>
+                <div style={{
+                  fontSize: '16px',
+                  color: '#667eea',
+                  fontWeight: '600',
+                  marginBottom: '8px'
+                }}>
+                  {profileModalData.generated_headline || profileModalData.headline || 'No title'}
+                </div>
+                <div style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  marginBottom: '12px'
+                }}>
+                  {profileModalData.location || 'Location not specified'}
+                </div>
+                {profileModalData.url && (
+                  <a
+                    href={profileModalData.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: '#0a66c2',
+                      textDecoration: 'none',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    View LinkedIn Profile →
+                  </a>
+                )}
+              </div>
+
+              {/* Work Experience Section */}
+              {profileModalData.experience && profileModalData.experience.length > 0 && (
+                <div>
+                  <h3 style={{
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    color: '#111827',
+                    marginBottom: '15px'
+                  }}>
+                    Work Experience
+                  </h3>
+                  <WorkExperienceSection profileData={profileModalData} />
+                </div>
+              )}
+
+              {/* Education Section */}
+              {profileModalData.education && profileModalData.education.length > 0 && (
+                <div style={{ marginTop: '30px' }}>
+                  <h3 style={{
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    color: '#111827',
+                    marginBottom: '15px'
+                  }}>
+                    Education
+                  </h3>
+                  {profileModalData.education.map((edu, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '15px',
+                        backgroundColor: '#f9fafb',
+                        borderRadius: '8px',
+                        marginBottom: '10px',
+                        border: '1px solid #e5e7eb'
+                      }}
+                    >
+                      <div style={{ fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+                        {edu.school || 'Unknown School'}
+                      </div>
+                      {edu.degree && (
+                        <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>
+                          {edu.degree} {edu.field_of_study && `in ${edu.field_of_study}`}
+                        </div>
+                      )}
+                      {(edu.date_start || edu.date_end) && (
+                        <div style={{ fontSize: '13px', color: '#9ca3af' }}>
+                          {edu.date_start} - {edu.date_end || 'Present'}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Feedback Drawer - Rendered at document.body via Portal */}
+      {(() => {
+        // Show drawer if there are any candidates
+        const allCandidates = [...singleProfileResults, ...batchResults, ...savedAssessments];
+        const hasCandidates = allCandidates.length > 0;
+
+        if (!hasCandidates) return null;
+
+        // If no active candidate but drawer is being opened, select most visible
+        const currentCandidate = activeCandidate || allCandidates[0]?.url;
+
+        return ReactDOM.createPortal(
+          <>
+            {/* Click overlay to close when drawer is open */}
+            {drawerOpen[activeCandidate] && (
+              <div
+                className="feedback-overlay"
+                onClick={() => toggleDrawer(activeCandidate)}
+              />
+            )}
+
+            <div className="feedback-drawer-container">
+              {/* Collapsed Tab - Always Visible */}
+              <div
+                className="feedback-tab"
+                onClick={() => {
+                  // Auto-select most visible candidate when clicked
+                  if (!activeCandidate) {
+                    const mostVisible = getMostVisibleCandidate();
+                    if (mostVisible) {
+                      toggleDrawer(mostVisible);
+                    } else {
+                      toggleDrawer(allCandidates[0]?.url);
+                    }
+                  } else {
+                    toggleDrawer(activeCandidate);
+                  }
+                }}
+                title={drawerOpen[currentCandidate] ? "Close feedback panel" : "Open feedback panel"}
+              >
+                <div className="feedback-tab-content">
+                  <div className={`feedback-status-dot ${currentCandidate && (feedbackHistory[currentCandidate] || []).length > 0 ? 'has-feedback' : ''}`}></div>
+                  <span className="feedback-tab-label">Feedback</span>
+                  {currentCandidate && (feedbackHistory[currentCandidate] || []).length > 0 && (
+                    <span className="feedback-count">{(feedbackHistory[currentCandidate] || []).length}</span>
+                  )}
+                  <span className="feedback-arrow">{currentCandidate && drawerOpen[currentCandidate] ? '▶' : '◀'}</span>
+                </div>
+              </div>
+
+            {/* Expanded Panel */}
+            <div
+              className={`feedback-panel ${drawerOpen[activeCandidate] ? 'expanded' : ''}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+            {(() => {
+              // Find the active candidate data
+              const allCandidates = [
+                ...singleProfileResults,
+                ...batchResults,
+                ...savedAssessments
+              ];
+              const candidate = allCandidates.find(c => c.url === activeCandidate);
+
+              if (!candidate) return null;
+
+              return (
+                <>
+                  {/* Info Banner - Scrolling Blocked */}
+                  <div className="feedback-info-banner">
+                    <div className="feedback-info-icon">ℹ️</div>
+                    <div className="feedback-info-text">
+                      <strong>Other candidates are hidden</strong> while feedback is open. Close this panel to scroll and view other profiles.
+                    </div>
+                  </div>
+
+                  {/* Candidate Header - Sticky */}
+                  <div className="feedback-candidate-header">
+                    <div className="feedback-candidate-name">{candidate.name}</div>
+                    <div className="feedback-candidate-headline">{candidate.headline}</div>
+                    <div className="feedback-context-reminder">Feedback for this candidate</div>
+                  </div>
+
+                  {/* Feedback History */}
+                  {(() => {
+                    const history = feedbackHistory[activeCandidate] || [];
+                    return history.length > 0 ? (
+                      <details open className="feedback-history-section">
+                        <summary className="feedback-history-title">
+                          💬 Previous Feedback ({history.length})
+                        </summary>
+                        <div className="feedback-history-list">
+                          {history.map((fb, idx) => (
+                            <div key={idx} className={`feedback-history-item ${fb.feedback_type}`}>
+                              <div className="feedback-history-header">
+                                <span>{fb.feedback_type === 'like' ? '👍' : fb.feedback_type === 'dislike' ? '👎' : '📝'} {fb.recruiter_name}</span>
+                                <span className="feedback-history-date">{new Date(fb.created_at).toLocaleDateString()}</span>
+                              </div>
+                              {fb.feedback_text && <div className="feedback-history-text">{fb.feedback_text}</div>}
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    ) : null;
+                  })()}
+
+                  {/* Custom Notes */}
+                  <div className="feedback-section">
+                    <div className="feedback-section-title">✍️ Custom Notes</div>
+                    <div className="feedback-note-container">
+                      <textarea
+                        className="feedback-note-textarea"
+                        value={candidateFeedback[activeCandidate]?.note || ''}
+                        onChange={(e) => handleNoteChange(activeCandidate, e.target.value)}
+                        onBlur={(e) => handleNoteBlur(activeCandidate, e.target.value)}
+                        placeholder="Type your feedback or click the microphone..."
+                      />
+                      <button
+                        className={`feedback-mic-button ${isRecording[activeCandidate] ? 'recording' : ''}`}
+                        onClick={() => isRecording[activeCandidate] ? stopVoiceRecording(activeCandidate) : startVoiceRecording(activeCandidate)}
+                        title={isRecording[activeCandidate] ? 'Stop recording' : 'Start voice input (Chrome only)'}
+                      >
+                        {isRecording[activeCandidate] ? '⏹' : '🎤'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="feedback-actions">
+                    <button
+                      className="feedback-clear-button"
+                      onClick={() => clearMyFeedback(activeCandidate, candidate.name)}
+                    >
+                      Clear My Feedback
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+            </div>
+            </div>
+          </>,
+          document.body
+        );
+      })()}
     </div>
   );
 }

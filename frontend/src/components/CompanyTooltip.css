@@ -1,8 +1,7 @@
 /* Company Tooltip Styles */
 
 .company-tooltip {
-  position: relative;
-  z-index: 1000;
+  /* NO position property - defaults to static, works correctly in fixed wrapper */
   background: white;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -477,15 +476,11 @@
   opacity: 0.7;
 }
 
-/* Spinning animation for loading state */
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(-360deg);
-  }
-}
+/*
+ * Spinning animation for loading state
+ * Uses @keyframes spin from styles/core/animations.css
+ * Duplicate removed - centralized animation prevents conflicts
+ */
 
 .regenerate-btn-inline.loading {
   animation: spin 1s linear infinite;

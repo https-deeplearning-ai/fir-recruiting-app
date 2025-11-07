@@ -236,28 +236,47 @@ class CompanyDiscoveryAgent:
 
         companies = []
 
-        # Pattern 1: Capitalized words (likely company names)
-        # Example: "Deepgram", "AssemblyAI", "Otter.ai"
-        pattern1 = r'\b([A-Z][a-z]*(?:[A-Z][a-z]*)*(?:\.ai|\.com|AI)?)\b'
+        # Pattern 1: Capitalized words including multi-word names (likely company names)
+        # Example: "Deepgram", "AssemblyAI", "Otter.ai", "Hugging Face", "Red Hat", "JPMorgan Chase", "Meta AI"
+        # Updated to capture:
+        # - Multi-word names with spaces: "Hugging Face"
+        # - Mixed-case compounds: "JPMorgan", "LinkedIn"
+        # - All-caps acronyms: "IBM", "AI"
+        pattern1 = r'\b([A-Z][A-Za-z]*(?:\s+[A-Z][A-Za-z]*)*(?:\.ai|\.com|\.io)?)\b'
         matches1 = re.findall(pattern1, text)
         companies.extend(matches1)
 
         # Pattern 2: After "like", "including", "such as"
-        # Example: "companies like Deepgram, AssemblyAI"
-        pattern2 = r'(?:like|including|such as)\s+([A-Z][a-zA-Z\s,]+?)(?:\.|,|\sand\s)'
+        # Example: "companies like Deepgram, AssemblyAI, Hugging Face"
+        # Updated to handle multi-word company names correctly
+        pattern2 = r'(?:like|including|such as)\s+([A-Z][a-zA-Z\s,&]+?)(?:\.|\s+and\s+[A-Z]|$)'
         matches2 = re.findall(pattern2, text)
         for match in matches2:
-            # Split by comma and extract individual companies
-            parts = [p.strip() for p in re.split(r',|\sand\s', match)]
-            companies.extend([p for p in parts if len(p) > 2])
+            # Split by comma only (not " and ") to preserve multi-word names
+            # "Hugging Face, Red Hat" → ["Hugging Face", "Red Hat"] ✓
+            parts = [p.strip() for p in match.split(',')]
+            companies.extend([p for p in parts if len(p) > 2 and p not in ['and', 'or', 'the']])
 
         # Pattern 3: Before ".com", ".ai", ".io" (domain names)
         pattern3 = r'([A-Z][a-zA-Z]+?)(?:\.com|\.ai|\.io)'
         matches3 = re.findall(pattern3, text)
         companies.extend(matches3)
 
-        # Clean up
+        # Clean up and filter out common English words
         companies = [c.strip() for c in companies if c.strip()]
-        companies = [c for c in companies if c not in ['The', 'A', 'An', 'And', 'Or', 'But', 'For']]
+
+        # Expanded list of common words to exclude
+        common_words = [
+            'The', 'A', 'An', 'And', 'Or', 'But', 'For', 'At', 'By', 'In', 'On', 'To', 'Of',
+            'We', 'Our', 'They', 'This', 'That', 'These', 'Those', 'As', 'Is', 'Are', 'Was', 'Were',
+            'Experience', 'Candidates', 'Companies', 'Engineers', 'Work', 'Team', 'Role', 'Position',
+            'Looking', 'Seeking', 'Need', 'Want', 'Must', 'Should', 'Will', 'Can', 'May',
+            'About', 'What', 'Who', 'When', 'Where', 'Why', 'How', 'Which', 'While', 'Since',
+            'All', 'Both', 'Each', 'Every', 'Some', 'Any', 'Many', 'Much', 'Few', 'Several',
+            'Have', 'Has', 'Had', 'Do', 'Does', 'Did', 'With', 'From', 'Into', 'During', 'Before',
+            'After', 'Above', 'Below', 'Between', 'Through', 'During', 'Before', 'After'
+        ]
+
+        companies = [c for c in companies if c not in common_words]
 
         return companies

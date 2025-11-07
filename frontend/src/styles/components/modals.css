@@ -1,0 +1,283 @@
+/**
+ * MODALS - Base Modal Styles
+ *
+ * Foundation styles for all modals in the application.
+ * Component-specific modals should EXTEND these base classes.
+ *
+ * Base Classes:
+ * - .modal-overlay:  Full-screen overlay background
+ * - .modal-content:  Modal container/card
+ * - .modal-header:   Modal header section
+ * - .modal-body:     Modal body/content section
+ * - .modal-footer:   Modal footer/actions section
+ * - .close-btn:      Close button
+ *
+ * Usage:
+ * <div class="modal-overlay">
+ *   <div class="modal-content">
+ *     <button class="close-btn">✕</button>
+ *     <div class="modal-header">...</div>
+ *     <div class="modal-body">...</div>
+ *     <div class="modal-footer">...</div>
+ *   </div>
+ * </div>
+ *
+ * Variants:
+ * - .modal-overlay.modal--transparent:  For tooltips with transparent backgrounds
+ * - .modal-content.modal--sm:           Small modal (400px)
+ * - .modal-content.modal--lg:           Large modal (800px)
+ */
+
+/* ========================================
+   MODAL OVERLAY (Background)
+   ======================================== */
+
+/**
+ * Base modal overlay
+ * Full-screen fixed position, centered flex layout
+ * NO animations, NO backdrop-filter (causes stacking context issues)
+ * Matches .loading-overlay pattern
+ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-overlay);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: var(--z-modal);
+}
+
+/**
+ * Transparent overlay variant
+ * For tooltips and popovers that don't need dark background
+ */
+.modal-overlay.modal--transparent {
+  background-color: transparent;
+  z-index: var(--z-tooltip);
+}
+
+/* ========================================
+   MODAL CONTENT (Container)
+   ======================================== */
+
+/**
+ * Base modal container
+ * White card with shadow, responsive sizing
+ */
+.modal-content {
+  position: relative;
+  background: var(--color-bg-white);
+  border-radius: var(--border-radius-2xl);
+  box-shadow: var(--shadow-2xl);
+  max-width: var(--modal-max-width);
+  width: 90%;
+  max-height: var(--modal-max-height);
+  padding: 0;
+  overflow-y: auto;
+}
+
+/**
+ * Small modal variant
+ */
+.modal-content.modal--sm {
+  max-width: var(--modal-max-width-sm);
+}
+
+/**
+ * Large modal variant
+ */
+.modal-content.modal--lg {
+  max-width: var(--modal-max-width-lg);
+}
+
+/**
+ * Transparent content variant
+ * For company tooltips and custom styled modals
+ */
+.modal-content.modal--transparent {
+  background: transparent;
+  box-shadow: none;
+  max-width: var(--tooltip-max-width);
+  width: auto;
+}
+
+/* ========================================
+   MODAL SECTIONS
+   ======================================== */
+
+/**
+ * Modal Header
+ * Contains title and close button
+ */
+.modal-header {
+  padding: var(--padding-modal) var(--padding-modal) var(--spacing-lg) var(--padding-modal);
+  border-bottom: var(--border-width) solid var(--color-border-medium);
+  position: relative;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.modal-header p {
+  margin: var(--spacing-sm) 0 0 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+}
+
+/**
+ * Modal Body
+ * Main content area
+ */
+.modal-body {
+  padding: var(--padding-modal);
+  overflow-y: auto;
+}
+
+/**
+ * Modal Footer
+ * Action buttons area
+ */
+.modal-footer {
+  padding: var(--spacing-lg) var(--padding-modal) var(--padding-modal) var(--padding-modal);
+  border-top: var(--border-width) solid var(--color-border-medium);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--gap-md);
+}
+
+/* ========================================
+   MODAL CLOSE BUTTON
+   ======================================== */
+
+/**
+ * Standard modal close button
+ * Positioned absolutely in top-right corner
+ */
+.close-btn {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-3xl);
+  line-height: 1;
+  border-radius: var(--border-radius-full);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-normal);
+  z-index: 1;
+}
+
+.close-btn:hover {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--color-text-primary);
+  transform: scale(1.1);
+}
+
+.close-btn:active {
+  transform: scale(0.95);
+}
+
+/* ========================================
+   FORM ELEMENTS INSIDE MODALS
+   ======================================== */
+
+.modal__body .form-group {
+  margin-bottom: var(--spacing-xl);
+}
+
+.modal__body label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+}
+
+.modal__body input[type="text"],
+.modal__body input[type="email"],
+.modal__body input[type="url"],
+.modal__body textarea {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: var(--border-width) solid var(--color-border-medium);
+  border-radius: var(--border-radius-lg);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family);
+  transition: border-color var(--transition-normal);
+}
+
+.modal__body input:focus,
+.modal__body textarea:focus {
+  outline: none;
+  border-color: var(--color-primary-start);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.modal__body textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .modal-header h2 {
+    font-size: var(--font-size-2xl);
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: var(--spacing-lg);
+  }
+
+  .close-btn {
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    width: 28px;
+    height: 28px;
+    font-size: var(--font-size-2xl);
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/**
+ * Focus trap styles
+ * Ensure keyboard navigation stays within modal
+ */
+.modal-overlay[aria-hidden="true"] {
+  display: none;
+}
+
+/**
+ * Reduce motion for accessibility
+ */
+@media (prefers-reduced-motion: reduce) {
+  .modal-content {
+    transition: none;
+  }
+}

@@ -56,3 +56,13 @@ def is_excluded_company(company_name: str) -> bool:
 
     company_name_lower = company_name.strip().lower()
     return any(excluded.lower() == company_name_lower for excluded in EXCLUDED_COMPANIES)
+
+# CoreSignal API Credit Costs
+# These are hardcoded based on typical CoreSignal pricing
+CORESIGNAL_CREDIT_PER_FETCH = 1  # 1 credit per profile/company fetch
+CORESIGNAL_CREDIT_USD = 0.20      # $0.20 USD per credit
+TAVILY_SEARCH_COST_USD = 0.00     # Tavily searches are separate/free relative to CoreSignal
+
+# Data Source Constants
+DATA_SOURCE_CORESIGNAL = 'coresignal'  # Profile fetched from CoreSignal API
+DATA_SOURCE_STORAGE = 'storage'         # Profile loaded from Supabase cache

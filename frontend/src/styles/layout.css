@@ -1,0 +1,65 @@
+/**
+ * LAYOUT - App Structure & Core Layout
+ *
+ * Main application layout, container, and structural elements.
+ * Extracted from App.css lines 2-38
+ */
+
+/* ========================================
+   APP WRAPPER
+   ======================================== */
+
+.App {
+  min-height: 100vh;
+  background: var(--color-primary-gradient);
+  padding: 20px;
+  font-family: var(--font-family);
+}
+
+/* ========================================
+   MAIN CONTAINER
+   ======================================== */
+
+.container {
+  max-width: 95vw;
+  margin: 0 auto;
+  background: var(--color-bg-white);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+/* ========================================
+   HEADER
+   ======================================== */
+
+h1 {
+  background: var(--color-primary-gradient);
+  color: var(--color-text-white);
+  margin: 0;
+  padding: 30px;
+  text-align: center;
+  font-size: 2.5em;
+  font-weight: 300;
+}
+
+.description {
+  text-align: center;
+  color: var(--color-text-tertiary);
+  margin: 20px 0;
+  padding: 0 30px;
+  font-size: 1.1em;
+}
+
+/* ========================================
+   ERROR STATES
+   ======================================== */
+
+.error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 20px;
+  border-radius: var(--border-radius-lg);
+  margin: 20px 30px;
+  border-left: 4px solid #dc3545;
+}

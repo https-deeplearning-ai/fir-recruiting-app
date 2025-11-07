@@ -1,0 +1,231 @@
+/**
+ * LOADING - Loading States and Spinners
+ *
+ * Loading overlays, spinners, and placeholder states used throughout the app.
+ * All animations reference core/animations.css to avoid duplicates.
+ *
+ * Sections:
+ * - Full-Screen Loading Overlay
+ * - Loading Spinner Component
+ * - In-Content Loading States
+ * - Placeholder States
+ *
+ * Dependencies:
+ * - Uses @keyframes spin from core/animations.css
+ *
+ * Usage with CSS Variables from variables.css
+ */
+
+/* ========================================
+   FULL-SCREEN LOADING OVERLAY
+   ======================================== */
+
+/**
+ * Loading Overlay
+ * Full-screen overlay that appears during profile fetching/assessment
+ * Matches modal-overlay pattern - NO animations, NO backdrop-filter
+ *
+ * This is the GOLD STANDARD pattern for overlays
+ * See: styles/components/modals.css for related pattern
+ */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-overlay);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: var(--z-modal);
+}
+
+/* ========================================
+   LOADING SPINNER COMPONENT
+   ======================================== */
+
+/**
+ * Loading Spinner Container
+ * White card that contains spinner and message
+ */
+.loading-spinner {
+  background: var(--color-bg-white);
+  padding: 40px;
+  border-radius: var(--border-radius-xl);
+  text-align: center;
+  box-shadow: var(--shadow-2xl);
+}
+
+/**
+ * Spinner Element
+ * Rotating circle animation
+ * Uses @keyframes spin from core/animations.css
+ */
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--color-primary-start);
+  border-radius: var(--border-radius-full);
+  animation: spin 1s linear infinite;
+  margin: 0 auto var(--spacing-lg);
+}
+
+/**
+ * Loading Message Text
+ */
+.loading-spinner p {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-medium);
+  color: #333;
+  white-space: pre-line;
+  text-align: center;
+}
+
+/* ========================================
+   IN-CONTENT LOADING STATES
+   ======================================== */
+
+/**
+ * AI Loading State
+ * In-content loading indicator (not full-screen overlay)
+ * Used while AI analysis is processing
+ */
+.ai-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px var(--spacing-lg);
+  gap: var(--spacing-lg);
+}
+
+/**
+ * AI Loading Spinner
+ * Scoped spinner styles for in-content loading
+ */
+.ai-loading .spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--color-primary-start);
+  border-radius: var(--border-radius-full);
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+/**
+ * AI Loading Text
+ */
+.ai-loading p {
+  font-size: var(--font-size-lg);
+  color: #6b7280;
+  font-weight: var(--font-weight-medium);
+  margin: 0;
+}
+
+/**
+ * Loading Subtext
+ * Secondary loading message
+ */
+.loading-subtext {
+  font-size: var(--font-size-base);
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* ========================================
+   PLACEHOLDER STATES
+   ======================================== */
+
+/**
+ * AI Placeholder State
+ * Empty state before analysis has run
+ */
+.ai-placeholder {
+  padding: 60px var(--spacing-lg);
+  text-align: center;
+}
+
+.ai-placeholder p {
+  font-size: var(--font-size-lg);
+  color: #6b7280;
+  font-style: italic;
+  margin: 0;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+  .loading-spinner {
+    padding: var(--spacing-2xl);
+  }
+
+  .loading-spinner p {
+    font-size: var(--font-size-lg);
+  }
+
+  .spinner,
+  .ai-loading .spinner {
+    width: 40px;
+    height: 40px;
+    border-width: 3px;
+  }
+
+  .ai-loading {
+    padding: 40px var(--spacing-md);
+    gap: var(--spacing-md);
+  }
+
+  .ai-placeholder {
+    padding: 40px var(--spacing-md);
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/**
+ * Reduce motion for accessibility
+ * Disables rotation animation for users who prefer reduced motion
+ */
+@media (prefers-reduced-motion: reduce) {
+  .spinner,
+  .ai-loading .spinner {
+    animation: none;
+    border-top-color: var(--color-primary-start);
+    opacity: 0.7;
+  }
+}
+
+/**
+ * Screen reader only text
+ * Use aria-live="polite" on loading containers
+ * Example: <div className="loading-overlay" role="status" aria-live="polite">
+ */
+[role="status"] {
+  /* Ensures screen readers announce loading state */
+}
+
+/* ========================================
+   NOTES
+   ======================================== */
+
+/**
+ * IMPORTANT: This file does NOT define @keyframes spin
+ * The spin animation is defined in core/animations.css
+ *
+ * Previously, @keyframes spin was duplicated 6 times:
+ * - App.css line 833 (REMOVED)
+ * - App.css line 2655 (REMOVED)
+ * - CompanyTooltip.css line 481 (TO BE REMOVED)
+ * - CrunchbaseValidationModal.css (TO BE REMOVED)
+ * - ListsView.css line 372 (TO BE REMOVED)
+ * - Now centralized in: core/animations.css
+ *
+ * This eliminates duplicate code and ensures consistency.
+ */

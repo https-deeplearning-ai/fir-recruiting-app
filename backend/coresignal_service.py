@@ -219,6 +219,146 @@ class CoreSignalService:
                 'success': False
             }
 
+    def fetch_linkedin_profile_by_id(self, employee_id):
+        """
+        Fetch LinkedIn profile data directly by CoreSignal employee ID.
+        Used for Stage 3 (Full Profile Collection) in domain search workflow.
+
+        This is a direct collect operation - faster than URL-based search.
+        Uses employee_base endpoint to get full 100+ field profiles.
+
+        Args:
+            employee_id (int/str): CoreSignal employee ID from preview search
+
+        Returns:
+            dict: Profile data or error information
+            {
+                'success': True/False,
+                'profile_data': {...},  # Full employee profile
+                'employee_id': employee_id,
+                'method': 'id_direct'
+            }
+        """
+        try:
+            print(f"🔍 Fetching profile by ID: {employee_id}")
+
+            # Remove Content-Type for GET request
+            get_headers = {k: v for k, v in self.headers.items() if k != "Content-Type"}
+
+            # Direct collection using employee_base endpoint
+            # This returns the full profile with 100+ fields
+            response = requests.get(
+                f"https://api.coresignal.com/cdapi/v2/employee_base/collect/{employee_id}",
+                headers=get_headers,
+                timeout=10
+            )
+
+            print(f"   Response status: {response.status_code}")
+
+            if response.status_code == 200:
+                profile_data = response.json()
+                print(f"✅ SUCCESS: Profile retrieved by ID!")
+                return {
+                    'success': True,
+                    'profile_data': profile_data,
+                    'employee_id': employee_id,
+                    'method': 'id_direct',
+                    'api_calls': 1
+                }
+            else:
+                error_msg = f"Employee ID {employee_id} not found (status: {response.status_code})"
+                print(f"❌ {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'employee_id': employee_id
+                }
+
+        except requests.exceptions.Timeout:
+            return {
+                'error': 'Request timeout - CoreSignal API is slow to respond',
+                'success': False,
+                'employee_id': employee_id
+            }
+        except requests.exceptions.RequestException as e:
+            return {
+                'error': f'Network error: {str(e)}',
+                'success': False,
+                'employee_id': employee_id
+            }
+        except Exception as e:
+            return {
+                'error': f'Unexpected error: {str(e)}',
+                'success': False,
+                'employee_id': employee_id
+            }
+
+    def search_company_by_name(self, company_name, max_results=5):
+        """
+        Search for companies by name using CoreSignal company_base API
+
+        Args:
+            company_name (str): Company name to search for
+            max_results (int): Maximum number of results to return (default: 5)
+
+        Returns:
+            list: List of matching companies with their IDs and basic info
+                  [{"id": 12345, "name": "Company Inc", "website": "...", ...}, ...]
+        """
+        try:
+            print(f"🔍 Searching CoreSignal for company: '{company_name}'")
+
+            # Build search query
+            query = {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "match": {
+                                    "name": {
+                                        "query": company_name,
+                                        "operator": "and"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                "size": max_results
+            }
+
+            response = requests.post(
+                "https://api.coresignal.com/cdapi/v2/company_base/search/es_dsl/preview",
+                headers=self.headers,
+                json=query,
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                results = response.json()
+                companies = []
+
+                for item in results:
+                    companies.append({
+                        "id": item.get("id"),
+                        "name": item.get("name"),
+                        "website": item.get("website"),
+                        "location": item.get("location"),
+                        "industry": item.get("industry"),
+                        "employee_count": item.get("employee_count"),
+                        "founded": item.get("founded")
+                    })
+
+                print(f"   ✓ Found {len(companies)} matches")
+                return companies
+            else:
+                print(f"   ✗ Search failed: {response.status_code}")
+                return []
+
+        except Exception as e:
+            print(f"   ✗ Search error: {str(e)}")
+            return []
+
     def fetch_company_data(self, company_id, storage_functions=None):
         """
         Fetch full company profile data from CoreSignal company_base API
@@ -408,11 +548,13 @@ class CoreSignalService:
                         else:
                             skip_reason = f"started {start_year}, before {min_year}"
                     except (ValueError, TypeError):
-                        print(f"   ⚠️  Experience {i}/{total_companies}: {company_name} - Invalid start_year: {start_year}")
-                        should_enrich = True  # Enrich if year is invalid (safer)
+                        # Invalid year data, SKIP to save credits
+                        skip_reason = f"invalid year data: {start_year}"
+                        should_enrich = False
                 else:
-                    # No start year available, enrich it to be safe
-                    should_enrich = True
+                    # No start year available, SKIP to save credits (only first 3 are guaranteed)
+                    skip_reason = "no start year data"
+                    should_enrich = False
 
             if not should_enrich:
                 print(f"   ⏭️  Experience {i}/{total_companies}: {company_name} - Skipped ({skip_reason})")
@@ -1113,6 +1255,59 @@ class CoreSignalService:
         except Exception as e:
             print(f"   ❌ Failed to generate heuristic Crunchbase URL: {e}")
             return None
+
+    def fetch_profile_by_id(self, employee_id):
+        """
+        Fetch full profile data directly by CoreSignal employee ID
+
+        Args:
+            employee_id (str or int): CoreSignal employee ID
+
+        Returns:
+            dict: Profile data or error information
+        """
+        try:
+            print(f"Fetching profile for employee ID: {employee_id}")
+
+            # Call CoreSignal collect endpoint
+            response = requests.get(
+                f"https://api.coresignal.com/cdapi/v2/employee_clean/collect/{employee_id}",
+                headers=self.headers,
+                timeout=10
+            )
+
+            print(f"Profile fetch status: {response.status_code}")
+
+            if response.status_code == 200:
+                profile_data = response.json()
+                print(f"SUCCESS: Profile retrieved for ID {employee_id}")
+                return {
+                    'success': True,
+                    'profile_data': profile_data,
+                    'employee_id': employee_id,
+                    'method': 'direct_collect'
+                }
+            elif response.status_code == 404:
+                return {
+                    'success': False,
+                    'error': f'Profile not found for employee ID: {employee_id}'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': f'API error: {response.status_code} - {response.text[:200]}'
+                }
+
+        except requests.Timeout:
+            return {
+                'success': False,
+                'error': 'Request timeout while fetching profile'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Unexpected error: {str(e)}'
+            }
 
 
 def search_profiles_with_endpoint(
