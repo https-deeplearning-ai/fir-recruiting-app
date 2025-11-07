@@ -3533,7 +3533,7 @@ function App() {
                         setCompanyResearchStatus({ status: 'completed', progress_percentage: 100 });
 
                         // Fetch cached results immediately
-                        const resultsResponse = await fetch(`http://localhost:5001/research-companies/${data.session_id}/results`);
+                        const resultsResponse = await fetch(`/research-companies/${data.session_id}/results`);
                         const resultsData = await resultsResponse.json();
 
                         if (resultsData.success) {
