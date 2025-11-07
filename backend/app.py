@@ -3189,15 +3189,45 @@ def stream_research_status(jd_id):
                 # Debug logging
                 print(f"[STREAM] JD: {jd_id}, Status: {status}, Phase: {search_config.get('current_phase')}, Action: {search_config.get('current_action')}")
 
-                # Calculate progress
+                # Calculate progress based on phase
                 if status == 'completed':
                     progress = 100
                 elif status == 'failed':
                     progress = 0
                 else:
-                    total_expected = session.get('max_companies', 50)
-                    evaluated = session.get('total_evaluated', 0)
-                    progress = min(int((evaluated / total_expected) * 100), 99)
+                    current_phase = search_config.get('current_phase', 'discovery')
+
+                    if current_phase == 'discovery':
+                        # Discovery phase: 0-30% (estimate based on time)
+                        total_discovered = session.get('total_discovered', 0)
+                        if total_discovered > 0:
+                            # Scale based on discovered companies (target ~100)
+                            progress = min(int((total_discovered / 100) * 30), 30)
+                        else:
+                            progress = 5  # Show some progress even if count not available
+
+                    elif current_phase == 'screening':
+                        # Screening phase: 30-60%
+                        total_discovered = session.get('total_discovered', 0)
+                        total_screened = len(search_config.get('screened_companies', []))
+                        if total_discovered > 0:
+                            screening_pct = (total_screened / total_discovered) * 30
+                            progress = min(int(30 + screening_pct), 60)
+                        else:
+                            progress = 45  # Mid-point of screening phase
+
+                    elif current_phase == 'deep_research' or current_phase == 'evaluation':
+                        # Evaluation phase: 60-100%
+                        total_expected = session.get('max_companies', 25)
+                        evaluated = session.get('total_evaluated', 0)
+                        if total_expected > 0:
+                            eval_pct = (evaluated / total_expected) * 40
+                            progress = min(int(60 + eval_pct), 99)
+                        else:
+                            progress = 80  # Near end of evaluation
+                    else:
+                        # Unknown phase - default to 50%
+                        progress = 50
 
                 session['progress_percentage'] = progress
 
