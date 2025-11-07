@@ -57,6 +57,11 @@ class WeightGenerator:
             ]
         """
 
+        print(f"\n🔧 [WeightGenerator] Starting weight generation...")
+        print(f"   Model: {self.model}")
+        print(f"   Num requirements: {num_requirements}")
+        print(f"   JD Role: {jd_requirements.get('role_title', 'Unknown')}")
+
         system_prompt = f"""You are an expert at designing candidate assessment rubrics.
 
 Given the parsed job description requirements, create {num_requirements} weighted assessment criteria.
@@ -141,6 +146,7 @@ Generate {num_requirements} weighted assessment criteria that best predict succe
                 for req in weighted_reqs:
                     req['weight'] = round(req['weight'] * scale_factor)
 
+            print(f"✅ [WeightGenerator] Successfully generated {len(weighted_reqs)} requirements (total weight: {sum(r['weight'] for r in weighted_reqs)}%)")
             return weighted_reqs
 
         except Exception as e:
