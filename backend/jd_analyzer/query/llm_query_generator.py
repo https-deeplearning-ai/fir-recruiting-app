@@ -35,6 +35,7 @@ class MultiLLMQueryGenerator:
         self.openai_init_error = None
 
         try:
+            # Anthropic client works fine on Render
             self.anthropic_client = anthropic.Anthropic(
                 api_key=os.getenv("ANTHROPIC_API_KEY")
             )
@@ -46,9 +47,30 @@ class MultiLLMQueryGenerator:
             self.anthropic_client = None
 
         try:
-            self.openai_client = openai.OpenAI(
-                api_key=os.getenv("OPENAI_API_KEY")
-            )
+            # Initialize OpenAI client - handle Render proxy environment variables
+            # Render may set HTTP_PROXY/HTTPS_PROXY that conflict with OpenAI SDK
+
+            # Temporarily clear proxy env vars that might cause issues
+            old_http_proxy = os.environ.pop('HTTP_PROXY', None)
+            old_https_proxy = os.environ.pop('HTTPS_PROXY', None)
+            old_http_proxy_lower = os.environ.pop('http_proxy', None)
+            old_https_proxy_lower = os.environ.pop('https_proxy', None)
+
+            try:
+                self.openai_client = openai.OpenAI(
+                    api_key=os.getenv("OPENAI_API_KEY")
+                )
+            finally:
+                # Restore proxy env vars for other services that might need them
+                if old_http_proxy:
+                    os.environ['HTTP_PROXY'] = old_http_proxy
+                if old_https_proxy:
+                    os.environ['HTTPS_PROXY'] = old_https_proxy
+                if old_http_proxy_lower:
+                    os.environ['http_proxy'] = old_http_proxy_lower
+                if old_https_proxy_lower:
+                    os.environ['https_proxy'] = old_https_proxy_lower
+
         except Exception as e:
             self.openai_init_error = str(e)
             print(f"Warning: Failed to initialize OpenAI client: {e}")
