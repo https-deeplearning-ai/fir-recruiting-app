@@ -43,11 +43,31 @@ except ImportError as e:
 
 # Import JD Analyzer routes
 try:
-    from jd_analyzer.api.endpoints import register_jd_analyzer_routes
+    from jd_analyzer.api.endpoints import register_jd_analyzer_routes, make_coresignal_request_with_retry
     register_jd_analyzer_routes(app)
     print("✓ JD Analyzer routes registered successfully")
 except ImportError as e:
     print(f"Warning: Could not import JD Analyzer routes: {e}")
+    # Fallback: define retry function here if import fails
+    def make_coresignal_request_with_retry(url, payload, headers, max_retries=2, timeout=30):
+        """Fallback retry function if JD Analyzer import fails"""
+        for attempt in range(max_retries + 1):
+            try:
+                response = requests.post(url, json=payload, headers=headers, timeout=timeout)
+                if response.status_code == 200:
+                    return (True, response.json(), None)
+                if response.status_code == 503 and attempt < max_retries:
+                    wait_time = 2 ** attempt
+                    print(f"⚠️  Rate limit (503) - retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+                return (False, None, f"API error: {response.status_code}")
+            except Exception as e:
+                if attempt < max_retries:
+                    time.sleep(2)
+                    continue
+                return (False, None, str(e))
+        return (False, None, "Max retries exceeded")
 
 # CoreSignal API configuration
 CORESIGNAL_API_KEY = os.getenv("CORESIGNAL_API_KEY")
@@ -598,37 +618,34 @@ def search_coresignal_profiles_preview(criteria: dict, page: int = 1) -> dict:
     print(f"🔍 DEBUG: Elasticsearch query being sent:")
     print(json.dumps(query, indent=2))
     
-    try:
-        # Use the /preview endpoint with page parameter (max page=5)
-        url = f"https://api.coresignal.com/cdapi/v2/employee_clean/search/es_dsl/preview?page={page}"
-        
-        print(f"📄 Fetching page {page}...")
-        
-        response = requests.post(url, json=query, headers=headers)
-        print(f"   Response status: {response.status_code}")
-        
-        if response.status_code == 200:
-            data = response.json()
-            
-            # /preview returns full profile objects
-            results = data if isinstance(data, list) else []
-            
-            print(f"   ✅ Got {len(results)} full profiles from page {page}")
-            
-            return {
-                "success": True,
-                "results": results,
-                "page": page,
-                "total_found": len(results)
-            }
-        else:
-            error_text = response.text
-            print(f"   ❌ Error: {response.status_code} - {error_text}")
-            return {"success": False, "error": f"API error {response.status_code}: {error_text}"}
-            
-    except Exception as e:
-        print(f"   ❌ Error: {e}")
-        return {"success": False, "error": str(e)}
+    # Use the /preview endpoint with page parameter (max page=5)
+    url = f"https://api.coresignal.com/cdapi/v2/employee_clean/search/es_dsl/preview?page={page}"
+
+    print(f"📄 Fetching page {page}...")
+
+    # Use retry logic for 503 rate limit errors
+    success, data, error_msg = make_coresignal_request_with_retry(
+        url=url,
+        payload=query,
+        headers=headers,
+        max_retries=3,  # Increased retries for better reliability
+        timeout=30
+    )
+
+    if success:
+        # /preview returns full profile objects
+        results = data if isinstance(data, list) else []
+        print(f"   ✅ Got {len(results)} full profiles from page {page}")
+
+        return {
+            "success": True,
+            "results": results,
+            "page": page,
+            "total_found": len(results)
+        }
+    else:
+        print(f"   ❌ Error: {error_msg}")
+        return {"success": False, "error": error_msg}
 
 def convert_search_results_to_csv(results: list) -> str:
     """Convert search results to CSV format for batch processing"""
