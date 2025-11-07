@@ -38,7 +38,7 @@ class CompanyDeepResearch:
     """
 
     def __init__(self):
-        self.model = "claude-haiku-4-5-20251015"  # Fast, cheap, good quality
+        self.model = "claude-haiku-4-5"  # Fast, cheap, good quality
         self.timeout = 15  # seconds
         # API key is read from ANTHROPIC_API_KEY environment variable by Claude SDK
 

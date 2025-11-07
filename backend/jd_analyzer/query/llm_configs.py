@@ -25,7 +25,7 @@ class LLMConfig:
 # Model configurations (updated with actual available models as of Jan 2025)
 LLM_CONFIGS = {
     "claude": LLMConfig(
-        model_name="claude-haiku-4-5-20251015",  # Claude Haiku 4.5 (Oct 2025) - latest, fastest, cheapest
+        model_name="claude-haiku-4-5",  # Claude Haiku 4.5 - latest, fastest, cheapest
         display_name="Claude Haiku 4.5",
         provider="anthropic",
         supports_temperature=True,
