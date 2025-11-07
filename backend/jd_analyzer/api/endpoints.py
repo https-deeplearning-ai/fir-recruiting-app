@@ -34,11 +34,39 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize services
-jd_parser = JDParser()
-weight_generator = WeightGenerator()
-query_builder = JDToQueryBuilder()
-multi_llm_generator = MultiLLMQueryGenerator()
+# Lazy initialization - services created on first use to avoid import-time failures
+_jd_parser = None
+_weight_generator = None
+_query_builder = None
+_multi_llm_generator = None
+
+def get_jd_parser():
+    """Lazy initialize JD Parser"""
+    global _jd_parser
+    if _jd_parser is None:
+        _jd_parser = JDParser()
+    return _jd_parser
+
+def get_weight_generator():
+    """Lazy initialize Weight Generator"""
+    global _weight_generator
+    if _weight_generator is None:
+        _weight_generator = WeightGenerator()
+    return _weight_generator
+
+def get_query_builder():
+    """Lazy initialize Query Builder"""
+    global _query_builder
+    if _query_builder is None:
+        _query_builder = JDToQueryBuilder()
+    return _query_builder
+
+def get_multi_llm_generator():
+    """Lazy initialize Multi-LLM Generator"""
+    global _multi_llm_generator
+    if _multi_llm_generator is None:
+        _multi_llm_generator = MultiLLMQueryGenerator()
+    return _multi_llm_generator
 
 
 def make_coresignal_request_with_retry(url, payload, headers, max_retries=2, timeout=30):
@@ -150,7 +178,7 @@ def register_jd_analyzer_routes(app):
             print(f"{'='*100}\n")
             # =========================================
 
-            requirements = jd_parser.parse(jd_text)
+            requirements = get_jd_parser().parse(jd_text)
 
             # ============= DEBUG LOGGING =============
             print(f"\n{'='*100}")
@@ -230,16 +258,17 @@ def register_jd_analyzer_routes(app):
                         "success": False,
                         "error": "No job description provided"
                     }), 400
-                jd_requirements = jd_parser.parse(jd_text)
+                jd_requirements = get_jd_parser().parse(jd_text)
             else:
                 return jsonify({
                     "success": False,
                     "error": "Must provide either jd_text or jd_requirements"
                 }), 400
 
-            # Generate weighted requirements
-            weighted_reqs = weight_generator.generate_weighted_requirements(
-                jd_requirements,
+            # Generate weighted requirements (convert Pydantic model to dict if needed)
+            jd_requirements_dict = jd_requirements.model_dump() if hasattr(jd_requirements, 'model_dump') else jd_requirements
+            weighted_reqs = get_weight_generator().generate_weighted_requirements(
+                jd_requirements_dict,
                 num_requirements
             )
 
@@ -248,7 +277,7 @@ def register_jd_analyzer_routes(app):
             general_fit = 100 - total_custom
 
             # Generate explanation
-            explanation = weight_generator.explain_weights(weighted_reqs)
+            explanation = get_weight_generator().explain_weights(weighted_reqs)
 
             return jsonify({
                 "success": True,
@@ -312,7 +341,7 @@ def register_jd_analyzer_routes(app):
                 jd_text = request.form.get('jd_text')
                 gaps = None
                 if jd_text:
-                    jd_requirements = jd_parser.parse(jd_text)
+                    jd_requirements = get_jd_parser().parse(jd_text)
                     gaps = analyzer.compare_to_jd(jd_requirements)
                     report = analyzer.generate_report(jd_requirements)
                 else:
@@ -361,7 +390,7 @@ def register_jd_analyzer_routes(app):
                     "error": "No job description text provided"
                 }), 400
 
-            keywords = jd_parser.extract_keywords(jd_text)
+            keywords = get_jd_parser().extract_keywords(jd_text)
 
             return jsonify({
                 "success": True,
@@ -406,16 +435,16 @@ def register_jd_analyzer_routes(app):
                 }), 400
 
             # Parse JD
-            requirements = jd_parser.parse(jd_text)
+            requirements = get_jd_parser().parse(jd_text)
 
-            # Generate weights
-            weighted_reqs = weight_generator.generate_weighted_requirements(
-                requirements,
+            # Generate weights (convert Pydantic model to dict)
+            weighted_reqs = get_weight_generator().generate_weighted_requirements(
+                requirements.model_dump() if hasattr(requirements, 'model_dump') else requirements,
                 num_requirements
             )
 
             # Extract keywords
-            keywords = jd_parser.extract_keywords(jd_text)
+            keywords = get_jd_parser().extract_keywords(jd_text)
 
             # Calculate general fit
             total_custom = sum(req['weight'] for req in weighted_reqs)
@@ -473,8 +502,8 @@ def register_jd_analyzer_routes(app):
                 query = raw_query
                 query_explanation = "Using pre-generated query from LLM"
             else:
-                query = query_builder.build_query(jd_requirements)
-                query_explanation = query_builder.explain_query(query)
+                query = get_query_builder().build_query(jd_requirements)
+                query_explanation = get_query_builder().explain_query(query)
 
             # Execute CoreSignal search
             coresignal_api_key = os.getenv("CORESIGNAL_API_KEY")
@@ -609,7 +638,7 @@ def register_jd_analyzer_routes(app):
                 }), 400
 
             # Generate queries from all three LLMs (expects dict)
-            llm_results = multi_llm_generator.compare_all(jd_requirements)
+            llm_results = get_multi_llm_generator().compare_all(jd_requirements)
 
             # Get CoreSignal API key
             coresignal_api_key = os.getenv("CORESIGNAL_API_KEY")
@@ -806,11 +835,11 @@ def register_jd_analyzer_routes(app):
                     try:
                         # Generate query
                         if llm_name == "claude":
-                            llm_result = multi_llm_generator.generate_with_claude(jd_requirements)
+                            llm_result = get_multi_llm_generator().generate_with_claude(jd_requirements)
                         elif llm_name == "gpt":
-                            llm_result = multi_llm_generator.generate_with_gpt5(jd_requirements)
+                            llm_result = get_multi_llm_generator().generate_with_gpt5(jd_requirements)
                         elif llm_name == "gemini":
-                            llm_result = multi_llm_generator.generate_with_gemini(jd_requirements)
+                            llm_result = get_multi_llm_generator().generate_with_gemini(jd_requirements)
                         else:
                             logger.error(f"[{llm_name.upper()}] Unknown LLM name")
                             return {"model": llm_name, "error": "Unknown LLM"}
@@ -969,7 +998,7 @@ def register_jd_analyzer_routes(app):
                 }), 400
 
             # Generate query with Claude
-            llm_result = multi_llm_generator.generate_with_claude(jd_requirements)
+            llm_result = get_multi_llm_generator().generate_with_claude(jd_requirements)
 
             # Check if LLM generation failed
             if "error" in llm_result:
@@ -1129,7 +1158,7 @@ def register_jd_analyzer_routes(app):
                 }), 400
 
             # Generate query with GPT
-            llm_result = multi_llm_generator.generate_with_gpt5(jd_requirements)
+            llm_result = get_multi_llm_generator().generate_with_gpt5(jd_requirements)
 
             # Check if LLM generation failed
             if "error" in llm_result:
@@ -1265,7 +1294,7 @@ def register_jd_analyzer_routes(app):
                 }), 400
 
             # Generate query with Gemini
-            llm_result = multi_llm_generator.generate_with_gemini(jd_requirements)
+            llm_result = get_multi_llm_generator().generate_with_gemini(jd_requirements)
 
             # Check if LLM generation failed
             if "error" in llm_result:
