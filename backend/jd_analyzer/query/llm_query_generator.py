@@ -51,17 +51,18 @@ class MultiLLMQueryGenerator:
             # Render's proxy environment variables cause OpenAI SDK to fail
             import httpx
 
-            # Create httpx client with explicit proxy settings (none/disabled)
+            # Create httpx client with trust_env=False to ignore proxy environment variables
+            # This disables HTTP_PROXY, HTTPS_PROXY, ALL_PROXY, NO_PROXY env vars
             http_client = httpx.Client(
                 timeout=httpx.Timeout(60.0, connect=10.0),
-                proxies={}  # Empty dict explicitly disables proxies
+                trust_env=False  # Ignore proxy environment variables
             )
 
             self.openai_client = openai.OpenAI(
                 api_key=os.getenv("OPENAI_API_KEY"),
                 http_client=http_client
             )
-            print("✓ OpenAI client initialized successfully with custom httpx client")
+            print("✓ OpenAI client initialized successfully (trust_env=False)")
 
         except Exception as e:
             self.openai_init_error = str(e)
