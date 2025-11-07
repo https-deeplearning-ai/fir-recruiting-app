@@ -30,12 +30,19 @@ class MultiLLMQueryGenerator:
 
     def __init__(self):
         """Initialize LLM clients and load configs."""
+        # Store initialization errors for better debugging
+        self.anthropic_init_error = None
+        self.openai_init_error = None
+
         try:
             self.anthropic_client = anthropic.Anthropic(
                 api_key=os.getenv("ANTHROPIC_API_KEY")
             )
         except Exception as e:
+            self.anthropic_init_error = str(e)
             print(f"Warning: Failed to initialize Anthropic client: {e}")
+            import traceback
+            traceback.print_exc()
             self.anthropic_client = None
 
         try:
@@ -43,7 +50,10 @@ class MultiLLMQueryGenerator:
                 api_key=os.getenv("OPENAI_API_KEY")
             )
         except Exception as e:
+            self.openai_init_error = str(e)
             print(f"Warning: Failed to initialize OpenAI client: {e}")
+            import traceback
+            traceback.print_exc()
             self.openai_client = None
 
         # Gemini uses per-request client initialization (new google-genai SDK)
@@ -691,8 +701,13 @@ Return the JSON query."""
         """
         try:
             if self.anthropic_client is None:
+                error_msg = "Anthropic client not initialized."
+                if self.anthropic_init_error:
+                    error_msg += f" Initialization error: {self.anthropic_init_error}"
+                else:
+                    error_msg += " Check ANTHROPIC_API_KEY environment variable."
                 return {
-                    "error": "Anthropic client not initialized. Check ANTHROPIC_API_KEY environment variable.",
+                    "error": error_msg,
                     "model": self.claude_config.display_name
                 }
 
@@ -801,8 +816,13 @@ Return the JSON query."""
         """
         try:
             if self.openai_client is None:
+                error_msg = "OpenAI client not initialized."
+                if self.openai_init_error:
+                    error_msg += f" Initialization error: {self.openai_init_error}"
+                else:
+                    error_msg += " Check OPENAI_API_KEY environment variable."
                 return {
-                    "error": "OpenAI client not initialized. Check OPENAI_API_KEY environment variable.",
+                    "error": error_msg,
                     "model": self.openai_config.display_name
                 }
 
