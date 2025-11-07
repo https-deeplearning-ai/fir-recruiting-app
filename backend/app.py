@@ -3184,6 +3184,10 @@ def stream_research_status(jd_id):
 
                 session = result.data[0]
                 status = session['status']
+                search_config = session.get('search_config') or {}
+
+                # Debug logging
+                print(f"[STREAM] JD: {jd_id}, Status: {status}, Phase: {search_config.get('current_phase')}, Action: {search_config.get('current_action')}")
 
                 # Calculate progress
                 if status == 'completed':
@@ -3200,6 +3204,7 @@ def stream_research_status(jd_id):
                 # Only send update if status changed
                 current_status = json.dumps(session)
                 if current_status != last_status:
+                    print(f"[STREAM] Sending update: status={status}, progress={progress}%")
                     yield f"data: {json.dumps({'success': True, 'session': session})}\n\n"
                     last_status = current_status
 
