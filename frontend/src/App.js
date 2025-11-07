@@ -602,7 +602,7 @@ function App() {
     setEvaluatingMore(true);
 
     try {
-      const response = await fetch('http://localhost:5001/evaluate-more-companies', {
+      const response = await fetch('/evaluate-more-companies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -684,7 +684,7 @@ function App() {
         companies: selectedCompanies
       };
 
-      const response = await fetch('http://localhost:5001/company-lists', {
+      const response = await fetch('/company-lists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -2117,7 +2117,7 @@ function App() {
 
                   setJdAnalyzing(true);
                   try {
-                    const response = await fetch('http://localhost:5001/api/jd/full-analysis', {
+                    const response = await fetch('/api/jd/full-analysis', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
@@ -2167,7 +2167,7 @@ function App() {
 
                   try {
                     // First, parse JD to get structured requirements
-                    const parseResponse = await fetch('http://localhost:5001/api/jd/parse', {
+                    const parseResponse = await fetch('/api/jd/parse', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ jd_text: jdText })
@@ -2192,7 +2192,7 @@ function App() {
                     // Use streaming endpoint for parallel LLM execution (6-12s → ~4s)
                     showNotification('Generating queries in parallel from Claude, GPT, and Gemini...', 'success');
 
-                    const response = await fetch('http://localhost:5001/api/jd/compare-llm-queries-stream', {
+                    const response = await fetch('/api/jd/compare-llm-queries-stream', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(requestBody)
@@ -2665,7 +2665,7 @@ function App() {
 
                         setJdSearching(true);
                         try {
-                          const response = await fetch(`http://localhost:5001/api/jd/search-candidates`, {
+                          const response = await fetch(`/api/jd/search-candidates`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -3028,7 +3028,7 @@ function App() {
                       setJdSearching(true);
                       try {
                         // First, parse JD to get structured requirements
-                        const parseResponse = await fetch('http://localhost:5001/api/jd/parse', {
+                        const parseResponse = await fetch('/api/jd/parse', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ jd_text: jdText })
@@ -3042,7 +3042,7 @@ function App() {
                         }
 
                         // Now search CoreSignal with parsed requirements
-                        const searchResponse = await fetch('http://localhost:5001/api/jd/search-candidates', {
+                        const searchResponse = await fetch('/api/jd/search-candidates', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
@@ -3136,7 +3136,7 @@ function App() {
                     // Step 1: Parse JD to extract structured requirements
                     showNotification('Analyzing job description...', 'info');
 
-                    const parseResponse = await fetch('http://localhost:5001/api/jd/parse', {
+                    const parseResponse = await fetch('/api/jd/parse', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ jd_text: companyJdText })
@@ -3186,7 +3186,7 @@ function App() {
                     showNotification('Starting company research...', 'info');
 
                     // Step 4: Start company research
-                    const response = await fetch('http://localhost:5001/research-companies', {
+                    const response = await fetch('/research-companies', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
@@ -3207,7 +3207,7 @@ function App() {
                       showNotification('Company research started!', 'success');
 
                       // Use Server-Sent Events for real-time streaming
-                      const eventSource = new EventSource(`http://localhost:5001/research-companies/${data.session_id}/stream`);
+                      const eventSource = new EventSource(`/research-companies/${data.session_id}/stream`);
 
                       eventSource.onmessage = async (event) => {
                         const streamData = JSON.parse(event.data);
@@ -3231,7 +3231,7 @@ function App() {
                           if (streamData.session.status === 'completed') {
                             eventSource.close();
                             // Fetch results
-                            const resultsResponse = await fetch(`http://localhost:5001/research-companies/${data.session_id}/results`);
+                            const resultsResponse = await fetch(`/research-companies/${data.session_id}/results`);
                             const resultsData = await resultsResponse.json();
 
                             if (resultsData.success) {
@@ -3395,7 +3395,7 @@ function App() {
                     <button
                       className="export-csv-btn"
                       onClick={async () => {
-                        const response = await fetch(`http://localhost:5001/research-companies/${companySessionId}/export-csv`);
+                        const response = await fetch(`/research-companies/${companySessionId}/export-csv`);
                         const data = await response.json();
                         if (data.success) {
                           const blob = new Blob([data.csv_data], { type: 'text/csv' });
