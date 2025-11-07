@@ -657,7 +657,12 @@ def register_jd_analyzer_routes(app):
 
             # Preview candidates for each query
             comparisons = []
-            for llm_result in llm_results:
+            for idx, llm_result in enumerate(llm_results):
+                # Add delay between CoreSignal searches (except for first one)
+                if idx > 0:
+                    logger.info(f"Waiting 3s before next CoreSignal search (rate limit protection)...")
+                    time.sleep(3)
+
                 if "error" in llm_result:
                     comparisons.append({
                         "model": llm_result.get("model"),
@@ -674,26 +679,27 @@ def register_jd_analyzer_routes(app):
                 reasoning = llm_result["reasoning"]
 
                 try:
-                    # Execute search with this query (only fetch first page for preview)
-                    response = requests.post(
-                        search_url,
-                        json=query,
+                    # Execute search with retry logic for 503 errors
+                    logger.info(f"Fetching preview for {model} query...")
+                    success, result, error_msg = make_coresignal_request_with_retry(
+                        url=search_url,
+                        payload=query,
                         headers=headers,
-                        params={"page": 1}
+                        max_retries=3,
+                        timeout=30
                     )
 
-                    if response.status_code != 200:
+                    if not success:
+                        logger.error(f"{model} search failed: {error_msg}")
                         comparisons.append({
                             "model": model,
                             "query": query,
                             "reasoning": reasoning,
-                            "error": f"CoreSignal API error: {response.status_code}",
+                            "error": error_msg,
                             "preview_profiles": [],
                             "total_found": 0
                         })
                         continue
-
-                    result = response.json()
                     # Handle case where result might be a list instead of dict
                     if isinstance(result, dict):
                         all_profiles = result.get("hits", [])
