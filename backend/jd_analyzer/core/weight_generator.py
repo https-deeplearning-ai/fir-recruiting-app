@@ -30,7 +30,7 @@ class WeightGenerator:
             raise ValueError("ANTHROPIC_API_KEY not found in environment variables")
 
         self.client = Anthropic(api_key=api_key)
-        self.model = "claude-sonnet-4-5-20250929"
+        self.model = "claude-sonnet-4-5-20250929"  # Note: Sonnet uses dated version, unlike Haiku
 
     def generate_weighted_requirements(
         self,
@@ -144,7 +144,11 @@ Generate {num_requirements} weighted assessment criteria that best predict succe
             return weighted_reqs
 
         except Exception as e:
-            print(f"Error generating weights: {e}")
+            import traceback
+            print(f"❌ Error generating weights: {e}")
+            print(f"❌ Full traceback:")
+            traceback.print_exc()
+            print(f"❌ Returning default weights as fallback")
             return self._get_default_weights(num_requirements)
 
     def _get_default_weights(self, num_requirements: int) -> List[Dict[str, Any]]:
