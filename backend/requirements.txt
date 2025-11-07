@@ -16,3 +16,4 @@ claude-agent-sdk==0.1.5
 
 # Utilities
 python-dotenv==1.0.0
+pydantic>=2.0.0
