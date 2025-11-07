@@ -9,9 +9,9 @@ import aiohttp
 import json
 import os
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import re
-from anthropic import Anthropic
+from anthropic import Anthropic, RateLimitError
 from supabase import create_client, Client
 from gpt5_client import GPT5Client
 from config import EXCLUDED_COMPANIES, is_excluded_company
@@ -339,13 +339,21 @@ class CompanyResearchService:
                 excluded_seeds = [s for s in seed_companies if is_excluded_company(s)]
                 print(f"\n[EXCLUDED] Removed {len(excluded_seeds)} excluded seed companies: {excluded_seeds}\n")
 
-            for i, seed in enumerate(filtered_seeds[:15], 1):  # Increased from 5 to 15 to capture more competitor signals
-                if jd_id:
-                    await self._update_session_status(jd_id, "running", {
-                        "phase": "discovery",
-                        "action": f"Searching competitors of {seed} ({i}/{min(len(filtered_seeds), 15)})..."
-                    })
-                competitors = await self.search_competitors_web(seed)
+            # Use batch extraction for efficiency (5 seeds → 1 API call instead of 15)
+            seeds_to_process = filtered_seeds[:5]  # Limited to 5 to prevent rate limit errors
+
+            if jd_id:
+                await self._update_session_status(jd_id, "running", {
+                    "phase": "discovery",
+                    "action": f"Batch searching competitors for {len(seeds_to_process)} seed companies..."
+                })
+
+            # Batch extract: 1 Claude call instead of 15 (3 per seed × 5 seeds)
+            competitors_by_seed = await self.batch_extract_companies_from_seeds(seeds_to_process)
+
+            # Flatten results
+            for seed, competitors in competitors_by_seed.items():
+                print(f"   ✅ {seed}: {len(competitors)} competitors found")
                 companies.extend(competitors)
 
         # Method 2: Direct web search
@@ -401,6 +409,7 @@ class CompanyResearchService:
     async def search_competitors_web(self, company_name: str) -> List[Dict[str, Any]]:
         """
         Find competitor companies via web search.
+        Uses company-level cache to avoid redundant API calls (7-day TTL).
 
         Args:
             company_name: Seed company to find competitors for
@@ -410,6 +419,37 @@ class CompanyResearchService:
         """
         if not self.config.USE_TAVILY or not self.tavily_api_key:
             return []
+
+        # STEP 1: Check cache first (case-insensitive)
+        seed_lower = company_name.lower().strip()
+
+        try:
+            cache_result = self.supabase.table("company_discovery_cache").select("*").eq(
+                "seed_company", seed_lower
+            ).execute()
+
+            if cache_result.data:
+                cached_entry = cache_result.data[0]
+                expires_at = datetime.fromisoformat(cached_entry['expires_at'].replace('Z', '+00:00'))
+
+                if datetime.now(timezone.utc) < expires_at:
+                    # ✅ Cache hit - return cached results
+                    cached_companies = cached_entry.get('discovered_companies', [])
+                    print(f"   ✅ Cache HIT for '{company_name}' - {len(cached_companies)} companies (saved 3 API calls)")
+                    return cached_companies
+                else:
+                    # ⏰ Cache expired - delete and refresh
+                    print(f"   ⏰ Cache expired for '{company_name}' - refreshing")
+                    self.supabase.table("company_discovery_cache").delete().eq(
+                        "seed_company", seed_lower
+                    ).execute()
+        except Exception as e:
+            # Cache check failed - continue with fresh discovery (table may not exist yet)
+            if 'PGRST205' not in str(e):  # Only log if not "table not found"
+                print(f"   ⚠️  Cache check failed for '{company_name}': {e}")
+
+        # STEP 2: Cache miss - run fresh discovery
+        print(f"   🔍 Cache MISS for '{company_name}' - running discovery (3 API calls)")
 
         queries = [
             f"{company_name} competitors",
@@ -422,8 +462,186 @@ class CompanyResearchService:
             results = await self._search_web(query)
             companies = await self._extract_companies_from_web(results, query)
             competitors.extend(companies)
+            await asyncio.sleep(0.2)  # 200ms delay to prevent rate limit burst
 
-        return competitors[:20]  # Return top 20
+        top_competitors = competitors[:20]  # Keep top 20
+
+        # STEP 3: Save to cache
+        try:
+            self.supabase.table("company_discovery_cache").upsert({
+                "seed_company": seed_lower,
+                "discovered_companies": top_competitors,
+                "search_queries": queries,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+            }).execute()
+            print(f"   💾 Cached {len(top_competitors)} companies for '{company_name}' (expires in 7 days)")
+        except Exception as e:
+            # Non-critical - continue even if cache save fails
+            print(f"   ⚠️  Failed to cache results for '{company_name}': {e}")
+
+        return top_competitors
+
+    async def batch_extract_companies_from_seeds(self, seeds: List[str]) -> Dict[str, List[Dict]]:
+        """
+        Extract companies for multiple seeds in a single batched Claude API call.
+        This dramatically reduces API calls: 15 individual calls → 1 batched call.
+
+        Args:
+            seeds: List of seed company names (max 5)
+
+        Returns:
+            Dict mapping seed company name → list of discovered companies
+        """
+        if not seeds or not self.config.USE_TAVILY or not self.tavily_api_key:
+            return {seed: [] for seed in seeds}
+
+        print(f"   📦 Batching {len(seeds)} seed companies into 1 Claude call...")
+
+        # STEP 1: Gather all web search results first (Tavily - not Claude)
+        all_search_results = {}
+
+        for seed in seeds:
+            queries = [
+                f"{seed} competitors",
+                f"companies like {seed}",
+                f"{seed} alternatives"
+            ]
+
+            seed_results = []
+            for query in queries:
+                results = await self._search_web(query)
+                seed_results.append({
+                    "query": query,
+                    "results": results
+                })
+
+            all_search_results[seed] = seed_results
+
+        # STEP 2: Build batched prompt
+        prompt_sections = []
+
+        for seed, search_results in all_search_results.items():
+            # Extract content from search results
+            results_text = []
+            for i, search_result in enumerate(search_results, 1):
+                tavily_results = search_result.get('results', [])
+                results_summary = ""
+                for j, result in enumerate(tavily_results[:5], 1):
+                    results_summary += f"\n{j}. {result.get('title', '')}\n"
+                    results_summary += f"   {result.get('content', '')[:200]}...\n"
+
+                results_text.append(f"""
+### Query {i}: "{search_result['query']}"
+{results_summary}
+""")
+
+            prompt_sections.append(f"""
+## SEED COMPANY: {seed}
+{''.join(results_text)}
+""")
+
+        batched_prompt = f"""Extract actual company names from these web search results about competitor companies.
+
+You are analyzing search results for {len(seeds)} seed companies. For each seed, extract ONLY real company names mentioned.
+
+RULES:
+- Include ONLY actual company names (e.g., "Stripe", "Square", "Adyen")
+- EXCLUDE article titles, generic words, fragments
+- EXCLUDE person names unless they're company founders with their company
+- Normalize names (e.g., "Meta Platforms" → "Meta")
+- Deduplicate within each seed
+
+{''.join(prompt_sections)}
+
+Return a JSON object mapping each seed company to its discovered companies:
+{{
+    "seed_company_1": ["Company A", "Company B", "Company C"],
+    "seed_company_2": ["Company X", "Company Y"],
+    ...
+}}
+
+Return ONLY the JSON object, no other text.
+"""
+
+        # STEP 3: Single batched Claude API call with retry logic
+        max_retries = 3
+        retry_count = 0
+        response = None
+
+        while retry_count < max_retries:
+            try:
+                response = self.claude_client.messages.create(
+                    model="claude-haiku-4-5-20251001",  # Fast model for extraction
+                    max_tokens=8000,  # Higher for batched response
+                    temperature=0.1,
+                    messages=[{"role": "user", "content": batched_prompt}]
+                )
+                break  # Success
+
+            except RateLimitError as e:
+                retry_count += 1
+                if retry_count < max_retries:
+                    wait_time = 2 ** retry_count
+                    print(f"⚠️  Rate limit hit in batch call - retry {retry_count}/{max_retries} after {wait_time}s")
+                    await asyncio.sleep(wait_time)
+                else:
+                    print(f"❌ Batch call rate limit exceeded - falling back to individual calls")
+                    return await self._fallback_individual_extraction(seeds)
+
+            except Exception as e:
+                print(f"❌ Batch extraction error: {e} - falling back to individual calls")
+                return await self._fallback_individual_extraction(seeds)
+
+        if response is None:
+            return await self._fallback_individual_extraction(seeds)
+
+        # STEP 4: Parse JSON response
+        try:
+            response_text = response.content[0].text.strip()
+
+            # Extract JSON from response
+            if response_text.startswith("{"):
+                companies_by_seed = json.loads(response_text)
+            else:
+                # Try to find JSON in response
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                if json_match:
+                    companies_by_seed = json.loads(json_match.group(0))
+                else:
+                    print(f"⚠️  Could not parse batch response - falling back")
+                    return await self._fallback_individual_extraction(seeds)
+
+            # Convert to company objects with metadata
+            result = {}
+            for seed, company_names in companies_by_seed.items():
+                companies = []
+                for name in company_names:
+                    if name and len(name) > 2:
+                        companies.append({
+                            "name": name,
+                            "discovered_via": "web_search_batch",
+                            "source_seed": seed
+                        })
+                result[seed] = companies[:20]  # Limit to top 20 per seed
+
+            print(f"   ✅ Batch extracted companies for {len(result)} seeds in 1 API call")
+            return result
+
+        except Exception as e:
+            print(f"❌ Error parsing batch response: {e} - falling back")
+            return await self._fallback_individual_extraction(seeds)
+
+    async def _fallback_individual_extraction(self, seeds: List[str]) -> Dict[str, List[Dict]]:
+        """
+        Fallback: Extract companies one seed at a time if batching fails.
+        Uses the original search_competitors_web method (with caching).
+        """
+        print(f"   🔄 Fallback: Processing {len(seeds)} seeds individually")
+        results = {}
+        for seed in seeds:
+            results[seed] = await self.search_competitors_web(seed)
+        return results
 
     # ========================================
     # Evaluation Methods
@@ -752,14 +970,40 @@ Return a JSON array of company names ONLY:
 
 If no clear company names are found, return an empty array: []"""
 
-        try:
-            response = self.claude_client.messages.create(
-                model=self.config.CLAUDE_MODEL,
-                max_tokens=1000,
-                temperature=0.1,
-                messages=[{"role": "user", "content": prompt}]
-            )
+        # Retry logic for rate limit handling
+        max_retries = 3
+        retry_count = 0
+        response = None
 
+        while retry_count < max_retries:
+            try:
+                response = self.claude_client.messages.create(
+                    model=self.config.CLAUDE_MODEL,
+                    max_tokens=1000,
+                    temperature=0.1,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                break  # Success - exit retry loop
+
+            except RateLimitError as e:
+                retry_count += 1
+                if retry_count < max_retries:
+                    wait_time = 2 ** retry_count  # Exponential backoff: 2s, 4s, 8s
+                    print(f"⚠️  Rate limit hit - retry {retry_count}/{max_retries} after {wait_time}s")
+                    await asyncio.sleep(wait_time)
+                else:
+                    print(f"❌ Rate limit exceeded after {max_retries} retries")
+                    raise  # Give up - propagate error
+
+            except Exception as e:
+                print(f"Error calling Claude API: {e}")
+                raise
+
+        if response is None:
+            print(f"Error: No response after retries")
+            return []
+
+        try:
             # Parse Claude's response
             response_text = response.content[0].text.strip()
 
@@ -792,7 +1036,7 @@ If no clear company names are found, return an empty array: []"""
             return companies
 
         except Exception as e:
-            print(f"Error extracting companies with Claude: {e}")
+            print(f"Error parsing Claude response: {e}")
             return []
 
     def _deduplicate_companies(self, companies: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
