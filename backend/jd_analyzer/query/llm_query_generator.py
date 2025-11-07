@@ -33,7 +33,9 @@ class MultiLLMQueryGenerator:
         self.anthropic_client = anthropic.Anthropic(
             api_key=os.getenv("ANTHROPIC_API_KEY")
         )
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        self.openai_client = openai.OpenAI(
+            api_key=os.getenv("OPENAI_API_KEY")
+        )
 
         # Gemini uses per-request client initialization (new google-genai SDK)
         # No global configuration needed
@@ -815,7 +817,7 @@ Return the JSON query."""
 
             while retry_count < max_retries:
                 try:
-                    response = openai.chat.completions.create(**api_params)
+                    response = self.openai_client.chat.completions.create(**api_params)
                     break  # Success, exit retry loop
 
                 except openai.RateLimitError as e:
