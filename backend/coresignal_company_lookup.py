@@ -57,13 +57,48 @@ class CoreSignalCompanyLookup:
         # STEP 1: Search for company IDs
         search_url = f"{self.base_url}/cdapi/v2/company_base/search/es_dsl"
 
-        # Build search query using query_string
+        # Build search query using wildcard for fuzzy matching
+        # Use lowercase wildcard pattern for better matching
+        wildcard_pattern = f"*{company_name.lower().replace(' ', '*')}*"
+
         payload = {
             "query": {
-                "query_string": {
-                    "query": company_name,
-                    "default_field": "name",
-                    "default_operator": "and"
+                "bool": {
+                    "should": [
+                        # Try exact match first (highest priority)
+                        {
+                            "term": {
+                                "name.exact": company_name
+                            }
+                        },
+                        # Try wildcard match on lowercase
+                        {
+                            "wildcard": {
+                                "name": {
+                                    "value": wildcard_pattern,
+                                    "case_insensitive": True
+                                }
+                            }
+                        },
+                        # Try match query (tokenized search)
+                        {
+                            "match": {
+                                "name": {
+                                    "query": company_name,
+                                    "operator": "and"
+                                }
+                            }
+                        }
+                    ],
+                    "minimum_should_match": 1,
+                    # Filter to US companies only
+                    "filter": [
+                        {
+                            "term": {
+                                "country": "United States"
+                            }
+                        }
+                    ]
                 }
             }
         }
@@ -71,9 +106,20 @@ class CoreSignalCompanyLookup:
         try:
             # Search returns a list of company IDs
             response = requests.post(search_url, json=payload, headers=self.headers, timeout=10)
+
+            # DEBUG: Log response status
+            print(f"[COMPANY LOOKUP] Search '{company_name}': Status {response.status_code}")
+
+            if response.status_code != 200:
+                print(f"[COMPANY LOOKUP] Error response: {response.text[:200]}")
+                return []
+
             response.raise_for_status()
 
             company_ids = response.json()  # List of integers
+
+            # DEBUG: Log results
+            print(f"[COMPANY LOOKUP] Found {len(company_ids) if isinstance(company_ids, list) else 0} IDs for '{company_name}'")
 
             if not company_ids:
                 return []
@@ -270,3 +316,200 @@ class CoreSignalCompanyLookup:
             previous_row = current_row
 
         return previous_row[-1]
+
+    def get_by_website(self, website: str) -> Optional[Dict[str, Any]]:
+        """
+        Look up company by exact website domain (most reliable method).
+
+        Uses CoreSignal's website.exact field for precise matching with caching.
+
+        Args:
+            website: Company website domain (e.g., "vena.io", "floqast.com")
+
+        Returns:
+            Company data with ID, or None if not found
+        """
+        # Clean website (remove http://, https://, www.)
+        cleaned_website = website.lower().strip()
+        cleaned_website = cleaned_website.replace('https://', '').replace('http://', '')
+        cleaned_website = cleaned_website.replace('www.', '').rstrip('/')
+
+        # CHECK CACHE FIRST
+        cache_result = self._check_cache(cleaned_website)
+        if cache_result == "NO_MATCH":
+            print(f"[COMPANY LOOKUP] ❌ Cache: {cleaned_website} (previously failed)")
+            return None
+        if cache_result:
+            print(f"[COMPANY LOOKUP] ✅ Cache hit: {cleaned_website}")
+            return cache_result
+
+        # CACHE MISS - call API
+        # Build ES DSL query for exact website match
+        search_url = f"{self.base_url}/cdapi/v2/company_base/search/es_dsl"
+
+        payload = {
+            "query": {
+                "term": {
+                    "website.exact": cleaned_website
+                }
+            }
+        }
+
+        try:
+            print(f"[COMPANY LOOKUP] Searching by website: {cleaned_website}")
+
+            response = requests.post(search_url, json=payload, headers=self.headers, timeout=10)
+
+            if response.status_code != 200:
+                print(f"[COMPANY LOOKUP] Website search failed: {response.status_code}")
+                self._store_in_cache(cleaned_website, None, success=False)
+                return None
+
+            company_ids = response.json()  # List of IDs
+
+            if not company_ids:
+                print(f"[COMPANY LOOKUP] No companies found for website: {cleaned_website}")
+                self._store_in_cache(cleaned_website, None, success=False)
+                return None
+
+            # Get first result (should be exact match)
+            company_id = company_ids[0]
+
+            # Fetch full company data
+            company_data = self._fetch_company_by_id(company_id)
+
+            if company_data:
+                print(f"[COMPANY LOOKUP] ✅ Found via website: ID={company_id}, Name={company_data.get('name')}")
+                result = {
+                    "company_id": company_data["company_id"],
+                    "name": company_data["name"],
+                    "website": cleaned_website,
+                    "confidence": 1.0,  # Exact match via website
+                    "employee_count": company_data.get("employee_count")
+                }
+                self._store_in_cache(cleaned_website, result, success=True)
+                return result
+
+            self._store_in_cache(cleaned_website, None, success=False)
+            return None
+
+        except Exception as e:
+            print(f"[COMPANY LOOKUP] Error in website lookup: {e}")
+            self._store_in_cache(cleaned_website, None, success=False)
+            return None
+
+    def _check_cache(self, website: str):
+        """Check Supabase cache for previous website lookup"""
+        try:
+            import os
+            import requests
+
+            supabase_url = os.getenv("SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_KEY")
+
+            if not supabase_url or not supabase_key:
+                return None
+
+            url = f"{supabase_url}/rest/v1/company_lookup_cache"
+            params = {"website": f"eq.{website}", "select": "*"}
+            headers = {
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}"
+            }
+
+            response = requests.get(url, params=params, headers=headers, timeout=5)
+
+            if response.status_code == 200:
+                results = response.json()
+                if results:
+                    cached = results[0]
+
+                    # Update last_used_at timestamp
+                    self._touch_cache(website)
+
+                    if cached['lookup_successful']:
+                        return {
+                            "company_id": cached['company_id'],
+                            "name": cached['company_name'],
+                            "website": website,
+                            "confidence": float(cached['confidence']),
+                            "employee_count": cached['employee_count']
+                        }
+                    else:
+                        # Cached negative result (lookup previously failed)
+                        return "NO_MATCH"
+
+            return None
+
+        except Exception as e:
+            print(f"[CACHE] Error checking cache: {e}")
+            return None
+
+    def _store_in_cache(self, website: str, result: Optional[Dict], success: bool):
+        """Store lookup result in Supabase cache"""
+        try:
+            import os
+            import requests
+
+            supabase_url = os.getenv("SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_KEY")
+
+            if not supabase_url or not supabase_key:
+                return
+
+            cache_data = {
+                "website": website,
+                "lookup_successful": success
+            }
+
+            if success and result:
+                cache_data.update({
+                    "company_id": result['company_id'],
+                    "company_name": result['name'],
+                    "confidence": result['confidence'],
+                    "employee_count": result.get('employee_count')
+                })
+
+            url = f"{supabase_url}/rest/v1/company_lookup_cache"
+            headers = {
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+                "Content-Type": "application/json",
+                "Prefer": "resolution=merge-duplicates"
+            }
+
+            requests.post(url, json=cache_data, headers=headers, timeout=5)
+
+            if success and result:
+                print(f"[CACHE] Stored: {website} → ✅ ID {result.get('company_id')}")
+            else:
+                print(f"[CACHE] Stored: {website} → ❌ no match")
+
+        except Exception as e:
+            print(f"[CACHE] Error storing in cache: {e}")
+
+    def _touch_cache(self, website: str):
+        """Update last_used_at timestamp (silent fail)"""
+        try:
+            import os
+            import requests
+
+            supabase_url = os.getenv("SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_KEY")
+
+            if not supabase_url or not supabase_key:
+                return
+
+            url = f"{supabase_url}/rest/v1/company_lookup_cache"
+            params = {"website": f"eq.{website}"}
+            headers = {
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+                "Content-Type": "application/json"
+            }
+
+            # Trigger will auto-update last_used_at
+            requests.patch(url, params=params, json={}, headers=headers, timeout=5)
+
+        except:
+            pass  # Silent fail for touch operation

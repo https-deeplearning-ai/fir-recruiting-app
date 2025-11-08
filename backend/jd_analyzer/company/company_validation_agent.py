@@ -90,6 +90,10 @@ CRITICAL:
 """
 
         try:
+            # DEBUG: Log what we're sending to Anthropic
+            print(f"🤖 [ANTHROPIC REQUEST] Validating: '{company_name}'{domain_context}")
+            print(f"   Model: {self.model}, Target Domain: {target_domain or 'None'}")
+
             # Run synchronous Anthropic call in thread executor to avoid blocking
             import concurrent.futures
 
@@ -107,6 +111,9 @@ CRITICAL:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 response_text = await loop.run_in_executor(executor, sync_api_call)
 
+            # DEBUG: Log raw response
+            print(f"📨 [ANTHROPIC RESPONSE] Raw: {response_text[:200]}...")
+
             # Parse JSON from response
             import json
             if "```json" in response_text:
@@ -121,6 +128,12 @@ CRITICAL:
                 json_str = response_text.strip()
 
             validation_result = json.loads(json_str)
+
+            # DEBUG: Log validation result
+            is_valid = validation_result.get('is_valid', False)
+            relevance = validation_result.get('relevance_to_domain', 'unknown')
+            status_icon = "✅" if is_valid else "❌"
+            print(f"{status_icon} [VALIDATION RESULT] {company_name}: valid={is_valid}, relevance={relevance}")
 
             return validation_result
 

@@ -116,6 +116,9 @@ class SearchSessionManager:
                 "profiles_fetched": [],
                 "total_discovered": 0,
                 "batch_index": 0,
+                "employee_ids": [],  # NEW: List of all employee IDs from search (up to 1000)
+                "profiles_offset": 0,  # NEW: Current offset for profile pagination
+                "total_employee_ids": 0,  # NEW: Total count of employee IDs for progress tracking
                 "is_active": True,
                 "last_accessed": datetime.utcnow().isoformat(),
                 "created_at": datetime.utcnow().isoformat(),
@@ -308,6 +311,115 @@ class SearchSessionManager:
 
         except Exception as e:
             self._handle_error("mark_profiles_fetched", e)
+            return False
+
+    def store_employee_ids(self, session_id: str, employee_ids: List[int]) -> bool:
+        """
+        Store the complete list of employee IDs from search (up to 1000).
+
+        This enables the search/collect pattern where we:
+        1. Get all IDs upfront (this method)
+        2. Fetch profiles in batches of 20 (use get_next_profile_batch_info)
+
+        Args:
+            session_id: Search session identifier
+            employee_ids: List of all employee IDs from search
+
+        Returns:
+            True if successful
+        """
+        try:
+            success = self.update_session(session_id, {
+                'employee_ids': employee_ids,
+                'total_employee_ids': len(employee_ids),
+                'profiles_offset': 0,  # Reset offset when storing new IDs
+                'last_accessed': datetime.utcnow().isoformat()
+            })
+
+            if success:
+                print(f"✅ Stored {len(employee_ids)} employee IDs in session")
+
+            return success
+
+        except Exception as e:
+            self._handle_error("store_employee_ids", e)
+            return False
+
+    def get_next_profile_batch_info(self, session_id: str, batch_size: int = 20) -> Optional[Dict[str, Any]]:
+        """
+        Get information about the next batch of profiles to fetch.
+
+        Returns the employee IDs for the next batch and pagination metadata.
+
+        Args:
+            session_id: Search session identifier
+            batch_size: Number of profiles per batch (default: 20)
+
+        Returns:
+            Dict with 'employee_ids', 'start_index', 'end_index', 'remaining'
+            or None if no more profiles to fetch
+        """
+        try:
+            session = self.get_session(session_id)
+            if not session:
+                return None
+
+            all_employee_ids = session.get('employee_ids', [])
+            current_offset = session.get('profiles_offset', 0)
+
+            # Check if we have more profiles to fetch
+            if current_offset >= len(all_employee_ids):
+                print(f"ℹ️  No more profiles to fetch for session {session_id}")
+                return None
+
+            # Calculate batch slice
+            end_index = min(current_offset + batch_size, len(all_employee_ids))
+            batch_ids = all_employee_ids[current_offset:end_index]
+            remaining = len(all_employee_ids) - end_index
+
+            return {
+                'employee_ids': batch_ids,
+                'start_index': current_offset,
+                'end_index': end_index,
+                'remaining': remaining,
+                'total': len(all_employee_ids),
+                'batch_size': len(batch_ids)
+            }
+
+        except Exception as e:
+            self._handle_error("get_next_profile_batch_info", e)
+            return None
+
+    def increment_profiles_offset(self, session_id: str, increment: int = 20) -> bool:
+        """
+        Increment the profiles_offset after fetching a batch.
+
+        Args:
+            session_id: Search session identifier
+            increment: Number of profiles fetched (default: 20)
+
+        Returns:
+            True if successful
+        """
+        try:
+            session = self.get_session(session_id)
+            if not session:
+                return False
+
+            new_offset = session.get('profiles_offset', 0) + increment
+
+            success = self.update_session(session_id, {
+                'profiles_offset': new_offset,
+                'last_accessed': datetime.utcnow().isoformat()
+            })
+
+            if success:
+                print(f"✅ Incremented profiles_offset to {new_offset}")
+
+            return success
+
+        except Exception as e:
+            self._handle_error("increment_profiles_offset", e)
             return False
 
     def list_active_sessions(self, limit: int = 50) -> List[Dict[str, Any]]:

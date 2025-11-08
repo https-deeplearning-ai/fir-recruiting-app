@@ -168,7 +168,7 @@ class CompanyResearchService:
                 {
                     "name": c.get("name") or c.get("company_name"),
                     "discovered_via": c.get("discovered_via", "unknown"),
-                    "coresignal_id": c.get("coresignal_id"),
+                    "coresignal_company_id": c.get("coresignal_id"),  # Standardize field name for employee search
                     "coresignal_data": c.get("coresignal_data", {}),
                     "source_url": c.get("source_url"),
                     "source_query": c.get("source_query"),

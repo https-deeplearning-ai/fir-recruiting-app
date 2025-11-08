@@ -4211,3 +4211,17 @@ span.result-candidate-name.no-link {
     font-size: 11px;
   }
 }
+
+/* ========================================
+   CANDIDATE CARDS (Domain Search)
+   ======================================== */
+
+.candidate-card {
+  cursor: pointer;
+}
+
+.candidate-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  transform: translateY(-2px);
+  border-color: #c7d2fe !important;
+}

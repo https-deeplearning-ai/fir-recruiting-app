@@ -3,6 +3,16 @@ import ReactDOM from 'react-dom';
 import CompanyTooltip from './CompanyTooltip';
 import './WorkExperienceCard.css';
 
+// Utility function to strip HTML tags and decode HTML entities
+const stripHtml = (html) => {
+  if (!html) return '';
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  let text = temp.textContent || temp.innerText || '';
+  text = text.replace(/\s+/g, ' ').trim();
+  return text;
+};
+
 /**
  * WorkExperienceCard Component
  *
@@ -288,7 +298,7 @@ const WorkExperienceCard = ({ experience, index, onRegenerateUrl, onCrunchbaseCl
 
         {experience.description && (
           <div className="experience-description">
-            {experience.description}
+            {stripHtml(experience.description)}
           </div>
         )}
       </div>

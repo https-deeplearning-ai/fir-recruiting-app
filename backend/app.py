@@ -351,13 +351,27 @@ def save_stored_profile(linkedin_url, profile_data, checked_at=None):
         response = requests.post(url, json=data, headers=headers)
 
         if response.status_code in [200, 201]:
-            print(f"💾 Saved profile to storage")
+            # Get total count of stored profiles
+            count_url = f"{SUPABASE_URL}/rest/v1/stored_profiles?select=count"
+            count_headers = {
+                'apikey': SUPABASE_KEY,
+                'Authorization': f'Bearer {SUPABASE_KEY}',
+                'Prefer': 'count=exact'
+            }
+            count_response = requests.get(count_url, headers=count_headers)
+            total_count = count_response.headers.get('Content-Range', '0').split('/')[-1] if count_response.status_code == 200 else '?'
+
+            print(f"💾 Saved profile to storage: {linkedin_url}")
+            print(f"📊 Total profiles in cache: {total_count}")
             return True
         else:
             print(f"⚠️ Failed to save profile to cache: {response.status_code}")
+            print(f"   Response: {response.text[:200]}")
             return False
     except Exception as e:
         print(f"⚠️ Error saving profile to storage: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def get_stored_company(company_id, freshness_days=30):

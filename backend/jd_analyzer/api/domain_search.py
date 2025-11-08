@@ -48,7 +48,12 @@ from utils.supabase_storage import (
 )
 
 # Import CoreSignal service (will use for preview search and profile collection)
-from coresignal_service import search_profiles_with_endpoint, CoreSignalService
+from coresignal_service import (
+    search_profiles_with_endpoint,
+    search_profiles_full,
+    collect_profiles_batch,
+    CoreSignalService
+)
 
 # Import CoreSignal company lookup for company ID resolution
 from coresignal_company_lookup import CoreSignalCompanyLookup
@@ -189,11 +194,23 @@ async def stage1_discover_companies(
 
     # Extract discovery inputs from JD
     target_domain = jd_requirements.get('target_domain', jd_requirements.get('domain', ''))
-    mentioned_companies = jd_requirements.get('mentioned_companies', [])
+    mentioned_companies_raw = jd_requirements.get('mentioned_companies', [])
     competitor_context = jd_requirements.get('competitor_context', '')
 
+    # Normalize mentioned_companies to handle both old format (strings) and new format (objects with IDs)
+    mentioned_companies = []
+    for item in mentioned_companies_raw:
+        if isinstance(item, str):
+            # Old format: just a string
+            mentioned_companies.append(item)
+        elif isinstance(item, dict):
+            # New format: object with name and optionally coresignal_company_id
+            mentioned_companies.append(item.get('name', item.get('company_name', str(item))))
+        else:
+            mentioned_companies.append(str(item))
+
     print(f"Domain: {target_domain}")
-    print(f"Mentioned Companies: {mentioned_companies}")
+    print(f"Mentioned Companies: {mentioned_companies} ({len(mentioned_companies_raw)} with potential IDs)")
     print(f"Context: {competitor_context}")
 
     # Initialize discovery agent
@@ -290,8 +307,21 @@ FULL LIST (sorted by confidence):
     print(f"   ✅ Final validation: {len(validated_companies)} companies")
     print(f"   ❌ Total rejected: {removed_count} ({len(heuristic_rejected)} by heuristics, {len(heuristic_filtered) - len(validated_companies)} by AI)")
 
-    # CoreSignal Company ID Lookup
+    # CoreSignal Company ID Lookup (or preserve IDs from frontend)
     print(f"\n🔍 Looking up CoreSignal company IDs...")
+
+    # First, check if any companies came with IDs from frontend (mentioned_companies_raw)
+    frontend_ids = {}
+    for item in mentioned_companies_raw:
+        if isinstance(item, dict) and 'coresignal_company_id' in item:
+            company_name = item.get('name', item.get('company_name', ''))
+            if company_name:
+                frontend_ids[company_name.lower()] = {
+                    'company_id': item['coresignal_company_id'],
+                    'confidence': item.get('coresignal_confidence', 1.0)
+                }
+                print(f"   💾 {company_name}: Using ID from frontend (ID={item['coresignal_company_id']})")
+
     company_lookup = CoreSignalCompanyLookup()
 
     companies_with_ids = []
@@ -304,14 +334,37 @@ FULL LIST (sorted by confidence):
             companies_without_ids.append(company)
             continue
 
-        # Look up company ID with confidence threshold of 0.75
-        match = company_lookup.get_best_match(company_name, confidence_threshold=0.75)
+        # Check if ID was provided by frontend first
+        frontend_id = frontend_ids.get(company_name.lower())
+        if frontend_id:
+            # Use ID from frontend (already looked up during company research)
+            company['coresignal_company_id'] = frontend_id['company_id']
+            company['coresignal_confidence'] = frontend_id['confidence']
+            company['coresignal_searchable'] = True
+            company['id_source'] = 'frontend'
+            companies_with_ids.append(company)
+            continue
+
+        # Look up company ID - try website first (more reliable), then name
+        website = company.get('website')
+        if website:
+            # Use website.exact field for precise matching (much more reliable)
+            match = company_lookup.get_by_website(website)
+            if match:
+                print(f"   🌐 Using website lookup for {company_name}: {website}")
+        else:
+            match = None
+
+        # Fall back to name-based search if no website or website lookup failed
+        if not match:
+            match = company_lookup.get_best_match(company_name, confidence_threshold=0.75)
 
         if match:
             # Enrich company with CoreSignal data
             company['coresignal_company_id'] = match['company_id']
             company['coresignal_confidence'] = match['confidence']
             company['coresignal_searchable'] = True
+            company['id_source'] = 'lookup'
             if match.get('employee_count'):
                 company['employee_count'] = match['employee_count']
             if match.get('website'):
@@ -380,6 +433,30 @@ def build_domain_company_query(
     Returns:
         Elasticsearch DSL query dict
     """
+    # SIMPLE TEST MODE - Set to True to test if company IDs work at all
+    SIMPLE_TEST_MODE = False  # Toggle this to debug employee search
+
+    if SIMPLE_TEST_MODE:
+        # SIMPLIFIED QUERY: Just company IDs, no role/location filters
+        company_ids = [c.get('coresignal_company_id') for c in companies if c.get('coresignal_company_id')]
+
+        if company_ids:
+            print(f"\n{'='*80}")
+            print(f"🧪 SIMPLE TEST MODE ACTIVE")
+            print(f"   Testing {len(company_ids)} companies with IDs (no other filters)")
+            print(f"   Company IDs: {company_ids[:5]}{'...' if len(company_ids) > 5 else ''}")
+            print(f"{'='*80}\n")
+
+            # Dead simple query - just match company IDs
+            query = {
+                "query": {
+                    "terms": {"last_company_id": company_ids}
+                }
+            }
+            return query
+        else:
+            print(f"⚠️  SIMPLE TEST MODE: No company IDs found! Falling back to full query...")
+
     # Build company filters - use company IDs when available, fall back to name search
     company_id_filters = []
     company_name_filters = []
@@ -515,12 +592,12 @@ def build_domain_company_query(
         }
     }
 
+    # Add location as REQUIRED filter (not optional)
+    if location:
+        must_clauses.append({"term": {"location_country": location}})
+
     # Build "should" clause for optional boosting
     should_clause = []
-
-    # Add location as optional boost (not required)
-    if location:
-        should_clause.append({"term": {"location_country": location}})
 
     # If not requiring current role, add role filters as a "should" for boosting
     if not require_current_role and role_filters:
@@ -575,7 +652,9 @@ async def stage2_preview_search(
 
     if create_session and not session_id:
         # Create new session with company batching
-        company_names = [c['name'] for c in companies]
+        # Build company name to full object mapping to preserve IDs
+        company_map = {c.get('name', c.get('company_name', '')): c for c in companies}
+        company_names = list(company_map.keys())
 
         # Build base query for the session
         base_query = {
@@ -591,11 +670,14 @@ async def stage2_preview_search(
         )
 
         current_session_id = session_data['session_id']
-        companies_to_search = [{'name': c} for c in session_data['first_batch']]
+        # Map batch names back to full company objects (preserves IDs!)
+        first_batch_names = session_data['first_batch']
+        companies_to_search = [company_map.get(name, {'name': name}) for name in first_batch_names]
 
         print(f"✅ Created session: {current_session_id}")
         print(f"   Total batches: {session_data['total_batches']}")
-        print(f"   First batch: {session_data['first_batch']}")
+        print(f"   First batch: {first_batch_names}")
+        print(f"   Companies with IDs: {sum(1 for c in companies_to_search if 'coresignal_company_id' in c)}/{len(companies_to_search)}")
 
     elif session_id:
         # Continue existing session - get next batch
@@ -663,19 +745,19 @@ async def stage2_preview_search(
     }
     session_logger.log_json("02_preview_query.json", query_log_data)
 
-    # Execute search via CoreSignal API
-    print(f"\n📡 Executing CoreSignal search...")
-    search_result = search_profiles_with_endpoint(
+    # Execute search via CoreSignal API using search/collect pattern
+    # STEP 1: Search for employee IDs (up to 1000)
+    print(f"\n📡 Step 1: Searching for employee IDs (max: 1000)...")
+    search_result = search_profiles_full(
         query=query,
         endpoint=endpoint,
-        max_results=max_previews
+        max_results=1000  # Get up to 1000 IDs
     )
-
-    duration = time.time() - start_time
 
     if not search_result.get('success'):
         error_msg = search_result.get('error', 'Unknown error')
         print(f"   ❌ CoreSignal search failed: {error_msg}")
+        duration = time.time() - start_time
         return {
             "previews": [],
             "relevance_score": 0.0,
@@ -684,33 +766,57 @@ async def stage2_preview_search(
             "error": error_msg
         }
 
-    # Parse results
-    previews = search_result.get('results', [])
-    print(f"   ✅ Found {len(previews)} preview candidates")
+    # Get employee IDs from search
+    employee_ids = search_result.get('employee_ids', [])
+    total_found = search_result.get('total_found', len(employee_ids))
+    print(f"   ✅ Search successful: Found {len(employee_ids)} employee IDs (total available: {total_found})")
 
-    # Extract employee IDs and add to session
-    if previews and current_session_id:
-        employee_ids = []
-        for candidate in previews:
-            if isinstance(candidate, dict):
-                # Try multiple field names based on endpoint format
-                # employee_clean uses 'id', employee_base might use 'employee_id' or 'member_id'
-                emp_id = None
-                for field in ['id', 'employee_id', 'member_id']:
-                    if field in candidate and candidate[field]:
-                        emp_id = candidate[field]
-                        break
+    # STEP 2: Store all employee IDs in session for pagination
+    if employee_ids and current_session_id:
+        session_manager.store_employee_ids(current_session_id, employee_ids)
+        print(f"   📊 Stored {len(employee_ids)} IDs in session for progressive loading")
 
-                if emp_id:
-                    try:
-                        # Ensure it's an integer
-                        employee_ids.append(int(emp_id))
-                    except (ValueError, TypeError):
-                        print(f"   ⚠️  Invalid employee ID format: {emp_id}")
+    # STEP 3: Collect first batch of profiles (with caching)
+    print(f"\n📡 Step 2: Collecting first {max_previews} profiles (with caching)...")
 
-        if employee_ids:
-            session_manager.add_discovered_ids(current_session_id, employee_ids)
-            print(f"   📊 Added {len(employee_ids)} IDs to session")
+    # Get storage functions for profile caching
+    from utils.supabase_storage import get_stored_profile, save_stored_profile
+    storage_functions = {
+        'get': get_stored_profile,
+        'save': save_stored_profile
+    }
+
+    batch_result = collect_profiles_batch(
+        employee_ids=employee_ids,
+        start_index=0,
+        batch_size=max_previews,
+        storage_functions=storage_functions
+    )
+
+    if not batch_result.get('success'):
+        error_msg = batch_result.get('error', 'Failed to collect profiles')
+        print(f"   ❌ Profile collection failed: {error_msg}")
+        duration = time.time() - start_time
+        return {
+            "previews": [],
+            "relevance_score": 0.0,
+            "total_found": len(employee_ids),
+            "session_id": current_session_id,
+            "error": error_msg
+        }
+
+    # Get collected profiles
+    previews = batch_result.get('profiles', [])
+    cache_stats = batch_result.get('cache_stats', {})
+
+    print(f"   ✅ Collected {len(previews)} profiles")
+    print(f"   📊 Cache stats: {cache_stats['cached']} cached, {cache_stats['fetched']} fetched, {cache_stats['failed']} failed")
+
+    # Update profiles_offset in session for next load
+    if current_session_id and len(previews) > 0:
+        session_manager.increment_profiles_offset(current_session_id, len(previews))
+
+    duration = time.time() - start_time
 
     # Analyze relevance: Check how many have domain company experience
     domain_match_count = 0
@@ -1339,6 +1445,24 @@ def domain_company_preview_search():
         endpoint = data.get('endpoint', 'employee_clean')
         max_previews = data.get('max_previews', 20)
 
+        # IMPORTANT: Merge top-level mentioned_companies (from company selection UI)
+        # into jd_requirements.mentioned_companies (from JD analysis)
+        # This preserves company IDs from the frontend
+        top_level_companies = data.get('mentioned_companies', [])
+        if top_level_companies:
+            # Get existing companies from JD analysis (if any)
+            existing_companies = jd_requirements.get('mentioned_companies', [])
+
+            # Merge: prioritize top-level (from UI) over JD analysis
+            # Top-level companies may have CoreSignal IDs attached
+            if isinstance(existing_companies, list):
+                # Combine both sources, with top-level taking precedence
+                jd_requirements['mentioned_companies'] = top_level_companies + existing_companies
+                print(f"📋 Merged companies: {len(top_level_companies)} from UI + {len(existing_companies)} from JD")
+            else:
+                jd_requirements['mentioned_companies'] = top_level_companies
+                print(f"📋 Using {len(top_level_companies)} companies from UI selection")
+
         # Validate inputs
         if not jd_requirements:
             return jsonify({"success": False, "error": "jd_requirements is required"}), 400
@@ -1388,13 +1512,32 @@ def domain_company_preview_search():
         print(f"Log Directory: {session_logger.session_dir}")
         print(f"{'='*80}\n")
 
-        # Stage 1: Discover companies
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        companies = loop.run_until_complete(
-            stage1_discover_companies(jd_requirements, session_logger)
-        )
-        loop.close()
+        # Stage 1: Discover companies (skip if companies are pre-selected)
+        # Check if companies are pre-selected from company research UI
+        pre_selected_companies = top_level_companies if top_level_companies else []
+
+        if pre_selected_companies:
+            # Companies already selected by user - use directly (trust user selection)
+            companies = pre_selected_companies
+            print(f"\n{'='*80}")
+            print(f"✅ USING {len(companies)} PRE-SELECTED COMPANIES (SKIPPING STAGE 1)")
+            print(f"   Companies: {[c.get('name', c.get('company_name', 'Unknown')) for c in companies[:5]]}")
+            if len(companies) > 5:
+                print(f"   ... and {len(companies) - 5} more")
+
+            # Check how many have CoreSignal IDs
+            with_ids = sum(1 for c in companies if isinstance(c, dict) and c.get('coresignal_company_id'))
+            print(f"   Companies with CoreSignal IDs: {with_ids}/{len(companies)}")
+            print(f"{'='*80}\n")
+        else:
+            # Run Stage 1 discovery for new search
+            print(f"\n📋 No pre-selected companies - running full discovery pipeline")
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            companies = loop.run_until_complete(
+                stage1_discover_companies(jd_requirements, session_logger)
+            )
+            loop.close()
 
         # Stage 2: Preview search
         loop = asyncio.new_event_loop()
@@ -1421,8 +1564,8 @@ def domain_company_preview_search():
             "relevance_score": stage2_results['relevance_score']
         })
 
-        # Return response
-        return jsonify({
+        # Build response
+        response_data = {
             "success": True,
             "session_id": session_logger.session_id,
             "stage1_companies": companies,
@@ -1430,8 +1573,20 @@ def domain_company_preview_search():
             "relevance_score": stage2_results['relevance_score'],
             "total_companies_discovered": len(companies),
             "total_previews_found": stage2_results['total_found'],
+            "session_stats": stage2_results['session_stats'],  # Required by frontend
             "log_directory": str(session_logger.session_dir)
-        })
+        }
+
+        # DEBUG: Log what we're sending to frontend
+        print(f"\n{'='*80}")
+        print(f"📤 SENDING TO FRONTEND:")
+        print(f"   Session ID: {response_data['session_id']}")
+        print(f"   Candidates: {len(response_data['stage2_previews'])} profiles")
+        print(f"   Session Stats: {response_data['session_stats']}")
+        print(f"   First candidate: {response_data['stage2_previews'][0]['full_name'] if response_data['stage2_previews'] else 'N/A'}")
+        print(f"{'='*80}\n")
+
+        return jsonify(response_data)
 
     except Exception as e:
         print(f"Error in domain company preview search: {e}")
@@ -1535,21 +1690,27 @@ def domain_company_evaluate_stream():
 @domain_search_bp.route('/api/jd/load-more-previews', methods=['POST'])
 def load_more_previews():
     """
-    Load more candidate previews from next company batch.
+    Load more candidate profiles from stored employee IDs.
+
+    Uses the search/collect pattern: employee IDs were retrieved upfront,
+    now we fetch profiles in batches of 20 with intelligent caching.
 
     Request Body:
     {
         "session_id": "search_...",
-        "count": 20,
-        "mode": "company_batch"
+        "count": 20
     }
 
     Response:
     {
         "success": true,
-        "new_profiles": [...],
-        "session_stats": {...},
-        "remaining_batches": 5
+        "new_profiles": [...],           # 20 new profiles
+        "cache_stats": {...},            # Cache hit/miss stats
+        "pagination": {
+            "current_offset": 40,
+            "remaining_profiles": 960,
+            "total_profiles": 1000
+        }
     }
     """
     try:
@@ -1560,6 +1721,12 @@ def load_more_previews():
         if not session_id:
             return jsonify({"success": False, "error": "session_id is required"}), 400
 
+        print(f"\n{'='*80}")
+        print(f"LOAD MORE PROFILES REQUEST")
+        print(f"{'='*80}")
+        print(f"Session ID: {session_id}")
+        print(f"Requested count: {count}")
+
         # Get session from manager
         session_manager = SearchSessionManager()
         session = session_manager.get_session(session_id)
@@ -1567,65 +1734,86 @@ def load_more_previews():
         if not session:
             return jsonify({"success": False, "error": "Session not found or expired"}), 404
 
-        # Get next batch of companies
-        next_batch = session_manager.get_next_batch(session_id)
+        # Get next batch of profile IDs to fetch
+        batch_info = session_manager.get_next_profile_batch_info(session_id, batch_size=count)
 
-        if not next_batch:
+        if not batch_info:
+            # No more profiles to fetch
+            print(f"✓ All profiles fetched for session {session_id}")
             return jsonify({
                 "success": True,
                 "new_profiles": [],
-                "session_stats": session_manager.get_session_stats(session_id),
-                "remaining_batches": 0,
-                "message": "No more company batches available"
+                "cache_stats": {"cached": 0, "fetched": 0, "failed": 0},
+                "pagination": {
+                    "current_offset": session.get('profiles_offset', 0),
+                    "remaining_profiles": 0,
+                    "total_profiles": session.get('total_employee_ids', 0)
+                },
+                "message": "No more profiles available"
             })
 
-        # Parse search query from session
-        import json as json_lib
-        search_query = json_lib.loads(session['search_query'])
-        jd_requirements = search_query.get('jd_requirements', {})
-        endpoint = search_query.get('endpoint', 'employee_clean')
-        max_previews = search_query.get('max_previews', count)
+        employee_ids_to_fetch = batch_info['employee_ids']
+        start_index = batch_info['start_index']
+        remaining = batch_info['remaining']
+        total = batch_info['total']
 
-        # Create session logger (reuse existing session directory)
-        from utils.session_logger import SessionLogger
-        session_logger = SessionLogger(session_id=session_id)
+        print(f"📊 Batch info:")
+        print(f"   Start index: {start_index}")
+        print(f"   Fetching: {len(employee_ids_to_fetch)} profiles")
+        print(f"   Remaining after this batch: {remaining}")
+        print(f"   Total IDs in session: {total}")
 
-        # Run Stage 2 with next batch
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        # Get storage functions for profile caching
+        from utils.supabase_storage import get_stored_profile, save_stored_profile
+        storage_functions = {
+            'get': get_stored_profile,
+            'save': save_stored_profile
+        }
 
-        # Convert batch companies to dict format
-        companies_to_search = [{'name': c} for c in next_batch]
-
-        stage2_results = loop.run_until_complete(
-            stage2_preview_search(
-                companies=companies_to_search,
-                jd_requirements=jd_requirements,
-                endpoint=endpoint,
-                max_previews=max_previews,
-                session_logger=session_logger,
-                create_session=False,  # Don't create new session
-                session_id=session_id,  # Continue existing session
-                batch_size=5
-            )
+        # Collect profiles with caching
+        print(f"\n📡 Collecting {len(employee_ids_to_fetch)} profiles (with caching)...")
+        batch_result = collect_profiles_batch(
+            employee_ids=employee_ids_to_fetch,
+            start_index=0,  # Already sliced in batch_info
+            batch_size=len(employee_ids_to_fetch),
+            storage_functions=storage_functions
         )
-        loop.close()
 
-        # Get updated session stats
-        session_stats = session_manager.get_session_stats(session_id)
+        if not batch_result.get('success'):
+            error_msg = batch_result.get('error', 'Failed to collect profiles')
+            print(f"❌ Profile collection failed: {error_msg}")
+            return jsonify({"success": False, "error": error_msg}), 500
 
-        # Calculate remaining batches
-        company_batches = json_lib.loads(session['company_batches'])
-        current_batch_index = session.get('batch_index', 0)
-        remaining_batches = len(company_batches) - current_batch_index - 1
+        new_profiles = batch_result.get('profiles', [])
+        cache_stats = batch_result.get('cache_stats', {})
 
-        return jsonify({
+        print(f"✅ Collected {len(new_profiles)} profiles")
+        print(f"📊 Cache stats: {cache_stats['cached']} cached, {cache_stats['fetched']} fetched, {cache_stats['failed']} failed")
+
+        # Update profiles_offset in session
+        if len(new_profiles) > 0:
+            session_manager.increment_profiles_offset(session_id, len(new_profiles))
+            new_offset = session.get('profiles_offset', 0) + len(new_profiles)
+        else:
+            new_offset = session.get('profiles_offset', 0)
+
+        # Prepare response
+        response_data = {
             "success": True,
-            "new_profiles": stage2_results.get('previews', []),
-            "session_stats": session_stats,
-            "remaining_batches": remaining_batches,
-            "batch_companies": next_batch
-        })
+            "new_profiles": new_profiles,
+            "cache_stats": cache_stats,
+            "pagination": {
+                "current_offset": new_offset,
+                "remaining_profiles": remaining,
+                "total_profiles": total,
+                "profiles_fetched": len(new_profiles)
+            }
+        }
+
+        print(f"✓ Load more complete: returned {len(new_profiles)} profiles")
+        print(f"  Progress: {new_offset}/{total} profiles fetched ({remaining} remaining)")
+
+        return jsonify(response_data)
 
     except Exception as e:
         print(f"Error in load-more-previews: {e}")

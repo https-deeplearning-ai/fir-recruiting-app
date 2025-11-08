@@ -18,6 +18,19 @@ const DATA_SOURCE = {
 
 const CORESIGNAL_CREDIT_USD = 0.20; // $0.20 per credit
 
+// Utility function to strip HTML tags and decode HTML entities
+const stripHtml = (html) => {
+  if (!html) return '';
+  // Create a temporary DOM element to decode HTML entities
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  // Get text content (this automatically decodes entities like &amp;)
+  let text = temp.textContent || temp.innerText || '';
+  // Replace <br> tags with spaces before removing all tags
+  text = text.replace(/\s+/g, ' ').trim();
+  return text;
+};
+
 function App() {
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [userPrompt, setUserPrompt] = useState('');
@@ -137,7 +150,7 @@ function App() {
   const [validationData, setValidationData] = useState(null); // {companyId, companyName, crunchbaseUrl, source}
 
   // Company Search state (Phase 3: Search for people at companies)
-  const [selectedCompanies, setSelectedCompanies] = useState([]); // Company names selected for people search
+  const [selectedCompanies, setSelectedCompanies] = useState([]); // Company objects (with IDs) selected for people search
   const [companySearchFilters, setCompanySearchFilters] = useState({
     title: '',
     seniority: '',
@@ -1282,6 +1295,55 @@ function App() {
       setBatchResults(prev => updateCompanySource(prev));
       setSavedAssessments(prev => updateCompanySource(prev));
 
+      // Update collected profiles (from domain search)
+      setCollectedProfiles(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(candidateId => {
+          const profile = updated[candidateId];
+          if (profile?.experience) {
+            const updatedExperience = profile.experience.map(exp => {
+              if (exp.company_id === companyId && exp.company_enriched) {
+                return {
+                  ...exp,
+                  company_enriched: {
+                    ...exp.company_enriched,
+                    crunchbase_source: newSource,
+                    user_verified: isCorrect
+                  }
+                };
+              }
+              return exp;
+            });
+            updated[candidateId] = {
+              ...profile,
+              experience: updatedExperience
+            };
+          }
+        });
+        return updated;
+      });
+
+      // Update the modal data if it's currently open
+      if (profileModalOpen && profileModalData?.experience) {
+        const updatedModalData = {
+          ...profileModalData,
+          experience: profileModalData.experience.map(exp => {
+            if (exp.company_id === companyId && exp.company_enriched) {
+              return {
+                ...exp,
+                company_enriched: {
+                  ...exp.company_enriched,
+                  crunchbase_source: newSource,
+                  user_verified: isCorrect
+                }
+              };
+            }
+            return exp;
+          })
+        };
+        setProfileModalData(updatedModalData);
+      }
+
       showNotification('Thank you for your feedback!', 'success');
     } catch (error) {
       console.error('Error saving verification:', error);
@@ -2079,12 +2141,30 @@ function App() {
 
       const data = await response.json();
 
+      // DEBUG: Log the full response
+      console.log('🔍 Domain search response:', {
+        ok: response.ok,
+        status: response.status,
+        data: data,
+        hasSessionId: !!data.session_id,
+        previewsCount: data.stage2_previews?.length || 0
+      });
+
       if (response.ok && data.session_id) {
         const candidatesFound = data.stage2_previews || [];
+
+        console.log('📥 UPDATING STATE:', {
+          sessionId: data.session_id,
+          candidatesCount: candidatesFound.length,
+          sessionStats: data.session_stats,
+          firstCandidate: candidatesFound[0]?.full_name || 'N/A'
+        });
 
         setDomainSearchSessionId(data.session_id);
         setDomainSearchCandidates(candidatesFound);
         setDomainSessionStats(data.session_stats);
+
+        console.log('✅ STATE UPDATED - should trigger re-render');
 
         // If no candidates found, show warning but keep session ID for reset button
         if (candidatesFound.length === 0) {
@@ -3918,7 +3998,8 @@ function App() {
                     .slice(0, 100)
                     .map((company, idx) => {
                       const companyName = company.name || company.company_name;
-                      const isSelected = selectedCompanies.includes(companyName);
+                      // Check if company object is selected by name
+                      const isSelected = selectedCompanies.some(c => (c.name || c.company_name) === companyName);
                       return (
                         <div key={idx} className="discovered-item">
                           <input
@@ -3926,9 +4007,11 @@ function App() {
                             checked={isSelected}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedCompanies([...selectedCompanies, companyName]);
+                                // Store full company object (includes coresignal_company_id if available)
+                                setSelectedCompanies([...selectedCompanies, company]);
                               } else {
-                                setSelectedCompanies(selectedCompanies.filter(n => n !== companyName));
+                                // Filter by company name for removal
+                                setSelectedCompanies(selectedCompanies.filter(c => (c.name || c.company_name) !== companyName));
                               }
                             }}
                             style={{ marginRight: '8px', cursor: 'pointer' }}
@@ -4043,6 +4126,362 @@ function App() {
                       Find employees at selected companies who match this job description
                     </p>
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* Domain Search Results - Independent Section */}
+            {domainSearchSessionId && (
+              <div className="domain-candidates-section" style={{ margin: '30px 0', padding: '20px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                {console.log('🎨 DOMAIN SEARCH RENDERING:', {
+                  sessionId: domainSearchSessionId,
+                  candidatesCount: domainSearchCandidates.length
+                })}
+
+                {/* Empty State - Show Reset Button */}
+                {domainSearchCandidates.length === 0 && !domainSearching && (
+                  <div style={{
+                    background: '#fef3c7',
+                    border: '2px solid #fbbf24',
+                    borderRadius: '12px',
+                    padding: '30px',
+                    textAlign: 'center',
+                    marginBottom: '20px'
+                  }}>
+                    <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#92400e', margin: '0 0 10px 0' }}>
+                      ⚠️ No Candidates Found
+                    </h3>
+                    <p style={{ color: '#78350f', margin: '0 0 20px 0', fontSize: '15px' }}>
+                      The search didn't return any candidates, or there was an error loading results.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setDomainSearchSessionId(null);
+                        setDomainSearchCandidates([]);
+                        setDomainSessionStats(null);
+                        setSearchCacheInfo(null);
+                        showNotification('Search reset. You can try again.', 'info');
+                      }}
+                      style={{
+                        padding: '12px 24px',
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '15px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🔄 Reset Search & Try Again
+                    </button>
+                  </div>
+                )}
+
+                {/* Candidates Display */}
+                {domainSearchCandidates.length > 0 && (
+                  <>
+                    <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px' }}>
+                      Candidates Found ({domainSearchCandidates.length})
+                    </h3>
+
+                    {/* DEBUG: Log first candidate structure */}
+                    {domainSearchCandidates[0] && (() => {
+                      console.log('🔍 First candidate available fields:', Object.keys(domainSearchCandidates[0]));
+                      console.log('📋 First candidate full data:', domainSearchCandidates[0]);
+                      return null;
+                    })()}
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '24px', rowGap: '28px' }}>
+                      {domainSearchCandidates.map((candidate, idx) => {
+                        // Extract current job info
+                        const currentJob = candidate.experience?.find(exp => exp.is_current === 1) || candidate.experience?.[0];
+                        const jobTitle = candidate.job_title || currentJob?.title || candidate.title;
+                        const companyName = candidate.company_name || currentJob?.company_name;
+
+                        return (
+                        <div key={idx} className="candidate-card" style={{
+                          background: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '12px',
+                          padding: '20px',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                          transition: 'all 0.3s ease',
+                          position: 'relative',
+                          display: 'flex',
+                          flexDirection: 'column'
+                        }}>
+                          {/* Relevance Score Badge (if available) */}
+                          {candidate._score && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '12px',
+                              right: '12px',
+                              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                              color: 'white',
+                              padding: '4px 10px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: '700'
+                            }}>
+                              {Math.round(candidate._score)}
+                            </div>
+                          )}
+
+                          {/* Name */}
+                          <div style={{
+                            fontWeight: '700',
+                            fontSize: '18px',
+                            marginBottom: '8px',
+                            color: '#111827',
+                            paddingRight: candidate._score ? '60px' : '0'
+                          }}>
+                            {candidate.full_name || 'Unknown'}
+                          </div>
+
+                          {/* Current Role & Company */}
+                          {(jobTitle || companyName) && (
+                            <div style={{
+                              fontSize: '14px',
+                              color: '#4b5563',
+                              marginBottom: '12px',
+                              lineHeight: '1.4'
+                            }}>
+                              {jobTitle && (
+                                <div style={{
+                                  fontWeight: '600',
+                                  color: '#1f2937',
+                                  marginBottom: '4px'
+                                }}>
+                                  {jobTitle}
+                                </div>
+                              )}
+                              {companyName && (
+                                <div style={{ color: '#667eea', fontWeight: '500' }}>
+                                  at {companyName}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Headline (Italicized Quote) */}
+                          {(candidate.generated_headline || candidate.headline) && (
+                            <div style={{
+                              fontSize: '13px',
+                              color: '#6b7280',
+                              marginBottom: '12px',
+                              lineHeight: '1.5',
+                              fontStyle: 'italic',
+                              borderLeft: '3px solid #e5e7eb',
+                              paddingLeft: '12px'
+                            }}>
+                              "{stripHtml(candidate.generated_headline || candidate.headline)}"
+                            </div>
+                          )}
+
+                          {/* Metadata Badges (Management Level & Department) */}
+                          {(candidate.management_level || candidate.department) && (
+                            <div style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: '8px',
+                              marginBottom: '12px'
+                            }}>
+                              {candidate.management_level && (
+                                <span style={{
+                                  background: '#f3f4f6',
+                                  color: '#374151',
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '500'
+                                }}>
+                                  {candidate.management_level}
+                                </span>
+                              )}
+                              {candidate.department && (
+                                <span style={{
+                                  background: '#ede9fe',
+                                  color: '#6d28d9',
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '500'
+                                }}>
+                                  {candidate.department}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Skills (if available) */}
+                          {candidate.skills && candidate.skills.length > 0 && (
+                            <div style={{ marginBottom: '12px' }}>
+                              <div style={{
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                color: '#6b7280',
+                                marginBottom: '6px'
+                              }}>
+                                Skills:
+                              </div>
+                              <div style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '6px'
+                              }}>
+                                {candidate.skills.slice(0, 8).map((skillItem, skillIdx) => {
+                                  // Skills can be strings OR objects with {skill: "name", ...}
+                                  const skillName = typeof skillItem === 'string' ? skillItem : skillItem?.skill;
+                                  return skillName ? (
+                                    <span key={skillIdx} style={{
+                                      background: '#f0f9ff',
+                                      color: '#0369a1',
+                                      padding: '3px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '11px',
+                                      fontWeight: '500'
+                                    }}>
+                                      {skillName}
+                                    </span>
+                                  ) : null;
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Location & Connections (Footer Row) */}
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            paddingTop: '12px',
+                            borderTop: '1px solid #e5e7eb',
+                            fontSize: '12px',
+                            color: '#6b7280',
+                            marginBottom: '12px'
+                          }}>
+                            <div>
+                              📍 {candidate.location_country || candidate.city || candidate.location_raw_address || 'Location N/A'}
+                            </div>
+                            {candidate.connections_count && (
+                              <div style={{ color: '#9ca3af', fontWeight: '500' }}>
+                                {candidate.connections_count}+ connections
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Spacer to push buttons to bottom */}
+                          <div style={{ flex: 1 }} />
+
+                          {/* Actions Row (LinkedIn Link + Collect Button) */}
+                          <div style={{
+                            display: 'flex',
+                            gap: '10px',
+                            alignItems: 'center',
+                            marginTop: 'auto',
+                            paddingTop: '12px',
+                            borderTop: '1px solid #f3f4f6'
+                          }}>
+                            {/* LinkedIn Link */}
+                            {(candidate.profile_url || candidate.websites_linkedin) ? (
+                              <a
+                                href={candidate.profile_url || candidate.websites_linkedin}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  flex: 1,
+                                  color: '#0a66c2',
+                                  fontSize: '13px',
+                                  fontWeight: '600',
+                                  textDecoration: 'none',
+                                  transition: 'color 0.2s ease'
+                                }}
+                                onMouseOver={(e) => e.target.style.color = '#004182'}
+                                onMouseOut={(e) => e.target.style.color = '#0a66c2'}
+                              >
+                                View LinkedIn →
+                              </a>
+                            ) : (
+                              <span style={{ flex: 1, fontSize: '13px', color: '#9ca3af' }}>
+                                No LinkedIn URL
+                              </span>
+                            )}
+
+                            {/* Collect/View Profile Button */}
+                            {collectedProfiles[candidate.id] ? (
+                              <button
+                                onClick={() => handleViewProfile(candidate.id)}
+                                style={{
+                                  padding: '6px 14px',
+                                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+                                onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+                              >
+                                ✓ View Full Profile
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleCollectProfile(candidate.id)}
+                                disabled={collectingProfiles.has(candidate.id)}
+                                style={{
+                                  padding: '6px 14px',
+                                  background: collectingProfiles.has(candidate.id) ? '#9ca3af' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  cursor: collectingProfiles.has(candidate.id) ? 'not-allowed' : 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                onMouseOver={(e) => {
+                                  if (!collectingProfiles.has(candidate.id)) {
+                                    e.target.style.transform = 'scale(1.05)';
+                                  }
+                                }}
+                                onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+                              >
+                                {collectingProfiles.has(candidate.id) ? 'Collecting...' : 'Collect Full Profile'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Load More Button */}
+                    {domainSessionStats && domainSessionStats.total_employee_ids > domainSearchCandidates.length && (
+                      <button
+                        onClick={() => handleLoadMoreCandidates(20)}
+                        style={{
+                          marginTop: '20px',
+                          padding: '12px 24px',
+                          background: '#6366f1',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '15px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          width: '100%'
+                        }}
+                      >
+                        Load 20 More ({domainSearchCandidates.length}/{domainSessionStats.total_employee_ids})
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -4186,442 +4625,8 @@ function App() {
                 </div>
 
 
-                {/* Display Candidates with Load More */}
-                {domainSearchSessionId && (
-                  <div className="domain-candidates-section" style={{ margin: '30px 0' }}>
-                    {/* Empty State - Show Reset Button */}
-                    {domainSearchCandidates.length === 0 && !domainSearching && (
-                      <div style={{
-                        background: '#fef3c7',
-                        border: '2px solid #fbbf24',
-                        borderRadius: '12px',
-                        padding: '30px',
-                        textAlign: 'center',
-                        marginBottom: '20px'
-                      }}>
-                        <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#92400e', margin: '0 0 10px 0' }}>
-                          ⚠️ No Candidates Found
-                        </h3>
-                        <p style={{ color: '#78350f', margin: '0 0 20px 0', fontSize: '15px' }}>
-                          The search didn't return any candidates, or there was an error loading results.
-                        </p>
-                        <button
-                          onClick={() => {
-                            setDomainSearchSessionId(null);
-                            setDomainSearchCandidates([]);
-                            setDomainSessionStats(null);
-                            setSearchCacheInfo(null);
-                            showNotification('Search reset. You can try again.', 'info');
-                          }}
-                          style={{
-                            padding: '12px 24px',
-                            background: '#ef4444',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '15px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                          }}
-                          onMouseOver={(e) => e.currentTarget.style.background = '#dc2626'}
-                          onMouseOut={(e) => e.currentTarget.style.background = '#ef4444'}
-                        >
-                          🔄 Reset Search & Try Again
-                        </button>
-                      </div>
-                    )}
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                      <h3 style={{ fontSize: '20px', fontWeight: '700', margin: 0 }}>
-                        Candidates Found ({domainSearchCandidates.length})
-                        {Object.keys(collectedProfiles).length > 0 && (
-                          <span style={{ fontSize: '14px', fontWeight: '500', color: '#10b981', marginLeft: '10px' }}>
-                            {Object.keys(collectedProfiles).length} collected
-                          </span>
-                        )}
-                        {searchCacheInfo && searchCacheInfo.from_cache && (
-                          <span style={{
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            color: '#6366f1',
-                            background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            marginLeft: '10px',
-                            border: '1px solid #c7d2fe',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}>
-                            💾 Cached ({searchCacheInfo.cache_age_days} {searchCacheInfo.cache_age_days === 1 ? 'day' : 'days'} old)
-                          </span>
-                        )}
-                      </h3>
-                      {domainSearchCandidates.length > 0 && (
-                        <button
-                          onClick={handleCollectAllProfiles}
-                          disabled={collectingAll || domainSearchCandidates.every(c => collectedProfiles[c.id])}
-                          style={{
-                            padding: '10px 20px',
-                            background: collectingAll ? '#9ca3af' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            cursor: collectingAll || domainSearchCandidates.every(c => collectedProfiles[c.id]) ? 'not-allowed' : 'pointer',
-                            transition: 'all 0.3s ease',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                          }}
-                        >
-                          {collectingAll ? 'Collecting...' :
-                           domainSearchCandidates.every(c => collectedProfiles[c.id]) ? 'All Collected' :
-                           `Collect All ${domainSearchCandidates.filter(c => !collectedProfiles[c.id]).length} Profiles`}
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Credit Usage Meter */}
-                    {(creditUsage.profiles_fetched > 0 || creditUsage.profiles_cached > 0) && (
-                      <div className="credit-meter" style={{
-                        background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                        border: '1px solid #fbbf24',
-                        borderRadius: '8px',
-                        padding: '12px 16px',
-                        marginBottom: '15px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '20px',
-                        fontSize: '13px'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '18px' }}>💳</span>
-                          <span style={{ fontWeight: '700', color: '#92400e' }}>API Credits:</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '16px', flex: 1 }}>
-                          <div>
-                            <span style={{ fontWeight: '600', color: '#dc2626' }}>Used: {creditUsage.profiles_fetched}</span>
-                            <span style={{ color: '#92400e', marginLeft: '4px' }}>
-                              (${(creditUsage.profiles_fetched * CORESIGNAL_CREDIT_USD).toFixed(2)})
-                            </span>
-                          </div>
-                          <div>
-                            <span style={{ fontWeight: '600', color: '#059669' }}>Saved: {creditUsage.profiles_cached}</span>
-                            <span style={{ color: '#92400e', marginLeft: '4px' }}>
-                              (${(creditUsage.profiles_cached * CORESIGNAL_CREDIT_USD).toFixed(2)})
-                            </span>
-                          </div>
-                          {(creditUsage.profiles_fetched + creditUsage.profiles_cached) > 0 && (
-                            <div>
-                              <span style={{ fontWeight: '600', color: '#92400e' }}>
-                                Efficiency: {(() => {
-                                  const total = creditUsage.profiles_fetched + creditUsage.profiles_cached;
-                                  return total > 0 ? Math.round((creditUsage.profiles_cached / total) * 100) : 0;
-                                })()}% cached
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Session Stats */}
-                    {domainSessionStats && (
-                      <div className="session-stats" style={{
-                        display: 'flex',
-                        gap: '20px',
-                        padding: '15px',
-                        background: '#f8f9fa',
-                        borderRadius: '8px',
-                        marginBottom: '20px',
-                        fontWeight: '500'
-                      }}>
-                        <span>📦 Batch: {domainSessionStats.batches_completed}/{domainSessionStats.total_batches}</span>
-                        <span>🔍 Discovered: {domainSessionStats.discovered_ids || domainSessionStats.total_discovered || 0}</span>
-                        <span>⏳ Remaining: {(domainSessionStats.total_batches || 0) - (domainSessionStats.batches_completed || 0)} batches</span>
-                      </div>
-                    )}
-
-                    {/* No Candidates - Show Reset Button */}
-                    {domainSearchCandidates.length === 0 && (
-                      <div style={{
-                        padding: '30px',
-                        background: 'linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%)',
-                        borderRadius: '12px',
-                        marginBottom: '20px',
-                        border: '2px solid #f59e0b'
-                      }}>
-                        <h4 style={{ margin: '0 0 10px 0', textAlign: 'center', color: '#92400e', fontSize: '18px', fontWeight: '700' }}>
-                          No Candidates Found
-                        </h4>
-                        <p style={{ margin: '0 0 20px 0', textAlign: 'center', color: '#78350f', fontSize: '14px' }}>
-                          The query returned 0 results. The backend has been updated to fix this issue.
-                          Click below to reset and try again.
-                        </p>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
-                          <button
-                            onClick={() => {
-                              // Reset domain search state
-                              setDomainSearchSessionId(null);
-                              setDomainSearchCandidates([]);
-                              setDomainSessionStats(null);
-                              showNotification('Search reset. Please try again!', 'success');
-                            }}
-                            style={{
-                              padding: '12px 30px',
-                              backgroundColor: '#f59e0b',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '8px',
-                              fontSize: '16px',
-                              fontWeight: '700',
-                              cursor: 'pointer',
-                              transition: 'all 0.3s ease',
-                              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                            }}
-                          >
-                            Reset & Try Again
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Candidate Cards Grid */}
-                    <div className="candidates-grid" style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-                      gap: '20px',
-                      margin: '20px 0'
-                    }}>
-                      {domainSearchCandidates.map((candidate, idx) => (
-                        <div key={idx} className="candidate-card" style={{
-                          padding: '20px',
-                          background: 'white',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '12px',
-                          transition: 'all 0.3s ease',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                          position: 'relative'
-                        }}>
-                          {/* Relevance Score Badge */}
-                          {candidate._score && (
-                            <div style={{
-                              position: 'absolute',
-                              top: '12px',
-                              right: '12px',
-                              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                              color: 'white',
-                              padding: '4px 10px',
-                              borderRadius: '12px',
-                              fontSize: '12px',
-                              fontWeight: '700'
-                            }}>
-                              {Math.round(candidate._score)}
-                            </div>
-                          )}
-
-                          {/* Name */}
-                          <div style={{ fontWeight: '700', fontSize: '18px', marginBottom: '8px', color: '#111827', paddingRight: '60px' }}>
-                            {candidate.full_name || 'Unknown'}
-                          </div>
-
-                          {/* Current Role & Company */}
-                          <div style={{ fontSize: '14px', color: '#4b5563', marginBottom: '12px', lineHeight: '1.4' }}>
-                            {candidate.job_title && (
-                              <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '4px' }}>
-                                {candidate.job_title}
-                              </div>
-                            )}
-                            {candidate.company_name && (
-                              <div style={{ color: '#667eea', fontWeight: '500' }}>
-                                at {candidate.company_name}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Headline */}
-                          {candidate.headline && (
-                            <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px', lineHeight: '1.5', fontStyle: 'italic' }}>
-                              "{candidate.headline}"
-                            </div>
-                          )}
-
-                          {/* Metadata Row */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-                            {candidate.management_level && (
-                              <span style={{
-                                background: '#f3f4f6',
-                                color: '#374151',
-                                padding: '4px 10px',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                fontWeight: '500'
-                              }}>
-                                {candidate.management_level}
-                              </span>
-                            )}
-                            {candidate.department && (
-                              <span style={{
-                                background: '#ede9fe',
-                                color: '#6d28d9',
-                                padding: '4px 10px',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                fontWeight: '500'
-                              }}>
-                                {candidate.department}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Location & Connections */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
-                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                              {candidate.location_country || candidate.location_raw_address || 'Location N/A'}
-                            </div>
-                            {candidate.connections_count && (
-                              <div style={{ fontSize: '12px', color: '#9ca3af', fontWeight: '500' }}>
-                                {candidate.connections_count}+ connections
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Actions Row */}
-                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '12px' }}>
-                            {/* LinkedIn Link */}
-                            {candidate.websites_linkedin && (
-                              <a
-                                href={candidate.websites_linkedin}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                  flex: 1,
-                                  color: '#0a66c2',
-                                  fontSize: '13px',
-                                  fontWeight: '600',
-                                  textDecoration: 'none',
-                                  transition: 'color 0.2s ease'
-                                }}
-                                onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
-                                onMouseOut={(e) => e.target.style.textDecoration = 'none'}
-                              >
-                                View LinkedIn →
-                              </a>
-                            )}
-
-                            {/* Collect/View Profile Button */}
-                            {collectedProfiles[candidate.id] ? (
-                              <button
-                                onClick={() => handleViewProfile(candidate.id)}
-                                style={{
-                                  padding: '6px 12px',
-                                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '6px',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.2s ease',
-                                  whiteSpace: 'nowrap'
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                              >
-                                View Profile
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleCollectProfile(candidate.id)}
-                                disabled={collectingProfiles.has(candidate.id)}
-                                style={{
-                                  padding: '6px 12px',
-                                  background: collectingProfiles.has(candidate.id) ? '#9ca3af' :
-                                             'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '6px',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
-                                  cursor: collectingProfiles.has(candidate.id) ? 'not-allowed' : 'pointer',
-                                  transition: 'all 0.2s ease',
-                                  whiteSpace: 'nowrap'
-                                }}
-                              >
-                                {collectingProfiles.has(candidate.id) ? 'Collecting...' : 'Collect Profile'}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Load More Controls - Only show if we have candidates */}
-                    {domainSearchCandidates.length > 0 && (
-                    <div className="load-more-controls" style={{
-                      display: 'flex',
-                      gap: '15px',
-                      justifyContent: 'center',
-                      margin: '30px 0'
-                    }}>
-                      <button
-                        onClick={() => handleLoadMoreCandidates(20)}
-                        disabled={domainLoadingMore}
-                        style={{
-                          padding: '12px 24px',
-                          border: '2px solid #667eea',
-                          background: 'white',
-                          color: '#667eea',
-                          borderRadius: '8px',
-                          fontWeight: '600',
-                          cursor: domainLoadingMore ? 'not-allowed' : 'pointer',
-                          transition: 'all 0.3s ease',
-                          opacity: domainLoadingMore ? 0.5 : 1
-                        }}
-                      >
-                        {domainLoadingMore ? 'Loading...' : 'Load +20 More'}
-                      </button>
-                      <button
-                        onClick={() => handleLoadMoreCandidates(40)}
-                        disabled={domainLoadingMore}
-                        style={{
-                          padding: '12px 24px',
-                          border: '2px solid #667eea',
-                          background: 'white',
-                          color: '#667eea',
-                          borderRadius: '8px',
-                          fontWeight: '600',
-                          cursor: domainLoadingMore ? 'not-allowed' : 'pointer',
-                          transition: 'all 0.3s ease',
-                          opacity: domainLoadingMore ? 0.5 : 1
-                        }}
-                      >
-                        {domainLoadingMore ? 'Loading...' : 'Load +40 More'}
-                      </button>
-                      <button
-                        onClick={() => handleLoadMoreCandidates(100)}
-                        disabled={domainLoadingMore}
-                        style={{
-                          padding: '12px 24px',
-                          border: '2px solid #667eea',
-                          background: 'white',
-                          color: '#667eea',
-                          borderRadius: '8px',
-                          fontWeight: '600',
-                          cursor: domainLoadingMore ? 'not-allowed' : 'pointer',
-                          transition: 'all 0.3s ease',
-                          opacity: domainLoadingMore ? 0.5 : 1
-                        }}
-                      >
-                        {domainLoadingMore ? 'Loading...' : 'Load +100 More'}
-                      </button>
-                    </div>
-                    )}
-                  </div>
-                )}
-
+                {/* Company Research Results by Category */}
                 {Object.entries(companyResearchResults.companies_by_category).map(([category, companies]) => (
                   companies.length > 0 && (
                     <div key={category} className="category-section">
@@ -4860,257 +4865,6 @@ function App() {
                     </div>
                   )
                 ))}
-
-                {/* Phase 3: Search for People at Companies */}
-                <div className="company-search-section" style={{ marginTop: '40px', padding: '20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                  <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>Search for People at Selected Companies</h3>
-
-                  {/* Company Selection Instructions */}
-                  <p style={{ marginBottom: '20px', color: '#6b7280', fontSize: '14px' }}>
-                    Select companies below to find people working there. Use filters to refine your search.
-                  </p>
-
-                  {/* Company Selection Checkboxes */}
-                  <div style={{ marginBottom: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                        Select Companies ({selectedCompanies.length} selected)
-                      </h4>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          onClick={() => {
-                            const allCompanies = Object.values(companyResearchResults.companies_by_category)
-                              .flat()
-                              .map(c => c.company_name);
-                            setSelectedCompanies(allCompanies);
-                          }}
-                          style={{
-                            padding: '6px 12px',
-                            fontSize: '13px',
-                            borderRadius: '4px',
-                            border: '1px solid #d1d5db',
-                            backgroundColor: 'white',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Select All
-                        </button>
-                        <button
-                          onClick={() => setSelectedCompanies([])}
-                          style={{
-                            padding: '6px 12px',
-                            fontSize: '13px',
-                            borderRadius: '4px',
-                            border: '1px solid #d1d5db',
-                            backgroundColor: 'white',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Clear All
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '8px', maxHeight: '300px', overflowY: 'auto', padding: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                      {Object.values(companyResearchResults.companies_by_category)
-                        .flat()
-                        .map((company, idx) => (
-                          <label
-                            key={idx}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '8px',
-                              cursor: 'pointer',
-                              borderRadius: '4px',
-                              backgroundColor: selectedCompanies.includes(company.company_name) ? '#ede9fe' : 'transparent',
-                              transition: 'background-color 0.2s'
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedCompanies.includes(company.company_name)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedCompanies([...selectedCompanies, company.company_name]);
-                                } else {
-                                  setSelectedCompanies(selectedCompanies.filter(c => c !== company.company_name));
-                                }
-                              }}
-                              style={{ marginRight: '8px' }}
-                            />
-                            <span style={{ fontSize: '13px' }}>{company.company_name}</span>
-                          </label>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Search Filters */}
-                  <div style={{ marginBottom: '20px' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
-                      Search Filters (Optional)
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px', color: '#4b5563' }}>
-                          Job Title
-                        </label>
-                        <input
-                          type="text"
-                          value={companySearchFilters.title}
-                          onChange={(e) => setCompanySearchFilters({ ...companySearchFilters, title: e.target.value })}
-                          placeholder="e.g., engineer"
-                          style={{
-                            width: '100%',
-                            padding: '8px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid #d1d5db',
-                            fontSize: '13px'
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px', color: '#4b5563' }}>
-                          Seniority
-                        </label>
-                        <input
-                          type="text"
-                          value={companySearchFilters.seniority}
-                          onChange={(e) => setCompanySearchFilters({ ...companySearchFilters, seniority: e.target.value })}
-                          placeholder="e.g., senior"
-                          style={{
-                            width: '100%',
-                            padding: '8px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid #d1d5db',
-                            fontSize: '13px'
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '4px', color: '#4b5563' }}>
-                          Location
-                        </label>
-                        <input
-                          type="text"
-                          value={companySearchFilters.location}
-                          onChange={(e) => setCompanySearchFilters({ ...companySearchFilters, location: e.target.value })}
-                          placeholder="e.g., San Francisco"
-                          style={{
-                            width: '100%',
-                            padding: '8px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid #d1d5db',
-                            fontSize: '13px'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Search Button */}
-                  <button
-                    onClick={handleSearchByCompanyList}
-                    disabled={searchingCompanies || selectedCompanies.length === 0}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      backgroundColor: searchingCompanies || selectedCompanies.length === 0 ? '#9ca3af' : '#4F46E5',
-                      color: 'white',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: searchingCompanies || selectedCompanies.length === 0 ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    {searchingCompanies ? 'Searching...' : `Search for People at ${selectedCompanies.length} ${selectedCompanies.length === 1 ? 'Company' : 'Companies'}`}
-                  </button>
-
-                  {/* Search Results */}
-                  {companySearchResults && (
-                    <div style={{ marginTop: '30px' }}>
-                      <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>
-                        Found {companySearchResults.total_people} People
-                      </h4>
-
-                      {/* Company Match Status */}
-                      <div style={{ marginBottom: '20px' }}>
-                        <h5 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '10px', color: '#374151' }}>
-                          Company Matches
-                        </h5>
-                        <div style={{ display: 'grid', gap: '8px' }}>
-                          {companySearchResults.company_matches.map((match, idx) => (
-                            <div
-                              key={idx}
-                              style={{
-                                padding: '10px 12px',
-                                backgroundColor: match.coresignal_id ? '#ecfdf5' : '#fef2f2',
-                                border: `1px solid ${match.coresignal_id ? '#10b981' : '#ef4444'}`,
-                                borderRadius: '4px',
-                                fontSize: '13px'
-                              }}
-                            >
-                              {match.coresignal_id ? (
-                                <span>
-                                  ✅ <strong>{match.company_name}</strong> → {match.coresignal_name}
-                                  <span style={{ marginLeft: '8px', color: '#6b7280' }}>
-                                    (confidence: {Math.round(match.confidence * 100)}%, {match.people_found} people)
-                                  </span>
-                                </span>
-                              ) : (
-                                <span>
-                                  ❌ <strong>{match.company_name}</strong> - No match found
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* People Results Table */}
-                      {companySearchResults.people && companySearchResults.people.length > 0 && (
-                        <div style={{ overflowX: 'auto' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                            <thead>
-                              <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #d1d5db' }}>
-                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>Name</th>
-                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>Title</th>
-                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>Company</th>
-                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>Location</th>
-                                <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600' }}>LinkedIn</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {companySearchResults.people.map((person, idx) => (
-                                <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                  <td style={{ padding: '10px' }}>{person.full_name || 'N/A'}</td>
-                                  <td style={{ padding: '10px' }}>{person.title || 'N/A'}</td>
-                                  <td style={{ padding: '10px' }}>{person.company_name || 'N/A'}</td>
-                                  <td style={{ padding: '10px' }}>{person.location || 'N/A'}</td>
-                                  <td style={{ padding: '10px' }}>
-                                    {person.linkedin_url ? (
-                                      <a
-                                        href={person.linkedin_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{ color: '#4F46E5', textDecoration: 'none' }}
-                                      >
-                                        View Profile
-                                      </a>
-                                    ) : (
-                                      'N/A'
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
               </div>
             )}
           </div>
@@ -6209,7 +5963,12 @@ function App() {
                   }}>
                     Work Experience
                   </h3>
-                  <WorkExperienceSection profileData={profileModalData} />
+                  <WorkExperienceSection
+                    profileData={profileModalData}
+                    onRegenerateUrl={handleRegenerateCrunchbaseUrl}
+                    onCrunchbaseClick={handleCrunchbaseClick}
+                    onEditUrl={handleEditUrl}
+                  />
                 </div>
               )}
 

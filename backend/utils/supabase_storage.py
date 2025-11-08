@@ -396,10 +396,24 @@ def generate_search_cache_key(jd_requirements, endpoint):
     """
     import hashlib
 
+    # Normalize mentioned_companies to extract just names
+    # (handles both old format: strings, and new format: dicts with IDs)
+    mentioned_companies_raw = jd_requirements.get('mentioned_companies', [])
+    company_names = []
+    for item in mentioned_companies_raw:
+        if isinstance(item, str):
+            company_names.append(item)
+        elif isinstance(item, dict):
+            # Extract name from dict
+            name = item.get('name', item.get('company_name', str(item)))
+            company_names.append(name)
+        else:
+            company_names.append(str(item))
+
     # Normalize the search parameters
     cache_data = {
         'target_domain': jd_requirements.get('target_domain', ''),
-        'mentioned_companies': sorted(jd_requirements.get('mentioned_companies', [])),  # Sort for consistency
+        'mentioned_companies': sorted(company_names),  # Sort names for consistency
         'endpoint': endpoint
     }
 

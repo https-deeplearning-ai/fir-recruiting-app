@@ -1526,3 +1526,273 @@ def search_profiles_by_company_ids(
             continue
 
     return all_profiles
+
+
+def search_profiles_full(
+    query: Dict[str, Any],
+    endpoint: str = "employee_clean",
+    max_results: int = 1000
+) -> Dict[str, Any]:
+    """
+    Execute ES DSL search to get employee IDs (up to 1000).
+
+    This uses the /search/es_dsl endpoint (NOT /preview) to retrieve
+    a list of employee IDs that can be collected later in batches.
+
+    This is the FIRST step in the search/collect pattern:
+    1. Search → get 1000 IDs (this function)
+    2. Collect → fetch 20 profiles at a time (use collect_profiles_batch)
+
+    Args:
+        query: Elasticsearch DSL query dict
+        endpoint: CoreSignal endpoint (employee_base, employee_clean, multi_source_employee)
+        max_results: Maximum IDs to return (default: 1000, CoreSignal limit per page)
+
+    Returns:
+        Dict with 'success', 'employee_ids' (list of IDs), 'total_found'
+
+    Example:
+        result = search_profiles_full(query_dict, max_results=1000)
+        if result['success']:
+            employee_ids = result['employee_ids']  # Up to 1000 IDs
+            # Now use collect_profiles_batch to fetch profiles in chunks of 20
+    """
+    import os
+    import requests
+
+    api_key = os.getenv("CORESIGNAL_API_KEY")
+    if not api_key:
+        return {"success": False, "error": "CORESIGNAL_API_KEY not found"}
+
+    headers = {
+        "accept": "application/json",
+        "apikey": api_key,
+        "Content-Type": "application/json"
+    }
+
+    # IMPORTANT: Use /search/es_dsl (NOT /preview) to get IDs
+    base_url = f"https://api.coresignal.com/cdapi/v2/{endpoint}/search/es_dsl"
+
+    # CoreSignal API doesn't accept 'size' in request body - it returns ~1000 IDs per page automatically
+    # Pagination is done via response headers (x-next-page-after) and query params (?after=last_id)
+    payload = query  # Just the query, no size parameter
+
+    try:
+        print(f"🔍 Searching {endpoint} for employee IDs (max: {max_results})...")
+
+        response = requests.post(
+            base_url,
+            json=payload,
+            headers=headers,
+            timeout=30
+        )
+
+        print(f"   Response status: {response.status_code}")
+
+        if response.status_code != 200:
+            error_text = response.text[:200]
+            print(f"   ❌ Search failed: {error_text}")
+            return {
+                "success": False,
+                "error": f"Search failed with status {response.status_code}",
+                "details": error_text
+            }
+
+        data = response.json()
+
+        # Extract employee IDs - CoreSignal returns simple list, not Elasticsearch hits format
+        if isinstance(data, list):
+            # API returns simple list of employee IDs: [123456, 789012, ...]
+            employee_ids = data
+            total_found = len(data)
+
+            print(f"   ✅ Search successful: Found {len(employee_ids)} IDs")
+
+            return {
+                "success": True,
+                "employee_ids": employee_ids,
+                "total_found": total_found,
+                "retrieved_count": len(employee_ids),
+                "endpoint": endpoint
+            }
+        elif isinstance(data, dict) and "hits" in data:
+            # Fallback: Elasticsearch format (in case API format changes)
+            hits = data["hits"]["hits"]
+            employee_ids = [hit["_id"] for hit in hits]
+            total_found = data["hits"]["total"]["value"]
+
+            print(f"   ✅ Search successful: Found {len(employee_ids)} IDs (total available: {total_found})")
+
+            return {
+                "success": True,
+                "employee_ids": employee_ids,
+                "total_found": total_found,
+                "retrieved_count": len(employee_ids),
+                "endpoint": endpoint
+            }
+        else:
+            print(f"   ⚠️  Unexpected response format: {type(data)}")
+            return {
+                "success": False,
+                "error": "Unexpected response format from CoreSignal API",
+                "response": data
+            }
+
+    except requests.exceptions.Timeout:
+        return {
+            "success": False,
+            "error": "Request timeout - CoreSignal API slow to respond"
+        }
+    except requests.exceptions.RequestException as e:
+        return {
+            "success": False,
+            "error": f"Network error: {str(e)}"
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "success": False,
+            "error": f"Unexpected error: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
+
+
+def collect_profiles_batch(
+    employee_ids: List[int],
+    start_index: int = 0,
+    batch_size: int = 20,
+    storage_functions: Optional[Dict] = None
+) -> Dict[str, Any]:
+    """
+    Collect a batch of employee profiles by IDs with intelligent caching.
+
+    This is the SECOND step in the search/collect pattern:
+    1. Search → get 1000 IDs (use search_profiles_full)
+    2. Collect → fetch 20 profiles at a time (this function)
+
+    Uses Supabase storage to cache profiles and avoid redundant API calls.
+
+    Args:
+        employee_ids: List of CoreSignal employee IDs to fetch
+        start_index: Starting position in the employee_ids list (for pagination)
+        batch_size: Number of profiles to fetch (default: 20)
+        storage_functions: Optional dict with 'get' and 'save' functions for profile caching
+
+    Returns:
+        Dict with 'success', 'profiles' (list of profile data), 'cache_stats'
+
+    Example:
+        from utils.supabase_storage import get_storage_functions
+
+        # Get 1000 IDs from search
+        search_result = search_profiles_full(query_dict)
+        employee_ids = search_result['employee_ids']
+
+        # Get storage functions for caching
+        storage = get_storage_functions()
+
+        # Fetch first 20 profiles (with caching)
+        batch1 = collect_profiles_batch(employee_ids, start_index=0, batch_size=20, storage_functions=storage)
+
+        # Fetch next 20 profiles
+        batch2 = collect_profiles_batch(employee_ids, start_index=20, batch_size=20, storage_functions=storage)
+    """
+    import os
+    import requests
+    import time
+
+    # Get storage functions if not provided
+    if storage_functions is None:
+        try:
+            from utils.supabase_storage import get_stored_profile, save_stored_profile
+            storage_functions = {
+                'get': get_stored_profile,
+                'save': save_stored_profile
+            }
+        except ImportError:
+            print("⚠️  Storage functions not available - caching disabled")
+            storage_functions = None
+
+    api_key = os.getenv("CORESIGNAL_API_KEY")
+    if not api_key:
+        return {"success": False, "error": "CORESIGNAL_API_KEY not found"}
+
+    # Calculate batch slice
+    end_index = min(start_index + batch_size, len(employee_ids))
+    batch_ids = employee_ids[start_index:end_index]
+
+    if not batch_ids:
+        return {
+            "success": True,
+            "profiles": [],
+            "cache_stats": {"cached": 0, "fetched": 0, "failed": 0},
+            "message": "No more profiles to fetch"
+        }
+
+    print(f"🔍 Collecting batch of {len(batch_ids)} profiles (IDs {start_index} to {end_index-1})...")
+
+    profiles = []
+    cache_hits = 0
+    api_fetches = 0
+    failures = 0
+
+    headers = {
+        "accept": "application/json",
+        "apikey": api_key
+    }
+
+    for i, employee_id in enumerate(batch_ids, start=start_index + 1):
+        # Check cache first (if storage available)
+        cached_profile = None
+        if storage_functions and 'get' in storage_functions:
+            cached_profile = storage_functions['get'](f"id:{employee_id}")
+
+        if cached_profile:
+            # Use cached profile
+            profiles.append(cached_profile['profile_data'])
+            cache_hits += 1
+            print(f"   {i}/{end_index}: ID {employee_id} - FROM CACHE ✓")
+        else:
+            # Fetch from API
+            try:
+                response = requests.get(
+                    f"https://api.coresignal.com/cdapi/v2/employee_base/collect/{employee_id}",
+                    headers=headers,
+                    timeout=10
+                )
+
+                if response.status_code == 200:
+                    profile_data = response.json()
+                    profiles.append(profile_data)
+                    api_fetches += 1
+
+                    # Save to cache for future use
+                    if storage_functions and 'save' in storage_functions:
+                        storage_functions['save'](f"id:{employee_id}", profile_data, checked_at=time.time())
+
+                    print(f"   {i}/{end_index}: ID {employee_id} - FETCHED ✓")
+                else:
+                    failures += 1
+                    print(f"   {i}/{end_index}: ID {employee_id} - FAILED ({response.status_code})")
+
+            except Exception as e:
+                failures += 1
+                print(f"   {i}/{end_index}: ID {employee_id} - ERROR: {str(e)}")
+
+    print(f"✅ Batch complete: {len(profiles)} profiles ({cache_hits} cached, {api_fetches} fetched, {failures} failed)")
+
+    return {
+        "success": True,
+        "profiles": profiles,
+        "cache_stats": {
+            "cached": cache_hits,
+            "fetched": api_fetches,
+            "failed": failures,
+            "total": len(batch_ids)
+        },
+        "batch_info": {
+            "start_index": start_index,
+            "end_index": end_index,
+            "batch_size": len(batch_ids)
+        }
+    }

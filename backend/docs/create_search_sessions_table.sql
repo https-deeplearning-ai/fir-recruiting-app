@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS search_sessions (
     profiles_fetched INTEGER[] DEFAULT ARRAY[]::INTEGER[],  -- Employee IDs that have been fetched
     total_discovered INTEGER DEFAULT 0,  -- Count of unique employee IDs found
     batch_index INTEGER DEFAULT 0,  -- Current batch being processed (0-indexed)
+    employee_ids INTEGER[] DEFAULT ARRAY[]::INTEGER[],  -- NEW: All employee IDs from search (up to 1000)
+    profiles_offset INTEGER DEFAULT 0,  -- NEW: Current pagination offset for profile collection
+    total_employee_ids INTEGER DEFAULT 0,  -- NEW: Total count of employee IDs for progress tracking
     is_active BOOLEAN DEFAULT TRUE,  -- Session active status (soft delete)
     last_accessed TIMESTAMP WITH TIME ZONE DEFAULT NOW(),  -- Track last usage
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -29,6 +32,9 @@ COMMENT ON COLUMN search_sessions.company_batches IS 'Array of company batches, 
 COMMENT ON COLUMN search_sessions.discovered_ids IS 'All unique employee IDs found across all batches';
 COMMENT ON COLUMN search_sessions.profiles_fetched IS 'Employee IDs whose full profiles have been fetched';
 COMMENT ON COLUMN search_sessions.batch_index IS 'Current batch index (0-based), increments as batches are processed';
+COMMENT ON COLUMN search_sessions.employee_ids IS 'All employee IDs from search endpoint (up to 1000), used for pagination';
+COMMENT ON COLUMN search_sessions.profiles_offset IS 'Current offset for profile pagination (0, 20, 40, etc.)';
+COMMENT ON COLUMN search_sessions.total_employee_ids IS 'Total count of employee IDs for progress tracking';
 COMMENT ON COLUMN search_sessions.is_active IS 'Soft delete flag - FALSE means session is cleared but preserved';
 COMMENT ON COLUMN search_sessions.last_accessed IS 'Updated on every session access for activity tracking';
 
