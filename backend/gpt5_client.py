@@ -3,6 +3,7 @@ import json
 from typing import List, Dict, Any, Optional
 import asyncio
 import openai
+import httpx
 
 
 class GPT5Client:
@@ -25,16 +26,45 @@ class GPT5Client:
         self.async_client = None
         self.available_models = []
         self.models_detected = False
+        self.init_error = None
 
-        if self.api_key:
-            try:
-                self.client = openai.OpenAI(api_key=self.api_key)
-                self.async_client = openai.AsyncOpenAI(api_key=self.api_key)
-            except Exception as e:
-                print(f"Warning: Could not initialize OpenAI client: {e}")
-                print("Company research will fallback to Claude Haiku 4.5")
-                self.client = None
-                self.async_client = None
+        if not self.api_key:
+            self.init_error = "OPENAI_API_KEY environment variable not set"
+            print(f"Warning: {self.init_error}")
+            print("Company research will fallback to Claude Haiku 4.5")
+            return
+
+        try:
+            # Use custom httpx client to bypass Render's proxy environment variables
+            # Render sets HTTP_PROXY/HTTPS_PROXY which break OpenAI SDK connections
+            http_client = httpx.Client(
+                timeout=httpx.Timeout(60.0, connect=10.0),
+                trust_env=False  # Ignore HTTP_PROXY, HTTPS_PROXY, ALL_PROXY, NO_PROXY
+            )
+
+            async_http_client = httpx.AsyncClient(
+                timeout=httpx.Timeout(60.0, connect=10.0),
+                trust_env=False
+            )
+
+            self.client = openai.OpenAI(
+                api_key=self.api_key,
+                http_client=http_client
+            )
+            self.async_client = openai.AsyncOpenAI(
+                api_key=self.api_key,
+                http_client=async_http_client
+            )
+            print("✓ OpenAI client initialized successfully (trust_env=False)")
+
+        except Exception as e:
+            self.init_error = str(e)
+            print(f"Warning: Could not initialize OpenAI client: {e}")
+            print("Company research will fallback to Claude Haiku 4.5")
+            import traceback
+            traceback.print_exc()
+            self.client = None
+            self.async_client = None
 
     async def detect_available_models(self):
         """Test which GPT-5 models are available."""
@@ -100,7 +130,12 @@ class GPT5Client:
         Returns relevance scores for each company.
         """
         if not self.async_client:
-            raise ValueError("OpenAI client not initialized - check OPENAI_API_KEY")
+            error_msg = "OpenAI client not initialized"
+            if self.init_error:
+                error_msg += f": {self.init_error}"
+            else:
+                error_msg += " - check OPENAI_API_KEY environment variable"
+            raise ValueError(error_msg)
 
         # Ensure models are detected
         if not self.models_detected:
@@ -137,7 +172,12 @@ class GPT5Client:
         Returns comprehensive analysis.
         """
         if not self.async_client:
-            raise ValueError("OpenAI client not initialized - check OPENAI_API_KEY")
+            error_msg = "OpenAI client not initialized"
+            if self.init_error:
+                error_msg += f": {self.init_error}"
+            else:
+                error_msg += " - check OPENAI_API_KEY environment variable"
+            raise ValueError(error_msg)
 
         # Ensure models are detected
         if not self.models_detected:
