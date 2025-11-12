@@ -45,14 +45,14 @@ LLM_CONFIGS = {
         fallback_model="gpt-4-turbo"
     ),
     "google": LLMConfig(
-        model_name="gemini-2.0-flash-exp",  # Latest Gemini 2.0 experimental (Dec 2024)
-        display_name="Gemini 2.0 Flash",
+        model_name="gemini-2.5-flash",  # Gemini 2.5 Flash (stable, Jan 2025)
+        display_name="Gemini 2.5 Flash",
         provider="google",
         supports_temperature=True,
         supports_system_prompt=False,  # Gemini combines system+user in single prompt
         max_tokens=8192,
-        reasoning="Gemini 2.0 Flash: Google's latest experimental model with multimodal capabilities",
-        fallback_model="gemini-1.5-pro"
+        reasoning="Gemini 2.5 Flash: Google's most efficient model with state-of-the-art performance",
+        fallback_model="gemini-2.0-flash-exp"
     )
 }
 
