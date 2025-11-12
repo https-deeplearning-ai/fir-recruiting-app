@@ -386,8 +386,8 @@ Provide a comprehensive JSON response with all findings."""
                         {"term": {"member_current_employer_names.keyword": clean_name}}
                     ]
                 }
-            },
-            "size": 1
+            }
+            # NOTE: preview endpoint does NOT accept "size" parameter
         }
 
         url = "https://api.coresignal.com/cdapi/v2/employee_clean/search/es_dsl/preview?page=1"
@@ -599,8 +599,8 @@ Provide a comprehensive JSON response with all findings."""
                         {"terms": {"member_current_position_title": role_keywords}}
                     ]
                 }
-            },
-            "size": sample_size
+            }
+            # NOTE: preview endpoint does NOT accept "size" parameter
         }
 
         url = "https://api.coresignal.com/cdapi/v2/employee_clean/search/es_dsl/preview?page=1"
@@ -610,15 +610,15 @@ Provide a comprehensive JSON response with all findings."""
             if response.status_code == 200:
                 employees = response.json()
 
-                # Extract key employee info
+                # Extract key employee info and limit to sample size
                 employee_list = []
-                for emp in employees:
+                for emp in employees[:sample_size]:  # Limit to desired sample size
                     employee_list.append({
                         "id": emp.get("id"),
                         "name": emp.get("full_name"),
-                        "title": emp.get("title"),
+                        "title": emp.get("job_title") or emp.get("title") or (emp.get("headline", "").split(" at ")[0] if emp.get("headline") else "N/A"),
                         "headline": emp.get("headline"),
-                        "location": emp.get("location"),
+                        "location": emp.get("location_raw_address") or emp.get("location"),
                         "linkedin_url": emp.get("linkedin_url")
                     })
 

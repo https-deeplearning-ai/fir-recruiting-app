@@ -28,6 +28,52 @@ import hashlib
 # Load environment variables from .env file
 load_dotenv()
 
+
+def safe_parse_timestamp(timestamp_str):
+    """
+    Safely parse ISO format timestamps with varying microsecond precision.
+
+    Handles timestamps with 1-6 digit microseconds (e.g., '2025-11-10T19:19:52.69911+00:00')
+    by padding microseconds to 6 digits.
+
+    Args:
+        timestamp_str: ISO format timestamp string
+
+    Returns:
+        datetime object
+    """
+    if not timestamp_str:
+        return None
+
+    try:
+        # Try direct parsing first (fastest path for properly formatted timestamps)
+        return datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+    except ValueError:
+        # If that fails, fix microsecond precision
+        import re
+
+        # Match timestamp with microseconds: YYYY-MM-DDTHH:MM:SS.microseconds+TZ
+        pattern = r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\.(\d+)([\+\-]\d{2}:\d{2}|Z)'
+        match = re.match(pattern, timestamp_str)
+
+        if match:
+            base_time = match.group(1)
+            microseconds = match.group(2)
+            timezone = match.group(3)
+
+            # Pad or truncate microseconds to exactly 6 digits
+            if len(microseconds) < 6:
+                microseconds = microseconds.ljust(6, '0')  # Pad with zeros
+            elif len(microseconds) > 6:
+                microseconds = microseconds[:6]  # Truncate
+
+            # Reconstruct timestamp with fixed microseconds
+            fixed_timestamp = f"{base_time}.{microseconds}{timezone}"
+            return datetime.fromisoformat(fixed_timestamp.replace('Z', '+00:00'))
+        else:
+            # No microseconds, try parsing as-is
+            return datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
@@ -3027,9 +3073,10 @@ def research_companies_endpoint():
 
             # If research is completed, check cache expiration (48 hours)
             if session.get('status') == 'completed':
-                created_at = datetime.fromisoformat(session.get('created_at').replace('Z', '+00:00'))
+                created_at = safe_parse_timestamp(session.get('created_at'))
                 cache_age = datetime.now(created_at.tzinfo) - created_at
-                cache_ttl = timedelta(hours=48)
+                # Temporarily reduced from 48 to 1 hour to invalidate old GPT-5 cached results
+                cache_ttl = timedelta(hours=1)  # TODO: Increase back to 48 after migration
 
                 if cache_age < cache_ttl:
                     # Cache hit! Return cached results
@@ -3295,8 +3342,8 @@ def stream_research_status(jd_id):
                     print(f"[STREAM] Ending stream for status: {status}")
                     break
 
-                # Stream every 500ms
-                time.sleep(0.5)
+                # Stream every 2 seconds (reduced from 0.5s to minimize database queries)
+                time.sleep(2.0)
 
             except Exception as e:
                 print(f"[STREAM] Error: {e}")
@@ -3511,7 +3558,7 @@ def export_research_csv(jd_id):
                 company.get('employee_count', ''),
                 company.get('funding_stage', ''),
                 company.get('headquarters_location', ''),
-                company.get('relevance_reasoning', ''),
+                company.get('screening_reasoning', ''),  # Fixed: Haiku uses screening_reasoning
                 company.get('discovered_via', '')
             ])
 
@@ -3574,7 +3621,7 @@ def save_company_list():
                 'company_domain': company.get('company_domain', ''),
                 'category': company.get('category', ''),
                 'relevance_score': company.get('relevance_score', 0),
-                'relevance_reasoning': company.get('relevance_reasoning', ''),
+                'relevance_reasoning': company.get('screening_reasoning', ''),  # Fixed: read from screening_reasoning
                 'industry': company.get('industry', ''),
                 'employee_count': company.get('employee_count'),
                 'funding_stage': company.get('funding_stage', ''),

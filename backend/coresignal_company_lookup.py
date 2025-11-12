@@ -39,106 +39,110 @@ class CoreSignalCompanyLookup:
     def search_company_by_name(
         self,
         company_name: str,
-        limit: int = 5
+        limit: int = 20,
+        max_pages: int = 5,
+        check_exact_match_first: bool = True
     ) -> List[Dict[str, Any]]:
         """
-        Search for companies by name using CoreSignal API (two-step workflow).
+        Search for companies by name using CoreSignal API with pagination support.
 
-        Step 1: Search endpoint returns company IDs
-        Step 2: Collect endpoint fetches full data for those IDs
+        CoreSignal Pagination:
+        - Use ?page=N query parameter (NOT from/size in body)
+        - Returns 20 results per page
+        - Max 5 pages = 100 results total
+        - Stops early if exact match found (saves API calls)
 
         Args:
             company_name: Company name to search for
-            limit: Maximum number of results to return
+            limit: Maximum number of results to return (default 20)
+            max_pages: Number of pages to search (1-5, default 5 for 100 results)
+            check_exact_match_first: If True, stops when exact match found
 
         Returns:
             List of company data dictionaries with company_id, name, website, etc.
         """
-        # STEP 1: Search for company IDs
-        search_url = f"{self.base_url}/cdapi/v2/company_base/search/es_dsl"
+        # Use /preview endpoint with page query parameter
+        base_search_url = f"{self.base_url}/cdapi/v2/company_base/search/es_dsl/preview"
 
-        # Build search query using wildcard for fuzzy matching
-        # Use lowercase wildcard pattern for better matching
+        # Build search query
         wildcard_pattern = f"*{company_name.lower().replace(' ', '*')}*"
 
         payload = {
             "query": {
                 "bool": {
                     "should": [
-                        # Try exact match first (highest priority)
-                        {
-                            "term": {
-                                "name.exact": company_name
-                            }
-                        },
-                        # Try wildcard match on lowercase
-                        {
-                            "wildcard": {
-                                "name": {
-                                    "value": wildcard_pattern,
-                                    "case_insensitive": True
-                                }
-                            }
-                        },
-                        # Try match query (tokenized search)
-                        {
-                            "match": {
-                                "name": {
-                                    "query": company_name,
-                                    "operator": "and"
-                                }
-                            }
-                        }
+                        {"term": {"name.exact": company_name}},
+                        {"wildcard": {"name": {"value": wildcard_pattern, "case_insensitive": True}}},
+                        {"match": {"name": {"query": company_name, "operator": "and"}}}
                     ],
-                    "minimum_should_match": 1,
-                    # Filter to US companies only
-                    "filter": [
-                        {
-                            "term": {
-                                "country": "United States"
-                            }
-                        }
-                    ]
+                    "minimum_should_match": 1
                 }
             }
         }
 
-        try:
-            # Search returns a list of company IDs
-            response = requests.post(search_url, json=payload, headers=self.headers, timeout=10)
+        all_results = []
+        pages_fetched = 0
 
-            # DEBUG: Log response status
-            print(f"[COMPANY LOOKUP] Search '{company_name}': Status {response.status_code}")
+        for page in range(1, max_pages + 1):
+            # Add page as URL query parameter (NOT in body)
+            search_url = f"{base_search_url}?page={page}"
 
-            if response.status_code != 200:
-                print(f"[COMPANY LOOKUP] Error response: {response.text[:200]}")
-                return []
+            try:
+                response = requests.post(search_url, json=payload, headers=self.headers, timeout=10)
+                pages_fetched += 1
 
-            response.raise_for_status()
+                if page == 1:
+                    print(f"[COMPANY LOOKUP] Search '{company_name}': Status {response.status_code}")
 
-            company_ids = response.json()  # List of integers
+                if response.status_code != 200:
+                    print(f"[COMPANY LOOKUP] Error on page {page}: {response.text[:200]}")
+                    break
 
-            # DEBUG: Log results
-            print(f"[COMPANY LOOKUP] Found {len(company_ids) if isinstance(company_ids, list) else 0} IDs for '{company_name}'")
+                companies = response.json()
 
-            if not company_ids:
-                return []
+                if not companies:
+                    print(f"[COMPANY LOOKUP] No results on page {page}, stopping")
+                    break
 
-            # Take only top N results
-            company_ids = company_ids[:limit]
+                if page == 1:
+                    print(f"[COMPANY LOOKUP] Found {len(companies)} results on page 1")
+                elif page > 1:
+                    print(f"[COMPANY LOOKUP] Page {page}: +{len(companies)} results")
 
-            # STEP 2: Fetch full data for each company ID
-            companies = []
-            for company_id in company_ids:
-                company_data = self._fetch_company_by_id(company_id)
-                if company_data:
-                    companies.append(company_data)
+                # Extract fields and check for exact match
+                for company in companies:
+                    result = {
+                        "company_id": company.get("id"),
+                        "name": company.get("name"),
+                        "website": company.get("website"),
+                        "location": company.get("headquarters_country_parsed"),
+                        "industry": company.get("industry"),
+                        "employee_count": None,  # Not in preview response
+                        "founded": None,  # Not in preview response
+                        "score": company.get("_score", 1.0)
+                    }
+                    all_results.append(result)
 
-            return companies
+                    # OPTIMIZATION: Stop early if exact match found
+                    if check_exact_match_first and result['name'] and result['name'].lower() == company_name.lower():
+                        print(f"[COMPANY LOOKUP] ✅ Exact match found on page {page}: '{result['name']}' (saved {max_pages - page} page(s))")
+                        return [result]  # Return immediately
 
-        except requests.exceptions.RequestException as e:
-            print(f"[CORESIGNAL LOOKUP] Error searching for company '{company_name}': {e}")
-            return []
+                # Stop if we got fewer results than expected (last page)
+                if len(companies) < 20:
+                    print(f"[COMPANY LOOKUP] Page {page} returned {len(companies)} results (< 20), stopping")
+                    break
+
+            except requests.exceptions.RequestException as e:
+                print(f"[CORESIGNAL LOOKUP] Error on page {page}: {e}")
+                break
+
+        print(f"[COMPANY LOOKUP] Pagination complete: {pages_fetched} page(s), {len(all_results)} total results")
+
+        if limit and limit < len(all_results):
+            return all_results[:limit]
+
+        return all_results
 
     def _fetch_company_by_id(self, company_id: int) -> Optional[Dict[str, Any]]:
         """
@@ -173,6 +177,113 @@ class CoreSignalCompanyLookup:
         except requests.exceptions.RequestException as e:
             print(f"[CORESIGNAL LOOKUP] Error fetching company ID {company_id}: {e}")
             return None
+
+    def lookup_by_company_clean(
+        self,
+        company_name: str,
+        website: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        TIER 4: Fallback to company_clean endpoint.
+
+        company_clean may have different company coverage than company_base.
+        Use as last resort when company_base returns 0 results across all tiers.
+
+        IMPORTANT: Uses /preview endpoint (0 credits) instead of /collect (1 credit).
+        We only need the company ID - future agent will /collect the full data.
+
+        Args:
+            company_name: Company name to search
+            website: Optional website for better matching
+
+        Returns:
+            Company data with company_id, data_source='company_clean'
+        """
+        # Use /preview endpoint - returns basic data without /collect call (0 credits)
+        search_url = f"{self.base_url}/cdapi/v2/company_clean/search/es_dsl/preview"
+
+        # Build query (similar to company_base)
+        wildcard_pattern = f"*{company_name.lower().replace(' ', '*')}*"
+
+        payload = {
+            "query": {
+                "bool": {
+                    "should": [
+                        {"term": {"name.exact": company_name}},
+                        {"wildcard": {"name": {"value": wildcard_pattern, "case_insensitive": True}}},
+                        {"match": {"name": {"query": company_name, "operator": "and"}}}
+                    ],
+                    "minimum_should_match": 1
+                }
+            }
+        }
+
+        # Add website filter if available
+        if website:
+            cleaned_website = website.lower().replace('https://', '').replace('http://', '').replace('www.', '').rstrip('/')
+            payload["query"]["bool"]["should"].insert(0, {
+                "term": {"websites_main": cleaned_website}
+            })
+
+        try:
+            print(f"[COMPANY LOOKUP] 🔍 Tier 4: Trying company_clean fallback...")
+            response = requests.post(search_url, json=payload, headers=self.headers, timeout=10)
+
+            print(f"[COMPANY LOOKUP] company_clean search: Status {response.status_code}")
+
+            if response.status_code != 200:
+                print(f"[COMPANY LOOKUP] company_clean error: {response.text[:200]}")
+                return None
+
+            companies = response.json()  # /preview returns full objects (basic fields)
+
+            if not companies:
+                print(f"[COMPANY LOOKUP] company_clean: No results")
+                return None
+
+            print(f"[COMPANY LOOKUP] company_clean: Found {len(companies)} companies")
+
+            # Check first result for exact or fuzzy match
+            first_company = companies[0]
+            matched_name = first_company.get('name', '')
+
+            # Check for exact name match
+            if matched_name.lower() == company_name.lower():
+                print(f"[COMPANY LOOKUP] ✅ company_clean exact match: {matched_name}")
+                return {
+                    "company_id": first_company.get('id'),
+                    "name": matched_name,
+                    "website": first_company.get('website'),
+                    "confidence": 0.95,  # Exact match
+                    "data_source": "company_clean",
+                    "note": "Found in company_clean (0 credits - ID only, future agent will /collect)"
+                }
+
+            # Fuzzy match - use STRICT Levenshtein distance (no substring matching)
+            # to avoid false positives like "Krisp" → "Krispy Kreme"
+            distance = self._levenshtein_distance(company_name.lower(), matched_name.lower())
+            max_len = max(len(company_name), len(matched_name))
+            similarity = 1.0 - (distance / max_len) if max_len > 0 else 0.0
+
+            # Require very high similarity (0.90+) for Tier 4 fuzzy matches
+            if similarity >= 0.90:
+                print(f"[COMPANY LOOKUP] company_clean fuzzy match: {matched_name} (similarity={similarity:.2f})")
+                return {
+                    "company_id": first_company.get('id'),
+                    "name": matched_name,
+                    "website": first_company.get('website'),
+                    "confidence": round(similarity, 2),
+                    "data_source": "company_clean",
+                    "note": "Found in company_clean (0 credits - ID only, future agent will /collect)"
+                }
+            else:
+                print(f"[COMPANY LOOKUP] company_clean rejected: {matched_name} (similarity={similarity:.2f} < 0.90 threshold)")
+
+        except Exception as e:
+            print(f"[COMPANY LOOKUP] company_clean exception: {e}")
+            return None
+
+        return None
 
     def get_best_match(
         self,
@@ -218,6 +329,96 @@ class CoreSignalCompanyLookup:
                 "employee_count": best_match.get("employee_count")
             }
 
+        return None
+
+    def lookup_with_fallback(
+        self,
+        company_name: str,
+        website: Optional[str] = None,
+        confidence_threshold: float = 0.85,
+        use_company_clean_fallback: bool = True
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Four-tier lookup strategy: Website → Name → Fuzzy → company_clean.
+
+        This is the recommended method for company lookups as it maximizes
+        match rate while avoiding false positives.
+
+        Tier 1: Website exact match (company_base, 90% success when website available)
+        Tier 2: Name exact match (company_base, 40-50% success)
+        Tier 3: Conservative fuzzy match (company_base, threshold 0.85+, +5-10% coverage)
+        Tier 4: company_clean fallback (different company coverage)
+
+        Args:
+            company_name: Company name to look up
+            website: Optional company website for Tier 1 lookup
+            confidence_threshold: Minimum confidence for fuzzy match (default 0.85)
+            use_company_clean_fallback: Enable Tier 4 fallback to company_clean (default True)
+
+        Returns:
+            Company data with ID, confidence, lookup_method, and tier, or None if no match
+        """
+        print(f"\n[COMPANY LOOKUP] Starting three-tier lookup for: {company_name}")
+        print(f"[COMPANY LOOKUP] Website: {website if website else 'Not provided'}")
+
+        # TIER 1: Website Exact Match (Highest Priority)
+        if website:
+            print(f"[COMPANY LOOKUP] 🔍 Tier 1: Trying website filter lookup...")
+            result = self.lookup_by_website_filter(website)
+            if result:
+                result['lookup_method'] = 'website_filter'
+                result['tier'] = 1
+                print(f"[COMPANY LOOKUP] ✅ Tier 1 SUCCESS via website filter")
+                return result
+
+            print(f"[COMPANY LOOKUP] 🔍 Tier 1: Trying website ES DSL lookup...")
+            result = self.get_by_website(website)
+            if result:
+                result['lookup_method'] = 'website_esdsl'
+                result['tier'] = 1
+                print(f"[COMPANY LOOKUP] ✅ Tier 1 SUCCESS via website ES DSL")
+                return result
+
+            print(f"[COMPANY LOOKUP] ❌ Tier 1 FAILED - No website match")
+
+        # TIER 2: Name Exact Match
+        print(f"[COMPANY LOOKUP] 🔍 Tier 2: Trying name exact match...")
+        results = self.search_company_by_name(company_name, limit=5)
+
+        if results:
+            # Check if any result is an exact name match
+            for result in results:
+                if result.get('name', '').lower() == company_name.lower():
+                    result['lookup_method'] = 'name_exact'
+                    result['tier'] = 2
+                    result['confidence'] = 0.95
+                    print(f"[COMPANY LOOKUP] ✅ Tier 2 SUCCESS via exact name match")
+                    return result
+
+            print(f"[COMPANY LOOKUP] ❌ Tier 2 FAILED - No exact name match")
+
+        # TIER 3: Conservative Fuzzy Match
+        print(f"[COMPANY LOOKUP] 🔍 Tier 3: Trying conservative fuzzy match (threshold={confidence_threshold})...")
+        result = self.get_best_match(company_name, confidence_threshold)
+
+        if result:
+            result['lookup_method'] = 'fuzzy_match'
+            result['tier'] = 3
+            print(f"[COMPANY LOOKUP] ✅ Tier 3 SUCCESS via fuzzy match (confidence={result.get('confidence')})")
+            return result
+
+        print(f"[COMPANY LOOKUP] ❌ Tiers 1-3 FAILED (company_base) - No match found for '{company_name}'")
+
+        # TIER 4: company_clean Fallback (Different Company Coverage)
+        if use_company_clean_fallback:
+            result = self.lookup_by_company_clean(company_name, website)
+            if result:
+                result['tier'] = 4
+                result['lookup_method'] = 'company_clean_fallback'
+                print(f"[COMPANY LOOKUP] ✅ Tier 4 SUCCESS via company_clean (confidence={result.get('confidence')})")
+                return result
+
+        print(f"[COMPANY LOOKUP] ❌ ALL TIERS EXHAUSTED - No match found for '{company_name}'")
         return None
 
     def batch_lookup(
@@ -316,6 +517,70 @@ class CoreSignalCompanyLookup:
             previous_row = current_row
 
         return previous_row[-1]
+
+    def lookup_by_website_filter(self, website: str) -> Optional[Dict[str, Any]]:
+        """
+        Look up company using CoreSignal's /filter endpoint with exact_website parameter.
+
+        This is a simpler endpoint than ES DSL and may be more reliable for website matching.
+        Tries multiple URL variations (http/https, www/no-www).
+
+        Args:
+            website: Company website URL (e.g., "https://deepgram.com", "deepgram.com")
+
+        Returns:
+            Company data with ID and confidence, or None if not found
+        """
+        # Clean and normalize website URL
+        cleaned_website = website.lower().strip()
+        cleaned_website = cleaned_website.replace('https://', '').replace('http://', '')
+        cleaned_website = cleaned_website.replace('www.', '').rstrip('/')
+
+        # Try multiple URL variations
+        url_variations = [
+            f"https://{cleaned_website}",
+            f"http://{cleaned_website}",
+            f"https://www.{cleaned_website}",
+            cleaned_website
+        ]
+
+        print(f"[COMPANY LOOKUP] Trying website filter lookup for: {cleaned_website}")
+
+        for url_variant in url_variations:
+            try:
+                # Use the /filter endpoint with exact_website parameter
+                filter_url = f"{self.base_url}/cdapi/v2/company_base/search/filter"
+                params = {"exact_website": url_variant}
+
+                response = requests.get(filter_url, params=params, headers=self.headers, timeout=10)
+
+                if response.status_code != 200:
+                    continue  # Try next variation
+
+                companies = response.json()
+
+                if companies and len(companies) > 0:
+                    # Found at least one company
+                    company_data = companies[0]  # Take first result (exact match)
+
+                    print(f"[COMPANY LOOKUP] ✅ Found via website filter: ID={company_data.get('id')}, Name={company_data.get('name')}")
+
+                    return {
+                        "company_id": company_data.get("id"),
+                        "name": company_data.get("name"),
+                        "website": cleaned_website,
+                        "confidence": 1.0,  # Exact match via website
+                        "employee_count": company_data.get("employees_count"),
+                        "location": company_data.get("location"),
+                        "industry": company_data.get("industry")
+                    }
+
+            except requests.exceptions.RequestException as e:
+                print(f"[COMPANY LOOKUP] Error with variant '{url_variant}': {e}")
+                continue  # Try next variation
+
+        print(f"[COMPANY LOOKUP] ❌ No match found via website filter for: {cleaned_website}")
+        return None
 
     def get_by_website(self, website: str) -> Optional[Dict[str, Any]]:
         """

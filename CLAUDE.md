@@ -11,6 +11,8 @@ A full-stack LinkedIn profile assessment application that combines CoreSignal AP
 - **Job Description (JD) Analyzer** - Auto-extract weighted assessment criteria from job descriptions
 - Reverse-engineering implicit hiring criteria from candidate shortlists
 - Comprehensive recruiter feedback system with viewport-aware UI
+- **Chrome Extension Integration** - List management, quick profile adds, and browser-based workflow
+- **Domain Search & Company Research** - Discover companies by domain with multi-stage research pipeline
 
 ## Tech Stack
 
@@ -36,8 +38,9 @@ See [docs/HEADLINE_FRESHNESS_FIX.md](docs/HEADLINE_FRESHNESS_FIX.md) for full de
 
 ### Company Data API
 **IMPORTANT:** Use `/company_base/` endpoint, NOT `/company_clean/`
-- `company_base` provides 45+ fields including logos, funding, growth data
-- `company_clean` has limited fields and missing critical data
+- `company_base` provides 45 fields with **granular company structure** (locations, similar companies, investors, funding rounds as nested collections)
+- `company_clean` provides 60 fields with **social media focus** (11 social URL fields, LinkedIn updates, technologies, but funding_rounds as simple array with 60% coverage)
+- **Why company_base:** Nested collections provide richer relational data (funding rounds with investor details, multiple locations, stock info); company_clean has flattened structure better for social/tech analysis
 - Store ALL raw company data in `intelligence['raw_data']` for future flexibility
 
 **Crunchbase URL Extraction (4-Tier Hybrid Strategy):**
@@ -122,6 +125,43 @@ cd .. && cp -r frontend/build/. backend/
 # 3. Backend serves static files from backend/ directory
 ```
 
+### Testing
+
+**Backend Test Suite (23 active tests):**
+Tests are standalone Python scripts that can be run individually. Tests require Flask server running on port 5001.
+
+**Core API Tests:**
+```bash
+python3 backend/test_api_jd_parser.py        # JD Parser API endpoint
+python3 backend/test_endpoints_api.py         # All Flask endpoints
+python3 backend/test_coresignal_endpoints.py  # CoreSignal API integration
+```
+
+**Feature Tests:**
+```bash
+python3 backend/test_complete_pipeline.py     # End-to-end pipeline
+python3 backend/test_company_research.py      # Company discovery & research
+python3 backend/test_domain_search_api.py     # Domain search functionality
+python3 backend/test_jd_parser.py             # JD parsing logic
+python3 backend/test_streaming_endpoint.py    # SSE streaming endpoints
+```
+
+**Specialized Tests:**
+- `test_complete_4stage_pipeline.py` - 4-stage company research pipeline
+- `test_domain_search_improvements.py` - Domain search enhancements
+- `test_intelligent_agents.py` - AI agent functionality
+- `test_voice_ai_research.py` - Voice AI domain research case study
+
+**Frontend Tests:**
+```bash
+cd frontend
+npm test  # Run React test suite
+```
+
+**Archived Tests:**
+- `backend/tests_archive/` contains 17 exploratory/debug tests from development
+- These are preserved for reference but not needed for ongoing work
+
 ## Architecture
 
 ### Request Flow
@@ -131,6 +171,8 @@ cd .. && cp -r frontend/build/. backend/
 4. **JD Analyzer:** User pastes JD → `/api/jd/full-analysis` → Extract requirements + generate weights → Auto-populate assessment criteria
 5. **Shortlist Analysis:** CSV upload → `/api/jd/analyze-shortlist` → Discover implicit criteria → Compare to stated JD requirements
 6. **Recruiter Feedback:** User actions → `/save-feedback` (Supabase) → `/get-feedback/<url>` (Load history) → Display in drawer
+7. **Domain Search:** User enters domain → `/api/domain-search` → Discover companies → Multi-stage research → Real-time SSE streaming → Display results
+8. **List Management:** Chrome extension → `/extension/lists` → Create/read/update/delete candidate lists → Supabase storage
 
 ### Key Backend Components
 
@@ -204,6 +246,22 @@ cd .. && cp -r frontend/build/. backend/
   - **UI Benefits:** Transparency (see all discovered), cost control (evaluate as needed), verification (check discovery quality)
 - **Authoritative Sources:** G2, Capterra, Gartner, Crunchbase, ProductHunt, CB Insights
 
+**extension_service.py:** Chrome extension backend integration
+- `ExtensionService` class handles browser extension API operations
+- **List Management:** CRUD operations for candidate lists in Supabase
+  - `get_lists()`: Fetch all lists for a recruiter
+  - `create_list()`: Create new list with optional job template
+  - `update_list()`: Update list metadata
+  - `delete_list()`: Soft delete (sets is_active = false)
+  - `get_list_stats()`: Calculate list statistics
+- **Quick Add Operations:** Browser-based candidate additions
+- **Database Tables:** `recruiter_lists`, `list_candidates`
+
+**gpt5_client.py:** OpenAI GPT-5 API client
+- Wrapper for GPT-5 and GPT-5-mini models
+- Used in company research screening pipeline
+- Batch processing support for efficiency
+
 **config.py:** Deployment-specific configuration
 - Render: 50 concurrent calls, 60s timeout, 100 batch size
 - Heroku: 15 concurrent calls, 25s timeout, 50 batch size
@@ -272,9 +330,34 @@ cd .. && cp -r frontend/build/. backend/
 - `validationModalOpen`: Crunchbase URL validation modal state
 
 **Component Architecture:**
+
+*Profile Assessment Components:*
 - `WorkExperienceCard.js`: Individual job card with company logo and enriched data
 - `WorkExperienceSection.js`: Container for all work experiences
 - `CompanyTooltip.js`: Hover tooltip showing company funding, stage, growth signals
+
+*List Management Components (Chrome Extension Integration):*
+- `ListsView.js`: Dashboard view showing all candidate lists for recruiter
+  - Fetches lists from `/extension/lists` endpoint
+  - Displays list cards with stats (candidate count, created date)
+  - Supports create, delete, and navigate to detail view
+- `ListCard.js`: Individual list card component
+  - Shows list name, description, candidate count
+  - Quick actions: view, delete
+- `ListDetail.js`: Detailed list view with full candidate roster
+  - Displays all candidates in list
+  - Supports remove candidate, add notes
+  - Real-time updates to Supabase
+
+*Modals:*
+- `CrunchbaseValidationModal.js`: Manual Crunchbase URL correction
+- `CrunchbaseEditModal.js`: Edit Crunchbase URLs for companies
+
+*Hooks:*
+- `useSSEStream.js`: Custom hook for Server-Sent Events (SSE) streaming
+  - Real-time progress updates during company research
+  - Auto-reconnect on connection loss
+  - Configurable stop conditions
 
 **Feedback Drawer Features (NEW):**
 - Fixed positioning (`position: fixed`) at viewport right edge
@@ -294,11 +377,36 @@ cd .. && cp -r frontend/build/. backend/
 - `assessment_type`: 'single' or 'batch'
 - `session_name`: Optional grouping identifier
 
-**Table: `recruiter_feedback` (NEW)**
+**Table: `recruiter_feedback`**
 - `candidate_linkedin_url`: LinkedIn URL reference
 - `feedback_text`: Note content (nullable for like/dislike only)
 - `feedback_type`: 'like', 'dislike', or 'note'
 - `recruiter_name`: Who gave the feedback (e.g., "Jon", "Mary")
+- `created_at`, `updated_at`: Timestamps
+
+**Table: `recruiter_lists`** (Chrome Extension Integration)
+- `id`: UUID primary key
+- `recruiter_name`: Owner of the list
+- `list_name`: Display name
+- `description`: Optional description
+- `job_template_id`: Optional link to job template
+- `is_active`: Soft delete flag
+- `created_at`, `updated_at`: Timestamps
+
+**Table: `list_candidates`** (Chrome Extension Integration)
+- `id`: UUID primary key
+- `list_id`: Foreign key to recruiter_lists
+- `linkedin_url`: Candidate profile URL
+- `added_by`: Recruiter who added candidate
+- `notes`: Optional notes about candidate
+- `created_at`: Timestamp
+
+**Table: `company_research_sessions`** (Domain Search Feature)
+- `session_id`: UUID primary key
+- `jd_context`: JSONB with job requirements
+- `discovered_companies`: JSONB array of all discovered companies
+- `screened_companies`: JSONB array of screened/ranked companies
+- `status`: 'in_progress', 'completed', 'failed'
 - `created_at`, `updated_at`: Timestamps
 
 See [docs/SUPABASE_SCHEMA.sql](docs/SUPABASE_SCHEMA.sql) for complete schema.

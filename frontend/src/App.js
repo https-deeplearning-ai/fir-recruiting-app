@@ -93,6 +93,7 @@ function App() {
   const [companySessionId, setCompanySessionId] = useState(null); // Current research session ID
   const [companyResearchStatus, setCompanyResearchStatus] = useState(null); // Session status
   const [companyResearchResults, setCompanyResearchResults] = useState(null); // Research results
+  const [companyResearchCacheInfo, setCompanyResearchCacheInfo] = useState(null); // Cache info {from_cache, cache_age_hours}
   const [parsedJdRequirements, setParsedJdRequirements] = useState(null); // Parsed JD requirements from JD parser
   const [expandedCategories, setExpandedCategories] = useState({
     direct_competitor: true,    // Expanded by default (highest priority)
@@ -111,6 +112,7 @@ function App() {
   const [evaluatedCount, setEvaluatedCount] = useState(25); // Number of companies evaluated so far
   const [evaluatingMore, setEvaluatingMore] = useState(false); // Loading state for "Evaluate More"
   const [companySearchTerm, setCompanySearchTerm] = useState(''); // Search/filter term for discovered companies
+  const [companyScoreFilter, setCompanyScoreFilter] = useState('all'); // Filter by relevance score: 'all', '8+', '7-8', '6-7'
   const [expandedCompanies, setExpandedCompanies] = useState({}); // Track which company cards are expanded for details
   const [showWeightedRequirements, setShowWeightedRequirements] = useState(false); // Accordion toggle for weighted requirements
   const [jdSearching, setJdSearching] = useState(false); // Loading state during JD → CoreSignal search
@@ -742,7 +744,7 @@ function App() {
       sample_employees: company.sample_employees
         ? company.sample_employees.slice(0, 3).map(emp => `${emp.name} (${emp.title})`).join(' | ')
         : '',
-      reasoning: company.relevance_reasoning
+      reasoning: company.screening_reasoning  // Fixed: Haiku uses screening_reasoning
     }));
 
     // Convert to CSV
@@ -2105,7 +2107,7 @@ function App() {
   };
 
   // Domain Search: Start initial search with company batching
-  const handleStartDomainSearch = async (selectedCompanies) => {
+  const handleStartDomainSearch = async (selectedCompanies, bypassCache = false) => {
     if (!selectedCompanies || selectedCompanies.length === 0) {
       showNotification('Please select at least one company', 'error');
       return;
@@ -2123,7 +2125,10 @@ function App() {
     try {
       console.log('🚀 Starting domain search with batching...', {
         companies: selectedCompanies.length,
-        requirements: parsedJdRequirements
+        requirements: parsedJdRequirements,
+        bypassCache: bypassCache,
+        firstCompany: selectedCompanies[0],  // DEBUG: Check structure
+        companyFields: selectedCompanies[0] ? Object.keys(selectedCompanies[0]) : []
       });
 
       const response = await fetch('/api/jd/domain-company-preview-search', {
@@ -2135,7 +2140,8 @@ function App() {
           endpoint: 'employee_clean',
           max_previews: 20,
           create_session: true,
-          batch_size: 5
+          batch_size: 5,
+          bypass_cache: bypassCache  // NEW: Support cache bypass
         })
       });
 
@@ -3648,6 +3654,13 @@ function App() {
                         showNotification(`Using cached research from ${data.cache_age_hours.toFixed(1)} hours ago`, 'success');
                         setCompanyResearchStatus({ status: 'completed', progress_percentage: 100 });
 
+                        // Store cache info for refresh button
+                        setCompanyResearchCacheInfo({
+                          from_cache: true,
+                          cache_age_hours: data.cache_age_hours,
+                          cache_age_days: Math.floor(data.cache_age_hours / 24)
+                        });
+
                         // Fetch cached results immediately
                         const resultsUrl = `${getBackendUrl()}/research-companies/${data.session_id}/results`;
                         console.log('[CACHE] Fetching cached results from:', resultsUrl);
@@ -3947,11 +3960,47 @@ function App() {
                       marginBottom: '10px'
                     }}
                   />
+
+                  {/* NEW: Filter Pills by Score */}
+                  <div className="discovered-filters" style={{ marginBottom: '10px' }}>
+                    <span className="filter-label">Filter by Score:</span>
+                    <button
+                      className={`filter-pill ${companyScoreFilter === 'all' ? 'active' : ''}`}
+                      onClick={() => setCompanyScoreFilter('all')}
+                    >
+                      All ({discoveredCompanies.length})
+                    </button>
+                    <button
+                      className={`filter-pill ${companyScoreFilter === '8+' ? 'active' : ''}`}
+                      onClick={() => setCompanyScoreFilter('8+')}
+                    >
+                      8+ ({discoveredCompanies.filter(c => (c.relevance_score || 0) >= 8).length})
+                    </button>
+                    <button
+                      className={`filter-pill ${companyScoreFilter === '7-8' ? 'active' : ''}`}
+                      onClick={() => setCompanyScoreFilter('7-8')}
+                    >
+                      7-8 ({discoveredCompanies.filter(c => {
+                        const score = c.relevance_score || 0;
+                        return score >= 7 && score < 8;
+                      }).length})
+                    </button>
+                    <button
+                      className={`filter-pill ${companyScoreFilter === '6-7' ? 'active' : ''}`}
+                      onClick={() => setCompanyScoreFilter('6-7')}
+                    >
+                      6-7 ({discoveredCompanies.filter(c => {
+                        const score = c.relevance_score || 0;
+                        return score >= 6 && score < 7;
+                      }).length})
+                    </button>
+                  </div>
+
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <button
                       onClick={() => {
-                        const allNames = discoveredCompanies.map(c => c.name || c.company_name).filter(Boolean);
-                        setSelectedCompanies(allNames);
+                        // Store full company objects (not just names) to preserve CoreSignal IDs
+                        setSelectedCompanies(discoveredCompanies);
                       }}
                       style={{
                         padding: '6px 12px',
@@ -3989,6 +4038,20 @@ function App() {
                 <div className="discovered-list">
                   {discoveredCompanies
                     .filter(company => {
+                      // Filter by score first
+                      const score = company.relevance_score || 0;
+                      let scoreMatch = true;
+                      if (companyScoreFilter === '8+') {
+                        scoreMatch = score >= 8;
+                      } else if (companyScoreFilter === '7-8') {
+                        scoreMatch = score >= 7 && score < 8;
+                      } else if (companyScoreFilter === '6-7') {
+                        scoreMatch = score >= 6 && score < 7;
+                      }
+
+                      if (!scoreMatch) return false;
+
+                      // Then filter by search term
                       if (!companySearchTerm) return true;
                       const name = (company.name || company.company_name || '').toLowerCase();
                       const source = (company.discovered_via || '').toLowerCase();
@@ -4000,62 +4063,118 @@ function App() {
                       const companyName = company.name || company.company_name;
                       // Check if company object is selected by name
                       const isSelected = selectedCompanies.some(c => (c.name || c.company_name) === companyName);
+                      const getScoreBracket = (score) => {
+                        if (score >= 8) return 'high';
+                        if (score >= 7) return 'medium-high';
+                        if (score >= 6) return 'medium';
+                        return 'low';
+                      };
+
+                      const formatEmployeeCount = (count) => {
+                        if (!count) return null;
+                        if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+                        return count.toString();
+                      };
+
                       return (
-                        <div key={idx} className="discovered-item">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                // Store full company object (includes coresignal_company_id if available)
-                                setSelectedCompanies([...selectedCompanies, company]);
-                              } else {
-                                // Filter by company name for removal
-                                setSelectedCompanies(selectedCompanies.filter(c => (c.name || c.company_name) !== companyName));
-                              }
-                            }}
-                            style={{ marginRight: '8px', cursor: 'pointer' }}
-                          />
-                          <span className="discovered-rank">#{idx + 1}</span>
-                          <span className="discovered-name">{companyName || 'Unknown'}</span>
-                      {company.source_url && (
-                        <a
-                          href={company.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="source-link"
-                          title={`Search query: "${company.source_query || 'N/A'}"`}
-                          style={{
-                            fontSize: '11px',
-                            color: '#6366f1',
-                            textDecoration: 'none',
-                            padding: '2px 6px',
-                            background: '#eef2ff',
-                            borderRadius: '4px',
-                            marginLeft: '8px',
-                            border: '1px solid #c7d2fe'
-                          }}
-                        >
-                          📄 Source
-                          {company.source_result_rank !== undefined && company.source_result_rank !== null && (
-                            <span style={{ marginLeft: '3px', opacity: 0.8 }}>
-                              #{company.source_result_rank + 1}
-                            </span>
+                        <div key={idx} className="discovered-item-container">
+                          <div className="discovered-item">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedCompanies([...selectedCompanies, company]);
+                                } else {
+                                  setSelectedCompanies(selectedCompanies.filter(c => (c.name || c.company_name) !== companyName));
+                                }
+                              }}
+                              style={{ marginRight: '8px', cursor: 'pointer' }}
+                            />
+                            <span className="discovered-rank">#{idx + 1}</span>
+
+                            {/* NEW: Relevance Score Badge */}
+                            {company.relevance_score && (
+                              <span className={`discovered-score-badge score-${getScoreBracket(company.relevance_score)}`}>
+                                {company.relevance_score.toFixed(1)}
+                              </span>
+                            )}
+
+                            <span className="discovered-name">{companyName || 'Unknown'}</span>
+
+                            {/* NEW: Metadata Pills */}
+                            {company.industry && (
+                              <span className="discovered-metadata-pill industry">
+                                {company.industry}
+                              </span>
+                            )}
+                            {(company.employees_count || company.employee_count) && (
+                              <span className="discovered-metadata-pill size">
+                                {formatEmployeeCount(company.employees_count || company.employee_count)} employees
+                              </span>
+                            )}
+
+                            {/* Existing badges */}
+                            {company.source_url && (
+                              <a
+                                href={company.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="source-link"
+                                title={`Search query: "${company.source_query || 'N/A'}"`}
+                                style={{
+                                  fontSize: '11px',
+                                  color: '#6366f1',
+                                  textDecoration: 'none',
+                                  padding: '2px 6px',
+                                  background: '#eef2ff',
+                                  borderRadius: '4px',
+                                  marginLeft: '8px',
+                                  border: '1px solid #c7d2fe'
+                                }}
+                              >
+                                📄 Source
+                                {company.source_result_rank !== undefined && company.source_result_rank !== null && (
+                                  <span style={{ marginLeft: '3px', opacity: 0.8 }}>
+                                    #{company.source_result_rank + 1}
+                                  </span>
+                                )}
+                              </a>
+                            )}
+                            {company.discovered_via && (
+                              <span className="discovered-source">{company.discovered_via}</span>
+                            )}
+                            {idx < evaluatedCount && (
+                              <span className="discovered-badge evaluated">Evaluated</span>
+                            )}
+                          </div>
+
+                          {/* NEW: Expandable Sample Employees Section */}
+                          {company.sample_employees && company.sample_employees.length > 0 && (
+                            <details className="discovered-employees-section">
+                              <summary className="discovered-employees-summary">
+                                👥 Sample Employees ({company.sample_employees.length})
+                              </summary>
+                              <div className="discovered-employees-list">
+                                {company.sample_employees.map((emp, empIdx) => (
+                                  <div key={empIdx} className="discovered-employee">
+                                    <div className="employee-name">{emp.name || 'Unknown'}</div>
+                                    <div className="employee-title">{emp.title || 'N/A'}</div>
+                                    {emp.location && (
+                                      <div className="employee-location">📍 {emp.location}</div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
                           )}
-                        </a>
-                      )}
-                      {company.discovered_via && (
-                        <span className="discovered-source">{company.discovered_via}</span>
-                      )}
-                      {idx < evaluatedCount && (
-                        <span className="discovered-badge evaluated">Evaluated</span>
-                      )}
-                    </div>
-                  );
+                        </div>
+                      );
                 })}
                 </div>
 
-                {/* Evaluation Progress */}
+                {/* Evaluation Progress - HIDDEN (not needed for current workflow) */}
+                {/*
                 <div className="evaluation-progress">
                   <div className="progress-bar-container">
                     <div
@@ -4067,8 +4186,10 @@ function App() {
                     {evaluatedCount} of {discoveredCompanies.length} companies evaluated ({Math.round((evaluatedCount / discoveredCompanies.length) * 100)}%)
                   </p>
                 </div>
+                */}
 
-                {/* Evaluate More Button */}
+                {/* Evaluate More Button - HIDDEN (not needed for current workflow) */}
+                {/*
                 {(() => {
                   // Debug logging for button visibility
                   console.log('[Evaluate Button Debug]', {
@@ -4093,16 +4214,22 @@ function App() {
                     )}
                   </button>
                 )}
+                */}
 
-                {/* Search for People Button */}
-                {!domainSearchSessionId && selectedCompanies.length > 0 && (
+                {/* Search for People Button - Always show when companies selected */}
+                {selectedCompanies.length > 0 && (
                   <div style={{
                     marginTop: '20px',
                     paddingTop: '20px',
                     borderTop: '1px solid #ddd'
                   }}>
                     <button
-                      onClick={() => handleStartDomainSearch(selectedCompanies)}
+                      onClick={() => {
+                        // Clear previous search results before starting new search
+                        setDomainSearchSessionId(null);
+                        setDomainSearchCandidates([]);
+                        handleStartDomainSearch(selectedCompanies);
+                      }}
                       disabled={domainSearching}
                       style={{
                         padding: '12px 24px',
@@ -4116,14 +4243,18 @@ function App() {
                         transition: 'all 0.3s ease'
                       }}
                     >
-                      {domainSearching ? '🔄 Searching...' : `🔍 Search for People at ${selectedCompanies.length} ${selectedCompanies.length === 1 ? 'Company' : 'Companies'}`}
+                      {domainSearching ? '🔄 Searching...' : domainSearchSessionId
+                        ? `🔄 New Search for People at ${selectedCompanies.length} ${selectedCompanies.length === 1 ? 'Company' : 'Companies'}`
+                        : `🔍 Search for People at ${selectedCompanies.length} ${selectedCompanies.length === 1 ? 'Company' : 'Companies'}`}
                     </button>
                     <p style={{
                       marginTop: '8px',
                       fontSize: '13px',
                       color: '#6b7280'
                     }}>
-                      Find employees at selected companies who match this job description
+                      {domainSearchSessionId
+                        ? 'Start a new search with currently selected companies'
+                        : 'Find employees at selected companies who match this job description'}
                     </p>
                   </div>
                 )}
@@ -4185,6 +4316,55 @@ function App() {
                       Candidates Found ({domainSearchCandidates.length})
                     </h3>
 
+                    {/* Cache Info Banner */}
+                    {searchCacheInfo?.from_cache && (
+                      <div style={{
+                        background: '#fff7ed',
+                        border: '1px solid #fed7aa',
+                        borderRadius: '8px',
+                        padding: '12px 16px',
+                        marginBottom: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '20px' }}>📦</span>
+                          <span style={{ color: '#9a3412', fontSize: '14px', fontWeight: '500' }}>
+                            Cached results ({searchCacheInfo.cache_age_days} {searchCacheInfo.cache_age_days === 1 ? 'day' : 'days'} old)
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (domainSearching) return;  // Prevent double-click
+                            console.log('🔄 Refresh button clicked - bypassing cache');
+                            setSearchCacheInfo(null);  // Clear cache banner immediately
+                            handleStartDomainSearch(
+                              selectedCompanies,  // Use same companies as original search
+                              true  // bypassCache = true
+                            );
+                          }}
+                          disabled={domainSearching}
+                          style={{
+                            background: domainSearching ? '#9ca3af' : '#ea580c',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            cursor: domainSearching ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            opacity: domainSearching ? 0.6 : 1
+                          }}
+                        >
+                          {domainSearching ? '⏳ Refreshing...' : '🔄 Refresh with Latest Data'}
+                        </button>
+                      </div>
+                    )}
+
                     {/* DEBUG: Log first candidate structure */}
                     {domainSearchCandidates[0] && (() => {
                       console.log('🔍 First candidate available fields:', Object.keys(domainSearchCandidates[0]));
@@ -4194,10 +4374,11 @@ function App() {
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '24px', rowGap: '28px' }}>
                       {domainSearchCandidates.map((candidate, idx) => {
-                        // Extract current job info
-                        const currentJob = candidate.experience?.find(exp => exp.is_current === 1) || candidate.experience?.[0];
-                        const jobTitle = candidate.job_title || currentJob?.title || candidate.title;
-                        const companyName = candidate.company_name || currentJob?.company_name;
+                        // Use normalized fields from backend (fallback to raw CoreSignal fields)
+                        const candidateName = candidate.name || candidate.full_name || 'Unknown';
+                        const candidateTitle = candidate.title || candidate.headline || candidate.generated_headline;
+                        const jobTitle = candidate.job_title || candidateTitle;
+                        const companyName = candidate.current_company || candidate.company_name;
 
                         return (
                         <div key={idx} className="candidate-card" style={{
@@ -4236,7 +4417,7 @@ function App() {
                             color: '#111827',
                             paddingRight: candidate._score ? '60px' : '0'
                           }}>
-                            {candidate.full_name || 'Unknown'}
+                            {candidateName}
                           </div>
 
                           {/* Current Role & Company */}
@@ -4528,6 +4709,79 @@ function App() {
                   </div>
                 </div>
 
+                {/* Cache Info Banner with Refresh Button */}
+                {companyResearchCacheInfo?.from_cache && (
+                  <div style={{
+                    background: '#fff7ed',
+                    border: '1px solid #fed7aa',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    marginBottom: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '20px' }}>📦</span>
+                      <span style={{ color: '#9a3412', fontSize: '14px', fontWeight: '500' }}>
+                        Cached research results ({companyResearchCacheInfo.cache_age_hours.toFixed(1)} hours old, ~{companyResearchCacheInfo.cache_age_days} days)
+                      </span>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (companyResearching) return;
+                        console.log('🔄 Refresh button clicked - bypassing company research cache');
+                        setCompanyResearchCacheInfo(null);  // Clear banner immediately
+
+                        // Re-trigger company research with force_refresh
+                        setCompanyResearching(true);
+                        setCompanyResearchResults(null);
+                        setDiscoveredCompanies([]);
+
+                        try {
+                          const response = await fetch(`${getBackendUrl()}/research-companies`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              jd_text: companyJdText,
+                              jd_data: parsedJdRequirements,
+                              config: {},
+                              force_refresh: true  // Bypass cache
+                            })
+                          });
+                          const data = await response.json();
+                          if (data.success) {
+                            setCompanySessionId(data.session_id);
+                            showNotification('Starting fresh company research...', 'info');
+                            // Research will complete via SSE polling
+                          }
+                        } catch (error) {
+                          console.error('Refresh error:', error);
+                          showNotification('Failed to start fresh research', 'error');
+                          setCompanyResearching(false);
+                        }
+                      }}
+                      disabled={companyResearching}
+                      style={{
+                        background: companyResearching ? '#9ca3af' : '#ea580c',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: companyResearching ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        opacity: companyResearching ? 0.6 : 1
+                      }}
+                    >
+                      {companyResearching ? '⏳ Refreshing...' : '🔄 Refresh with Latest Data'}
+                    </button>
+                  </div>
+                )}
+
                 <div className="results-summary">
                   <p>Total Companies: {companyResearchResults.summary.total_discovered || companyResearchResults.summary.total_companies || 0}</p>
                   <p>Average Score: {companyResearchResults.summary.avg_relevance_score || 0}</p>
@@ -4627,7 +4881,8 @@ function App() {
 
 
                 {/* Company Research Results by Category */}
-                {Object.entries(companyResearchResults.companies_by_category).map(([category, companies]) => (
+                {/* OLD EVALUATION CARDS - HIDDEN (we now use enriched discovered list instead) */}
+                {false && companyResearchResults.companies_by_category && Object.entries(companyResearchResults.companies_by_category).map(([category, companies]) => (
                   companies.length > 0 && (
                     <div key={category} className="category-section">
                       <h4
@@ -4661,6 +4916,20 @@ function App() {
                                   )}
                                 </div>
                                 <span className="score-badge">{company.relevance_score}/10</span>
+                                {company.scored_by && (
+                                  <span style={{
+                                    fontSize: '10px',
+                                    color: '#6b7280',
+                                    marginLeft: '8px',
+                                    padding: '2px 6px',
+                                    backgroundColor: '#f3f4f6',
+                                    borderRadius: '4px'
+                                  }}>
+                                    {company.scored_by === 'claude_haiku_with_websearch' ? '🔍 Web Search' :
+                                     company.scored_by === 'error_fallback' ? '⚠️ Fallback' :
+                                     company.scored_by}
+                                  </span>
+                                )}
                               </div>
 
                               {/* Add website link */}
@@ -4686,7 +4955,7 @@ function App() {
                                 </div>
                               )}
 
-                              <p className="reasoning">{company.relevance_reasoning}</p>
+                              <p className="reasoning">{company.screening_reasoning}</p>
 
                               {/* Display products */}
                               {company.web_research && company.web_research.products && company.web_research.products.length > 0 && (

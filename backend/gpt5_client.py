@@ -184,31 +184,43 @@ class GPT5Client:
         companies: List[Dict[str, Any]],
         context: Dict[str, Any]
     ) -> str:
-        """Build prompt for batch screening."""
+        """Build prompt for batch screening with enriched company data."""
         return f"""You are evaluating companies for recruiting candidates.
 
 Job Context:
 - Role: {context.get('title', 'Unknown')}
+- Target Domain: {context.get('target_domain', 'Unknown')}
 - Company Stage: {context.get('company_stage', 'Unknown')}
 - Key Skills: {', '.join(context.get('key_skills', []))}
-- Industry: {', '.join(context.get('industries', []))}
+- Industries: {', '.join(context.get('industries', []))}
 
 Rate each company's relevance (1-10) for sourcing candidates.
-Consider:
-- Industry alignment
-- Company stage/culture fit
-- Likely talent quality
-- Tech stack overlap
 
-Companies to evaluate:
+SCORING CRITERIA:
+- Industry alignment: Does company industry match job requirements?
+- Description fit: Does what the company does align with job domain?
+- Company stage/culture fit: Is this the right size and stage?
+- Tech stack/domain overlap: Likely to have candidates with relevant skills?
+
+Use ALL available fields to make informed decisions. Companies with more context should get more accurate scores.
+
+Companies to evaluate (with all available data):
 {json.dumps([{
     'name': c.get('name'),
-    'industry': c.get('industry'),
-    'size': c.get('employee_count'),
-    'stage': c.get('funding_stage')
+    'description': c.get('description', 'N/A'),
+    'industry': c.get('industry', 'N/A'),
+    'employee_count': c.get('employee_count', 'N/A'),
+    'size_range': c.get('size_range', 'N/A'),
+    'employee_count_hint': c.get('employee_count_hint', 'N/A'),
+    'founded': c.get('founded', 'N/A'),
+    'location': c.get('location', 'N/A'),
+    'website': c.get('website', 'N/A')
 } for c in companies], indent=2)}
 
-Return JSON: {{"scores": [7.5, 8.2, 5.1, ...]}}
+Return JSON with scores array (one score per company, in same order):
+{{"scores": [7.5, 8.2, 5.1, ...]}}
+
+IMPORTANT: Base scores on ACTUAL company data (description, industry), not just name guessing.
 """
 
     def _build_research_prompt(

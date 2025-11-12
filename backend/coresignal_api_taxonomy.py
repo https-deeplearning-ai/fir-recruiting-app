@@ -400,12 +400,12 @@ COMPANY_BASE = {
 
 COMPANY_CLEAN = {
     "endpoint": "/v2/company_clean",
-    "description": "Cleaned company data (limited fields, ~10 vs 45+ in company_base)",
+    "description": "Cleaned company data (60 fields, optimized for social/tech analysis)",
     "search_endpoint": "/v2/company_clean/search/es_dsl/preview",
     "collect_endpoint": "/v2/company_clean/collect/{company_id}",
 
     "fields": {
-        # Limited field set compared to company_base
+        # Core fields (60 total)
         "id": {"type": "integer"},
         "name": {"type": "string"},
         "website": {"type": "string"},
@@ -413,16 +413,33 @@ COMPANY_CLEAN = {
         "industry": {"type": "string"},
         "employees_count": {"type": "integer"},
         "description": {"type": "text"},
-        "logo_url": {"type": "string"},
-        "url": {"type": "string"}
-        # Missing: funding data, crunchbase URLs, financial data, tech stack
+        "logo": {"type": "string"},
+        "url": {"type": "string"},
+        # FUNDING DATA (60% coverage based on testing)
+        "funding_rounds": {"type": "array", "coverage": "~60%", "structure": "flattened", "description": "Last round summary with cb_url"},
+        # SOCIAL MEDIA (11 fields)
+        "social_facebook_urls": {"type": "array"},
+        "social_twitter_urls": {"type": "array"},
+        "social_linkedin_urls": {"type": "array"},
+        "social_instagram_urls": {"type": "array"},
+        "social_youtube_urls": {"type": "array"},
+        "social_github_urls": {"type": "array"},
+        "social_reddit_urls": {"type": "array"},
+        "social_discord_urls": {"type": "array"},
+        "social_pinterest_urls": {"type": "array"},
+        "social_tiktok_urls": {"type": "array"},
+        "social_x_urls": {"type": "array"},
+        # ENGAGEMENT
+        "updates": {"type": "array", "description": "LinkedIn posts/activity feed"},
+        "technologies": {"type": "array", "description": "Tech stack with verification dates"},
+        "followers": {"type": "integer"}
     },
 
-    "notes": "Prefer company_base for richer data (45+ vs ~10 fields). Only use company_clean if you need basic info and want to save API credits.",
+    "notes": "Prefer company_base for startup intelligence (nested funding rounds, investor collections, stock info). Use company_clean for social media analysis or tech stack research.",
 
     "comparison_to_company_base": {
-        "pros": ["Simpler structure", "Faster queries", "Lower API cost"],
-        "cons": ["No funding data", "No Crunchbase URLs", "No financial metrics", "No tech stack"]
+        "pros": ["60 fields total", "11 social media URL fields", "LinkedIn updates feed", "Tech stack with dates", "Flattened structure"],
+        "cons": ["Funding as simple array vs nested collections", "No investor details", "No stock info", "No similar/affiliated companies"]
     }
 }
 

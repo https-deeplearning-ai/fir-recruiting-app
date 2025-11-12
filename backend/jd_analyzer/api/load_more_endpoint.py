@@ -78,12 +78,12 @@ def load_more_previews():
         search_query = json.loads(session['search_query'])
         jd_requirements = search_query.get('jd_requirements', {})
         endpoint = search_query.get('endpoint', 'employee_clean')
-        max_previews = search_query.get('max_previews', 20)
+        max_previews = search_query.get('max_previews', 100)  # Increased from 20 to 100 for experience-based search
 
         # Initialize results
         all_new_profiles = []
         batches_processed = 0
-        max_batches = count // 20  # Process enough batches for requested count
+        max_batches = count // 100  # Process enough batches for requested count (100 per batch)
 
         # Process batches until we have enough candidates or run out
         for _ in range(max_batches):

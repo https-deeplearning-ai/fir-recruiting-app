@@ -162,8 +162,57 @@ class CompanyResearchService:
                 jd_id  # Pass jd_id for live updates
             )
 
-            # Update with ALL discovered companies (enriched with CoreSignal data)
-            company_names = [c.get("name") for c in discovered[:20]]  # First 20 names
+            # Phase 2: Claude Haiku Screening with Web Search (NEW)
+            print(f"\n{'='*80}")
+            print(f"[SCREENING] Starting Claude Haiku screening with web search on {len(discovered)} companies...")
+            print(f"{'='*80}\n")
+
+            # Screen companies one-by-one with Claude Haiku + web search
+            await self.screen_companies_with_haiku(
+                discovered,
+                jd_context,
+                jd_id
+            )
+
+            # Extract scores for logging
+            scores = [c.get('relevance_score', 5.0) for c in discovered]
+            print(f"\n[SCREENING] Completed! Score range: {min(scores):.1f} - {max(scores):.1f}")
+            print(f"[SCREENING] Top 5 companies:")
+            sorted_for_display = sorted(discovered, key=lambda c: c.get('relevance_score', 0), reverse=True)
+            for i, c in enumerate(sorted_for_display[:5], 1):
+                print(f"  {i}. {c.get('name')}: {c.get('relevance_score', 0):.1f} - {c.get('screening_reasoning', 'N/A')[:60]}")
+
+            # Phase 3: Sample Employee Fetching (NEW - Proof of talent pool)
+            await self._update_session_status(jd_id, "running", {
+                "phase": "employee_sampling",
+                "action": f"Fetching sample employees for top {min(len(discovered), 50)} companies..."
+            })
+
+            print(f"\n{'='*80}")
+            print(f"[EMPLOYEE SAMPLING] Fetching sample employees...")
+            print(f"{'='*80}\n")
+
+            discovered_with_employees = await self._add_sample_employees_to_companies(
+                discovered,
+                jd_context,
+                jd_id,
+                limit_per_company=5
+            )
+
+            # Phase 4: Sort by relevance score (highest first)
+            discovered_sorted = sorted(
+                discovered_with_employees,
+                key=lambda c: c.get('relevance_score', 0),
+                reverse=True
+            )
+
+            print(f"\n[SORTING] Companies sorted by relevance score (highest first)")
+            print(f"  Top 5 companies:")
+            for i, c in enumerate(discovered_sorted[:5], 1):
+                print(f"    {i}. {c.get('name')} - Score: {c.get('relevance_score', 0):.1f}")
+
+            # Update with ALL discovered companies (enriched with scores, metadata, employees)
+            company_names = [c.get("name") for c in discovered_sorted[:20]]  # First 20 names
             discovered_objects = [
                 {
                     "name": c.get("name") or c.get("company_name"),
@@ -172,44 +221,71 @@ class CompanyResearchService:
                     "coresignal_data": c.get("coresignal_data", {}),
                     "source_url": c.get("source_url"),
                     "source_query": c.get("source_query"),
-                    "source_result_rank": c.get("source_result_rank")
+                    "source_result_rank": c.get("source_result_rank"),
+                    # NEW: Relevance scoring
+                    "relevance_score": c.get("relevance_score", 5.0),
+                    "screening_score": c.get("screening_score", 5.0),
+                    "scored_by": c.get("scored_by", "gpt5_mini"),
+                    # NEW: Metadata enrichment
+                    "industry": c.get("industry"),
+                    "employees_count": c.get("employees_count") or c.get("employee_count"),
+                    "size_range": c.get("size_range"),
+                    "founded": c.get("founded"),
+                    "headquarters": c.get("headquarters") or c.get("location_hq_city"),
+                    # NEW: Sample employees
+                    "sample_employees": c.get("sample_employees", []),
+                    "sample_employees_count": len(c.get("sample_employees", []))
                 }
-                for c in discovered if c.get("name") or c.get("company_name")
+                for c in discovered_sorted if c.get("name") or c.get("company_name")
             ]
 
-            # NEW FLOW: Return ALL discovered companies without evaluation
-            # Mark session as "completed" (enrichment done, evaluation optional)
+            # NEW FLOW: Return ALL discovered companies with scores, metadata, and employees
+            # Mark session as "completed" (enrichment done, ready to use)
             await self._update_session_status(jd_id, "completed", {
-                "phase": "discovery",
-                "action": f"Discovery complete: {len(discovered)} companies enriched with CoreSignal data",
+                "phase": "enrichment_complete",
+                "action": f"Enrichment complete: {len(discovered_sorted)} companies scored and ready",
                 "discovered_companies": company_names,  # Backward compat (names only)
-                "discovered_companies_list": discovered_objects,  # Full objects for UI with CoreSignal data
-                "total_discovered": len(discovered),
-                "evaluation_status": "pending",  # User can trigger evaluation
-                "jd_context": jd_context  # Save for future evaluation
+                "discovered_companies_list": discovered_objects,  # Full objects for UI with all enrichments
+                "total_discovered": len(discovered_sorted),
+                "evaluation_status": "scored",  # All companies have relevance scores
+                "jd_context": jd_context  # Save for future reference
             })
 
             # ============= DEBUG LOGGING =============
             print(f"\n{'='*100}")
-            print(f"[RESEARCH FLOW] Discovery COMPLETED for JD ID: {jd_id}")
+            print(f"[RESEARCH FLOW] ENRICHMENT COMPLETED for JD ID: {jd_id}")
             print(f"[RESEARCH FLOW] Summary:")
-            print(f"  - total_discovered: {len(discovered)}")
-            print(f"  - total_enriched: {len([c for c in discovered if c.get('coresignal_id')])}")
-            print(f"[RESEARCH FLOW] Status: DISCOVERED (evaluation pending)")
+            print(f"  - total_discovered: {len(discovered_sorted)}")
+            print(f"  - total_scored: {len(discovered_sorted)}")
+            print(f"  - avg_score: {sum(c.get('relevance_score', 0) for c in discovered_sorted) / len(discovered_sorted):.1f}")
+            print(f"  - companies_8_plus: {len([c for c in discovered_sorted if c.get('relevance_score', 0) >= 8])}")
+            print(f"  - with_employees: {len([c for c in discovered_sorted if c.get('sample_employees')])}")
+            print(f"[RESEARCH FLOW] Status: ENRICHED (ready for selection)")
             print(f"{'='*100}\n")
             # =========================================
+
+            # Calculate score distribution for summary
+            scores = [c.get('relevance_score', 0) for c in discovered_sorted]
+            score_distribution = {
+                "8_plus": len([s for s in scores if s >= 8]),
+                "7_to_8": len([s for s in scores if 7 <= s < 8]),
+                "6_to_7": len([s for s in scores if 6 <= s < 7]),
+                "below_6": len([s for s in scores if s < 6])
+            }
 
             return {
                 "success": True,
                 "session_id": jd_id,
-                "status": "discovered",
-                "discovered_companies": discovered_objects,  # ALL discovered companies with CoreSignal data
-                "evaluation_status": "pending",
+                "status": "enriched",
+                "discovered_companies": discovered_objects,  # ALL companies with scores, metadata, employees
+                "evaluation_status": "scored",
                 "summary": {
-                    "total_discovered": len(discovered),
-                    "total_enriched": len([c for c in discovered if c.get("coresignal_id")]),
-                    "evaluation_pending": True,
-                    "message": f"Discovered and enriched {len(discovered)} companies. Click 'Evaluate Companies' to assess relevance."
+                    "total_discovered": len(discovered_sorted),
+                    "total_scored": len(discovered_sorted),
+                    "avg_relevance_score": sum(scores) / len(scores) if scores else 0,
+                    "score_distribution": score_distribution,
+                    "companies_with_employees": len([c for c in discovered_sorted if c.get('sample_employees')]),
+                    "message": f"Discovered and enriched {len(discovered_sorted)} companies with relevance scores."
                 }
             }
 
@@ -596,6 +672,114 @@ DO NOT include recruiting/hiring/talent fields. This is competitive intelligence
             # Return default scores on error
             return [5.0] * len(companies)
 
+    async def screen_companies_with_haiku(
+        self,
+        companies: List[Dict[str, Any]],
+        jd_context: Dict[str, Any],
+        jd_id: str
+    ) -> None:
+        """
+        Screen each company with Claude Haiku using Anthropic API web search.
+        Modifies companies in-place to add relevance_score.
+        """
+        import anthropic
+        import json
+        import re
+
+        # Initialize Anthropic client
+        client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+
+        for i, company in enumerate(companies, 1):
+            company_name = company.get('name', 'Unknown')
+
+            # Update progress
+            await self._update_session_status(jd_id, "running", {
+                "phase": "screening",
+                "action": f"Company {i}/{len(companies)}: Researching {company_name}..."
+            })
+
+            # Build prompt
+            must_have = jd_context.get('must_have', [])
+            domain = jd_context.get('domain_expertise', [])
+            industry = jd_context.get('industry_keywords', [])
+
+            prompt = f"""Evaluate this company for finding candidates matching this job:
+
+JOB REQUIREMENTS:
+Role: {jd_context.get('role_title', 'N/A')}
+Must-have: {', '.join(must_have[:3]) if must_have else 'N/A'}
+Domain: {', '.join(domain) if domain else 'N/A'}
+Industry: {', '.join(industry) if industry else 'N/A'}
+
+COMPANY TO EVALUATE:
+Name: {company_name}
+{f"Industry: {company.get('industry')}" if company.get('industry') else ""}
+{f"Size: {company.get('employee_count')} employees" if company.get('employee_count') else ""}
+{f"Description: {company.get('description')}" if company.get('description') else ""}
+
+TASK:
+Use web search to learn:
+- What products/services they build
+- Their technology stack
+- Whether they match the job's domain/industry
+
+Rate 1-10 for finding matching candidates.
+Return ONLY this JSON: {{"score": 8.5, "reasoning": "brief 1-sentence explanation"}}"""
+
+            try:
+                # Use Anthropic API with web search tool
+                response = client.messages.create(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=1024,
+                    tools=[{
+                        "type": "web_search_20250305",
+                        "name": "web_search"
+                    }],
+                    messages=[{
+                        "role": "user",
+                        "content": prompt
+                    }]
+                )
+
+                # Extract response text
+                response_text = ""
+                for block in response.content:
+                    if block.type == "text":
+                        response_text += block.text
+
+                # Parse JSON from response
+                json_matches = re.findall(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response_text, re.DOTALL)
+
+                data = None
+                for json_str in json_matches:
+                    try:
+                        parsed = json.loads(json_str)
+                        if 'score' in parsed and 'reasoning' in parsed:
+                            data = parsed
+                            break
+                    except json.JSONDecodeError:
+                        continue
+
+                if not data:
+                    raise ValueError(f"No valid JSON found in response. Text: {response_text[:200]}")
+
+                company['relevance_score'] = float(data['score'])
+                company['screening_reasoning'] = data['reasoning']
+                company['scored_by'] = 'claude_haiku_with_websearch'
+
+                print(f"  [{i}/{len(companies)}] {company_name}: {data['score']:.1f} - {data['reasoning'][:60]}...")
+
+            except Exception as e:
+                print(f"  [{i}/{len(companies)}] ✗ {company_name}: Error - {str(e)}")
+                import traceback
+                traceback.print_exc()
+                company['relevance_score'] = 5.0
+                company['screening_reasoning'] = f"Error during evaluation: {str(e)}"
+                company['scored_by'] = 'error_fallback'
+
+            # Rate limiting between companies
+            await asyncio.sleep(1.5)
+
     # ========================================
     # Categorization
     # ========================================
@@ -692,7 +876,7 @@ DO NOT include recruiting/hiring/talent fields. This is competitive intelligence
         domain = jd_data.get("requirements", {}).get("domain") or \
                  jd_data.get("requirements", {}).get("target_domain", "")
 
-        return {
+        context = {
             "title": jd_data.get("title", ""),
             "company_stage": jd_data.get("company_stage", "unknown"),
             "industries": jd_data.get("industries", []),
@@ -702,6 +886,16 @@ DO NOT include recruiting/hiring/talent fields. This is competitive intelligence
             "domain_expertise": domain,
             "team_size_range": jd_data.get("team_size_range", [10, 1000])
         }
+
+        # Add screening fields (if they exist in jd_data directly)
+        if "role_title" in jd_data:
+            context["role_title"] = jd_data["role_title"]
+        if "must_have" in jd_data:
+            context["must_have"] = jd_data["must_have"]
+        if "industry_keywords" in jd_data:
+            context["industry_keywords"] = jd_data["industry_keywords"]
+
+        return context
 
     def _generate_search_queries(self, jd_context: Dict[str, Any]) -> List[str]:
         """
@@ -829,7 +1023,7 @@ DO NOT include recruiting/hiring/talent fields. This is competitive intelligence
             results_text += f"\n{i}. {result.get('title', '')}\n"
             results_text += f"   {result.get('content', '')[:300]}...\n"
 
-        prompt = f"""Extract actual company names from this web search about companies.
+        prompt = f"""Extract actual companies from this web search with as much detail as possible.
 
 TAVILY LLM ANSWER:
 {llm_answer}
@@ -837,19 +1031,35 @@ TAVILY LLM ANSWER:
 TOP SEARCH RESULTS:
 {results_text}
 
-TASK: Extract ONLY real company names mentioned in the content.
+TASK: Extract ONLY real companies mentioned in the content with rich details.
+
+For each company, extract:
+1. name: Company name (required)
+2. description: Brief description of what they do (from content/answer)
+3. website: Official website URL (from result URLs or mentioned in text)
+4. industry: Industry category if mentioned (e.g., "AI/ML", "Fintech", "Healthcare")
+5. employee_count_hint: Any size hints if mentioned (e.g., "50-200 employees", "startup", "large enterprise")
 
 RULES:
 - Include ONLY actual company names (e.g., "Stripe", "Square", "Adyen")
 - EXCLUDE article titles (e.g., "The Best Stripe Alternatives")
 - EXCLUDE generic words (e.g., "However", "Best", "Top", "Companies")
-- EXCLUDE fragments (e.g., "Payouts Small", "Tube The")
-- EXCLUDE person names unless they're company founders mentioned with their company
+- EXCLUDE fragments or person names
 
-Return a JSON array of company names ONLY:
-["Company1", "Company2", "Company3", ...]
+Return a JSON array of company objects:
+[
+  {{
+    "name": "Company1",
+    "description": "Brief description of what they do",
+    "website": "company1.com",
+    "industry": "AI/ML",
+    "employee_count_hint": "50-200 employees"
+  }},
+  ...
+]
 
-If no clear company names are found, return an empty array: []"""
+Include as many fields as you can extract. If a field is not available, omit it (don't use null).
+If no clear companies are found, return an empty array: []"""
 
         try:
             # Retry logic for rate limit errors
@@ -882,30 +1092,50 @@ If no clear company names are found, return an empty array: []"""
 
             # Extract JSON array from response
             if response_text.startswith("["):
-                company_names = json.loads(response_text)
+                company_data_list = json.loads(response_text)
             else:
                 # Try to find JSON in the response
                 import re
                 json_match = re.search(r'\[.*?\]', response_text, re.DOTALL)
                 if json_match:
-                    company_names = json.loads(json_match.group(0))
+                    company_data_list = json.loads(json_match.group(0))
                 else:
-                    company_names = []
+                    company_data_list = []
 
-            # Convert to company objects with source tracking
+            # Convert to enriched company objects with source tracking
             companies = []
-            for i, name in enumerate(company_names, 1):
-                if name and len(name) > 2 and name not in self.discovered_companies:
-                    companies.append({
-                        "name": name,
-                        "discovered_via": "web_search_llm",
-                        "source_url": search_results[0].get("url") if search_results else None,
-                        "source_query": search_query,  # NEW: Track the search query
-                        "source_result_rank": i  # NEW: Track which result it came from
-                    })
-                    self.discovered_companies.add(name)
+            for i, company_data in enumerate(company_data_list, 1):
+                # Handle both old format (strings) and new format (objects)
+                if isinstance(company_data, str):
+                    # Old format: just a name
+                    name = company_data
+                    enriched_company = {"name": name}
+                elif isinstance(company_data, dict):
+                    # New format: object with details
+                    name = company_data.get('name', '')
+                    enriched_company = company_data.copy()
+                else:
+                    continue
+
+                # Skip if name is invalid or already discovered
+                if not name or len(name) <= 2 or name in self.discovered_companies:
+                    continue
+
+                # Add source tracking fields
+                enriched_company.update({
+                    "discovered_via": "web_search_llm",
+                    "source_url": search_results[0].get("url") if search_results else None,
+                    "source_query": search_query,
+                    "source_result_rank": i
+                })
+
+                companies.append(enriched_company)
+                self.discovered_companies.add(name)
 
             print(f"✓ Claude extracted {len(companies)} companies from Tavily results")
+            # Log enrichment stats
+            enriched_count = sum(1 for c in companies if 'description' in c)
+            print(f"  {enriched_count}/{len(companies)} companies have descriptions")
             return companies
 
         except Exception as e:
@@ -946,95 +1176,102 @@ If no clear company names are found, return an empty array: []"""
 
     async def _enrich_companies(self, companies: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Enrich companies with CoreSignal data.
+        Enrich companies with CoreSignal IDs using lookup_with_fallback().
 
         For each discovered company:
-        1. Search CoreSignal by name → get company_id
-        2. Fetch full company profile
-        3. Extract relevant intelligence (employees, funding, logo, etc.)
+        1. Look up CoreSignal company ID using 4-tier strategy:
+           - Tier 1: Website exact match (90% success when available)
+           - Tier 2: Name exact match with pagination (40-50%)
+           - Tier 3: Fuzzy match (5-10%)
+           - Tier 4: company_clean fallback (3-5%)
+        2. Store company_id for future research agent to collect full data
+        3. Mark as searchable/non-searchable
 
-        NOTE: Temporarily disabled due to CoreSignal API 422 errors.
-        Will fix query structure in next iteration.
+        Expected: 80-90% match rate, 0 credits used (ID lookup only)
         """
-        print(f"\n{'='*80}")
-        print(f"⚠️  CoreSignal enrichment temporarily disabled (API 422 errors)")
-        print(f"   Returning {len(companies)} companies with web search data only")
-        print(f"{'='*80}\n")
-        return companies
-
-        # TODO: Fix CoreSignal search query structure (getting 422 errors)
-        # Original enrichment code below (commented out):
-        enriched = []
-
-        if not self.coresignal_service:
-            print("⚠️  CoreSignal service not available, returning companies without enrichment")
-            return companies
+        from coresignal_company_lookup import CoreSignalCompanyLookup
 
         print(f"\n{'='*80}")
-        print(f"ENRICHING {len(companies)} companies with CoreSignal data...")
+        print(f"🔍 Looking up CoreSignal company IDs for {len(companies)} companies...")
         print(f"{'='*80}\n")
 
-        for i, company in enumerate(companies, 1):
-            company_name = company.get("name", "")
+        company_lookup = CoreSignalCompanyLookup()
+
+        companies_with_ids = []
+        companies_without_ids = []
+        tier_stats = {1: 0, 2: 0, 3: 0, 4: 0}
+
+        for company in companies:
+            company_name = company.get('name', company.get('company_name', ''))
 
             if not company_name:
-                enriched.append(company)
+                companies_without_ids.append(company)
                 continue
 
-            try:
-                # Search CoreSignal for company
-                matches = self.coresignal_service.search_company_by_name(company_name, max_results=3)
+            # Get website if available (from discovery)
+            website = company.get('website')
 
-                if matches and len(matches) > 0:
-                    # Use first match (best match)
-                    best_match = matches[0]
-                    company_id = best_match.get("id")
+            # Use 4-tier lookup with fallback
+            match = company_lookup.lookup_with_fallback(
+                company_name=company_name,
+                website=website,
+                confidence_threshold=0.75,  # Match domain_search.py
+                use_company_clean_fallback=True
+            )
 
-                    if company_id:
-                        # Fetch full company data
-                        company_data_result = self.coresignal_service.fetch_company_data(company_id)
+            if match:
+                # Store CoreSignal ID and metadata
+                company['coresignal_id'] = match['company_id']
+                company['coresignal_confidence'] = match.get('confidence', 1.0)
+                company['coresignal_searchable'] = True
+                company['lookup_tier'] = match.get('tier', 0)
+                company['lookup_method'] = match.get('lookup_method', 'unknown')
 
-                        if company_data_result.get("success"):
-                            company_data = company_data_result.get("company_data", {})
+                # Track tier statistics
+                tier = match.get('tier', 0)
+                if tier in tier_stats:
+                    tier_stats[tier] += 1
 
-                            # Enrich discovered company with CoreSignal data
-                            company["coresignal_id"] = company_id
-                            company["coresignal_data"] = {
-                                "name": company_data.get("name"),
-                                "website": company_data.get("website"),
-                                "logo_url": company_data.get("logo_url") or company_data.get("logo"),
-                                "employee_count": company_data.get("employee_count"),
-                                "founded": company_data.get("founded"),
-                                "location": company_data.get("location"),
-                                "industry": company_data.get("industry"),
-                                "description": company_data.get("description"),
-                                "company_type": company_data.get("company_type"),
-                                "funding_rounds": len(company_data.get("company_funding_rounds_collection", [])),
-                                "total_funding": sum(
-                                    r.get("funding_round_money_raised", 0)
-                                    for r in company_data.get("company_funding_rounds_collection", [])
-                                    if r.get("funding_round_money_raised")
-                                )
-                            }
+                # Enrich with additional data from match (preview endpoint fields)
+                if 'website' in match and not company.get('website'):
+                    company['website'] = match['website']
+                if 'employee_count' in match and match['employee_count']:
+                    company['employee_count'] = match['employee_count']
+                if 'industry' in match and match['industry'] and not company.get('industry'):
+                    # Only set if not already have industry from Tavily
+                    company['industry'] = match['industry']
+                if 'size_range' in match and match['size_range']:
+                    company['size_range'] = match['size_range']
+                if 'founded' in match and match['founded']:
+                    company['founded'] = match['founded']
+                if 'location' in match and match['location']:
+                    company['location'] = match['location']
 
-                            print(f"  ✓ [{i}/{len(companies)}] {company_name}: Enriched (ID: {company_id})")
-                        else:
-                            print(f"  ✗ [{i}/{len(companies)}] {company_name}: Fetch failed")
-                    else:
-                        print(f"  ✗ [{i}/{len(companies)}] {company_name}: No ID in match")
-                else:
-                    print(f"  ✗ [{i}/{len(companies)}] {company_name}: Not found in CoreSignal")
+                companies_with_ids.append(company)
+                print(f"   ✅ {company_name}: ID={match['company_id']} (tier {tier}, {match.get('lookup_method', 'unknown')})")
+            else:
+                # No match found - preserve company but mark as not searchable
+                company['coresignal_searchable'] = False
+                companies_without_ids.append(company)
+                print(f"   ❌ {company_name}: No CoreSignal ID found")
 
-            except Exception as e:
-                print(f"  ✗ [{i}/{len(companies)}] {company_name}: Error - {str(e)}")
-
-            enriched.append(company)
+        # Calculate and log coverage statistics
+        total_companies = len(companies)
+        coverage_percent = (len(companies_with_ids) / total_companies * 100) if total_companies else 0
 
         print(f"\n{'='*80}")
-        print(f"ENRICHMENT COMPLETE: {len(enriched)} companies processed")
+        print(f"📊 CoreSignal ID Lookup Results:")
+        print(f"   Searchable (with IDs): {len(companies_with_ids)} companies ({coverage_percent:.1f}%)")
+        print(f"   Not searchable (no IDs): {len(companies_without_ids)} companies")
+        print(f"\n   Tier Breakdown:")
+        print(f"      Tier 1 (Website): {tier_stats[1]} companies")
+        print(f"      Tier 2 (Name Exact): {tier_stats[2]} companies")
+        print(f"      Tier 3 (Fuzzy): {tier_stats[3]} companies")
+        print(f"      Tier 4 (company_clean): {tier_stats[4]} companies")
         print(f"{'='*80}\n")
 
-        return enriched
+        # Return ALL companies (with and without IDs) - "No Company Left Behind"
+        return companies
 
     async def _screen_companies(
         self,
@@ -1081,16 +1318,11 @@ If no clear company names are found, return an empty array: []"""
                     "total_evaluated": i
                 })
 
-            batch_scores = await self.batch_screen_companies_gpt5(batch, jd_context)
-            all_scores.extend(batch_scores)
+            # Use Claude Haiku with web search for screening (modifies in-place)
+            await self.screen_companies_with_haiku(batch, jd_context, jd_id)
 
-        # Add scores to filtered companies
-        for i, company in enumerate(filtered_companies):
-            if i < len(all_scores):
-                company["screening_score"] = all_scores[i]
-
-        # Sort by score and return top candidates
-        filtered_companies.sort(key=lambda x: x.get("screening_score", 0), reverse=True)
+        # Sort by relevance_score (Haiku adds this field in-place)
+        filtered_companies.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
 
         if jd_id:
             await self._update_session_status(jd_id, "running", {
@@ -1240,7 +1472,7 @@ If no clear company names are found, return an empty array: []"""
                     "company_name": company.get("name"),
                     "company_id": company.get("company_id"),
                     "relevance_score": company.get("relevance_score"),
-                    "relevance_reasoning": company.get("reasoning"),
+                    "relevance_reasoning": company.get("screening_reasoning") or company.get("reasoning"),  # Try both field names
                     "category": db_category,  # Use mapped category
                     "discovered_via": company.get("discovered_via"),
                     "company_data": company.get("company_data"),
@@ -1479,8 +1711,8 @@ If no clear company names are found, return an empty array: []"""
                         {"term": {"member_current_employer_names.keyword": company_name}}
                     ]
                 }
-            },
-            "size": limit
+            }
+            # NOTE: preview endpoint does NOT accept "size" parameter
         }
 
         url = "https://api.coresignal.com/cdapi/v2/employee_clean/search/es_dsl/preview?page=1"
@@ -1492,21 +1724,165 @@ If no clear company names are found, return an empty array: []"""
             if response.status_code == 200:
                 employees = response.json()
 
-                # Extract key info
+                # Extract key info and limit to desired size
                 return [
                     {
                         "id": emp.get("id"),
                         "name": emp.get("full_name"),
-                        "title": emp.get("title"),
+                        "title": emp.get("job_title") or emp.get("title") or (emp.get("headline", "").split(" at ")[0] if emp.get("headline") else "N/A"),
                         "headline": emp.get("headline"),
-                        "location": emp.get("location")
+                        "location": emp.get("location_raw_address") or emp.get("location")
                     }
-                    for emp in employees
+                    for emp in employees[:limit]  # Limit to first N employees
                 ]
         except Exception as e:
             print(f"Employee search error: {e}")
 
         return []
+
+    async def _add_sample_employees_to_companies(
+        self,
+        companies: List[Dict[str, Any]],
+        jd_context: Dict[str, Any],
+        jd_id: Optional[str] = None,
+        limit_per_company: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Add sample employees to each company using employee_clean preview.
+
+        Args:
+            companies: List of company dictionaries
+            jd_context: Job description context for role filtering
+            jd_id: Optional session ID for progress updates
+            limit_per_company: Number of employees to fetch per company
+
+        Returns:
+            Updated companies list with sample_employees field
+        """
+        headers = {
+            "accept": "application/json",
+            "apikey": self.coresignal_api_key,
+            "Content-Type": "application/json"
+        }
+
+        # Extract target role from JD context for filtering
+        # Prioritize role_title (specific role) over title (which may include company)
+        target_role = (jd_context.get("role_title") or jd_context.get("title", "")).lower()
+        role_keywords = ["engineer", "manager", "director", "developer", "scientist", "analyst"]
+
+        # Determine if we should filter by role
+        filter_by_role = any(keyword in target_role for keyword in role_keywords)
+
+        import requests
+
+        for i, company in enumerate(companies, 1):
+            company_name = company.get("name") or company.get("company_name")
+            coresignal_id = company.get("coresignal_id") or company.get("coresignal_company_id")
+
+            if not company_name:
+                continue
+
+            # Update progress
+            if jd_id and i % 10 == 0:
+                await self._update_session_status(jd_id, "running", {
+                    "phase": "employee_sampling",
+                    "action": f"Fetching employees... {i}/{len(companies)} companies"
+                })
+
+            try:
+                # Build query with role filtering
+                if coresignal_id:
+                    # Use company ID for precise matching + role filtering
+                    query = {
+                        "query": {
+                            "bool": {
+                                "must": [
+                                    {
+                                        "nested": {
+                                            "path": "experience",
+                                            "query": {
+                                                "term": {
+                                                    "experience.company_id": coresignal_id
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                "should": [
+                                    {
+                                        "match": {
+                                            "job_title": target_role  # FIXED: use job_title (the actual field name)
+                                        }
+                                    }
+                                ] if filter_by_role else []
+                            }
+                        }
+                        # NOTE: preview endpoint does NOT accept "size" parameter
+                    }
+                else:
+                    # Fallback to company name matching + role filtering
+                    query = {
+                        "query": {
+                            "bool": {
+                                "must": [
+                                    {
+                                        "nested": {
+                                            "path": "experience",
+                                            "query": {
+                                                "match": {
+                                                    "experience.company_name": company_name
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                "should": [
+                                    {
+                                        "match": {
+                                            "job_title": target_role  # FIXED: use job_title (the actual field name)
+                                        }
+                                    }
+                                ] if filter_by_role else []
+                            }
+                        }
+                        # NOTE: preview endpoint does NOT accept "size" parameter
+                    }
+
+                url = "https://api.coresignal.com/cdapi/v2/employee_clean/search/es_dsl/preview?page=1"
+
+                response = requests.post(url, json=query, headers=headers, timeout=10)
+
+                if response.status_code == 200:
+                    employees = response.json()
+
+                    # Extract key info and add to company
+                    # Preview endpoint returns list directly (not {"employees": [...]})
+                    # Also note: the preview endpoint returns fixed ~20 results
+                    company['sample_employees'] = [
+                        {
+                            "id": emp.get("id"),
+                            "name": emp.get("full_name") or emp.get("name"),  # preview uses full_name
+                            "title": emp.get("job_title") or emp.get("title") or (emp.get("headline", "").split(" at ")[0] if emp.get("headline") else "N/A"),
+                            "headline": emp.get("headline"),
+                            "location": emp.get("location_raw_address") or emp.get("location")
+                        }
+                        for emp in employees[:limit_per_company]  # Limit to first N employees
+                    ]
+
+                    if len(company['sample_employees']) > 0:
+                        print(f"  ✓ {company_name}: {len(company['sample_employees'])} employees")
+                else:
+                    company['sample_employees'] = []
+                    print(f"  ✗ {company_name}: Failed (status {response.status_code})")
+
+            except Exception as e:
+                company['sample_employees'] = []
+                print(f"  ✗ {company_name}: Error - {str(e)[:50]}")
+
+            # Rate limiting: brief pause between requests
+            await asyncio.sleep(0.1)
+
+        return companies
 
     async def _evaluate_with_real_data(
         self,

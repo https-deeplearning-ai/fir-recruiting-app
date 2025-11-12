@@ -58,6 +58,9 @@ from coresignal_service import (
 # Import CoreSignal company lookup for company ID resolution
 from coresignal_company_lookup import CoreSignalCompanyLookup
 
+# Import company research service for relevance screening
+from company_research_service import CompanyResearchService
+
 # Import config for credit costs
 from config import CORESIGNAL_CREDIT_PER_FETCH, CORESIGNAL_CREDIT_USD
 
@@ -406,14 +409,339 @@ FULL LIST (sorted by confidence):
     print(f"  Searchable: {len(companies_with_ids)} companies")
     print(f"  Log: {session_logger.session_dir}/01_company_discovery.json")
 
-    # Return all validated companies (with and without IDs)
-    # The query builder will handle them differently
-    return validated_companies
+    # ========================================
+    # NEW: Screen companies for relevance using GPT-5-mini
+    # ========================================
+    print(f"\n{'='*80}")
+    print(f"🎯 SCREENING {len(validated_companies)} COMPANIES FOR RELEVANCE")
+    print(f"{'='*80}\n")
+
+    screening_start_time = time.time()
+
+    try:
+        # Create instance of CompanyResearchService
+        research_service = CompanyResearchService()
+
+        # Call async screening method with Claude Haiku + web search
+        # Note: screen_companies_with_haiku modifies companies in-place
+        await research_service.screen_companies_with_haiku(
+            validated_companies,
+            jd_requirements,
+            jd_id=None  # No session tracking for this endpoint
+        )
+
+        # Companies are now screened in-place with relevance_score, screening_reasoning, scored_by
+        # Sort by relevance score (highest first)
+        sorted_companies = sorted(
+            validated_companies,
+            key=lambda c: c.get('relevance_score', 0),
+            reverse=True
+        )
+
+        # Log top 10 companies with scores
+        print(f"\n🏆 TOP 10 COMPANIES BY RELEVANCE:")
+        for i, company in enumerate(sorted_companies[:10], 1):
+            score = company.get('relevance_score', 0)
+            reasoning = company.get('screening_reasoning', 'N/A')  # FIXED: Haiku uses screening_reasoning
+            print(f"  {i}. {company['name']} - Score: {score}/10")
+            print(f"     {reasoning}\n")
+
+        screening_duration = time.time() - screening_start_time
+        print(f"✓ Screening Complete ({screening_duration:.1f}s)")
+        print(f"  Companies sorted by relevance score")
+
+        # Log screening results
+        screening_log_data = {
+            "stage": "company_screening",
+            "total_companies": len(sorted_companies),
+            "top_10_companies": [
+                {
+                    "rank": i + 1,
+                    "name": c['name'],
+                    "relevance_score": c.get('relevance_score', 0),
+                    "screening_reasoning": c.get('screening_reasoning', 'N/A'),  # FIXED: field name
+                    "scored_by": c.get('scored_by', 'N/A')  # Include how it was scored
+                }
+                for i, c in enumerate(sorted_companies[:10])
+            ],
+            "screening_duration_seconds": round(screening_duration, 1),
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        }
+        session_logger.log_json("01_company_screening.json", screening_log_data)
+
+        # Return sorted companies
+        return sorted_companies
+
+    except Exception as e:
+        print(f"⚠️ Warning: Company screening failed: {e}")
+        print(f"   Falling back to unscreened companies")
+        import traceback
+        traceback.print_exc()
+
+        # Fallback: return validated companies without screening
+        return validated_companies
 
 
 # ========================================
 # STAGE 2: Preview Search (20 Candidates)
 # ========================================
+
+def build_experience_based_query(
+    companies: List[Dict[str, Any]],
+    role_keywords: List[str],
+    location: Optional[str] = None,
+    require_location: bool = False,
+    require_target_role: bool = True,
+    endpoint: str = 'employee_base'
+) -> Dict[str, Any]:
+    """
+    Build query searching employee EXPERIENCE HISTORY (not just current employer).
+
+    This finds anyone who has EVER worked at these companies using nested experience field.
+    Proven to find 1,500+ candidates vs 0 with current-employer-only approach.
+
+    Args:
+        companies: List of company dicts with 'coresignal_company_id'
+        role_keywords: Precise role keywords from JD (e.g., ["ML Engineer", "AI Research Scientist"])
+        location: Optional location from JD (used as boost, not requirement)
+        require_location: If True, makes location required (not recommended - eliminates global remote teams)
+        require_target_role: If True, requires role match in experience (recommended for precision)
+        endpoint: 'employee_base' (default) or 'employee_clean'
+
+    Returns:
+        CoreSignal ES DSL query with nested experience structure
+    """
+    print(f"\n📋 Building EXPERIENCE-BASED query for {len(companies)} companies")
+    print(f"   (Searches work HISTORY, not just current employer)")
+
+    # Build experience company filters (prefer ID for precision, fallback to name for flexibility)
+    experience_company_filters = []
+
+    for company in companies:
+        company_id = company.get('coresignal_company_id')
+        company_name = company.get('name', 'Unknown')
+
+        if company_id:
+            # Prefer company ID (precise)
+            print(f"   - {company_name} (ID: {company_id})")
+            experience_company_filters.append({
+                "term": {"experience.company_id": company_id}
+            })
+        elif company_name and company_name != 'Unknown':
+            # Fallback to company name with match_phrase (flexible, handles variations)
+            print(f"   - {company_name} (using name match)")
+            experience_company_filters.append({
+                "match_phrase": {"experience.company_name": company_name}
+            })
+
+    if not experience_company_filters:
+        print("[WARNING] No valid companies for experience search!")
+        return {"query": {"match_all": {}}}
+
+    print(f"\n✅ Created {len(experience_company_filters)} experience filters")
+
+    # Build role query string (much simpler with OR operators)
+    # ALWAYS build role query when keywords exist (not dependent on require_target_role flag)
+    role_query_string = None
+    if role_keywords:
+        # Filter out overly broad terms
+        filtered_keywords = [k for k in role_keywords if k.lower() not in ['mid', 'senior', 'junior', 'staff', 'principal']]
+
+        if filtered_keywords:
+            # Build query_string with OR operators - much simpler!
+            # Wrap multi-word phrases in quotes for exact matching
+            quoted_keywords = []
+            for keyword in filtered_keywords:
+                if ' ' in keyword:
+                    quoted_keywords.append(f'"{keyword}"')
+                else:
+                    quoted_keywords.append(keyword)
+
+            role_query_string = ' OR '.join(quoted_keywords)
+            if require_target_role:
+                print(f"   Target roles: {role_query_string} (REQUIRED in experience)")
+            else:
+                print(f"   Target roles: {role_query_string} (OPTIONAL boost in experience)")
+
+    # Build nested query structure
+    must_clauses = []
+
+    # Build nested experience query with company + optional role
+    # SIMPLIFIED: For single company, use direct match. For multiple, use bool/should.
+    if len(experience_company_filters) == 1:
+        # Single company: use direct match (no bool wrapper)
+        company_query = experience_company_filters[0]
+    else:
+        # Multiple companies: use bool/should structure
+        company_query = {
+            "bool": {
+                "should": experience_company_filters,
+                "minimum_should_match": 1
+            }
+        }
+
+    nested_must = [company_query]
+    nested_should = []
+
+    # Add role query: MUST if required, SHOULD (boost) if optional
+    if role_query_string:
+        role_filter = {
+            "query_string": {
+                "query": role_query_string,
+                "default_field": "experience.title",
+                "default_operator": "OR"  # CRITICAL: Without this, ALL keywords must match simultaneously
+            }
+        }
+
+        if require_target_role:
+            # Role is REQUIRED - add to must
+            nested_must.append(role_filter)
+            print(f"   🔒 Role REQUIRED: Must match one of the role keywords")
+        else:
+            # Role is OPTIONAL - add to should (boosts score but not required)
+            nested_should.append(role_filter)
+            print(f"   ⭐ Role BOOST: Matching role keywords boosts score (optional)")
+
+    # Build nested query with proper must/should structure
+    nested_bool = {"must": nested_must}
+    if nested_should:
+        nested_bool["should"] = nested_should
+        nested_bool["minimum_should_match"] = 0  # Should clauses are optional
+
+    must_clauses.append({
+        "nested": {
+            "path": "experience",
+            "query": {
+                "bool": nested_bool
+            }
+        }
+    })
+
+    # Build final query - keep it simple!
+    query = {
+        "query": {
+            "bool": {
+                "must": must_clauses
+            }
+        }
+    }
+
+    # Add location outside nested query if needed (optional boost only)
+    if location and not require_location:
+        location_field = "location" if endpoint == 'employee_base' else "location_country"
+        query["query"]["bool"]["should"] = [{"term": {location_field: location}}]
+        query["query"]["bool"]["minimum_should_match"] = 0
+        print(f"   📍 Location BOOST: {location} (optional)")
+    elif location and require_location:
+        location_field = "location" if endpoint == 'employee_base' else "location_country"
+        must_clauses.append({"term": {location_field: location}})
+        print(f"   🔒 Location REQUIRED: {location}")
+    else:
+        print(f"   🌍 Location: Worldwide (no filter)")
+
+    return query
+
+
+def extract_precise_role_keywords(
+    role_title: str,
+    domain: str = "",
+    technical_skills: List[str] = None,
+    seniority: str = ""
+) -> List[str]:
+    """
+    Extract precise role keywords from JD requirements.
+
+    Instead of generic ["engineer", "manager", "director"], generate
+    domain-specific role variations.
+
+    Examples:
+        Input: role_title="Senior ML Engineer", domain="voice ai"
+        Output: ["ml engineer", "machine learning engineer", "ai engineer",
+                 "research scientist", "voice ai engineer"]
+
+    Args:
+        role_title: Role from JD (e.g., "Senior ML Engineer")
+        domain: Target domain (e.g., "voice ai")
+        technical_skills: Skills from JD (e.g., ["Python", "PyTorch"])
+        seniority: Seniority level (e.g., "senior")
+
+    Returns:
+        List of precise role keywords
+    """
+    keywords = []
+    technical_skills = technical_skills or []
+
+    # Handle None or empty role_title
+    if not role_title:
+        role_title = ""
+
+    # Remove seniority prefixes to get base role
+    base_role = role_title.lower()
+    for level in ['senior', 'junior', 'staff', 'principal', 'lead', 'mid-level', 'entry', 'chief']:
+        base_role = base_role.replace(level, '').strip()
+
+    # Add exact role
+    if base_role:
+        keywords.append(base_role)
+
+    # Add common variations
+    role_variations = {
+        "ml engineer": ["machine learning engineer", "ai engineer", "ml researcher"],
+        "machine learning engineer": ["ml engineer", "ai engineer", "research scientist"],
+        "data scientist": ["research scientist", "ml scientist", "ai scientist"],
+        "research scientist": ["ml researcher", "ai researcher", "research engineer"],
+        "software engineer": ["backend engineer", "full stack engineer", "platform engineer"],
+        "product manager": ["technical product manager", "ai product manager"],
+        "cto": ["chief technology officer", "vp engineering", "engineering director"],
+        "ceo": ["chief executive officer", "founder", "co-founder"],
+    }
+
+    if base_role in role_variations:
+        keywords.extend(role_variations[base_role])
+
+    # Add domain-specific roles
+    if domain:
+        domain_lower = domain.lower()
+        if "ai" in domain_lower or "ml" in domain_lower:
+            keywords.extend(["ai engineer", "machine learning", "research scientist"])
+        if "voice" in domain_lower or "speech" in domain_lower:
+            keywords.extend(["voice ai", "speech recognition", "nlp engineer"])
+        if "computer vision" in domain_lower or "cv" in domain_lower:
+            keywords.extend(["computer vision", "cv engineer", "perception engineer"])
+        if "nlp" in domain_lower or "natural language" in domain_lower:
+            keywords.extend(["nlp", "natural language processing", "nlp engineer"])
+
+    # Add keywords from technical skills
+    skill_to_role = {
+        "pytorch": "ml engineer",
+        "tensorflow": "ml engineer",
+        "nlp": "nlp engineer",
+        "natural language processing": "nlp engineer",
+        "computer vision": "cv engineer",
+        "speech": "speech engineer",
+        "voice": "voice ai engineer",
+        "deep learning": "ml engineer",
+        "llm": "ai engineer",
+        "large language model": "ai engineer"
+    }
+
+    for skill in technical_skills:
+        skill_lower = skill.lower()
+        for skill_keyword, role in skill_to_role.items():
+            if skill_keyword in skill_lower and role not in keywords:
+                keywords.append(role)
+
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_keywords = []
+    for k in keywords:
+        k_clean = k.strip()
+        if k_clean and k_clean not in seen:
+            seen.add(k_clean)
+            unique_keywords.append(k_clean)
+
+    return unique_keywords
+
 
 def build_domain_company_query(
     companies: List[Dict[str, Any]],
@@ -611,6 +939,66 @@ def build_domain_company_query(
     return query
 
 
+def normalize_profile_fields(profiles):
+    """
+    Normalize CoreSignal profile fields to frontend-expected format.
+
+    CoreSignal uses: full_name, headline, first_name, last_name, profile_url
+    Frontend expects: name, title, linkedin_url, current_company, years_experience
+
+    This function adds normalized fields while keeping all original fields.
+    """
+    from datetime import datetime
+
+    normalized_previews = []
+    for profile in profiles:
+        normalized = profile.copy()  # Keep all original fields
+
+        # Normalize name field
+        if not normalized.get('name'):
+            normalized['name'] = profile.get('full_name') or \
+                                f"{profile.get('first_name', '')} {profile.get('last_name', '')}".strip() or None
+
+        # Normalize title field (use headline as title)
+        if not normalized.get('title'):
+            normalized['title'] = profile.get('headline') or None
+
+        # Normalize linkedin_url field
+        if not normalized.get('linkedin_url'):
+            normalized['linkedin_url'] = profile.get('profile_url') or None
+
+        # Calculate current_company from most recent experience
+        if not normalized.get('current_company') and profile.get('experience'):
+            experiences = profile.get('experience', [])
+            if experiences:
+                # Find most recent non-ended experience
+                current_exp = next((exp for exp in experiences if not exp.get('end_date')), None)
+                if current_exp:
+                    normalized['current_company'] = current_exp.get('company_name')
+                elif experiences:  # Fallback to most recent
+                    normalized['current_company'] = experiences[0].get('company_name')
+
+        # Calculate years_experience if not present
+        if not normalized.get('years_experience') and profile.get('experience'):
+            # Simple calculation: sum of all experience durations
+            total_years = 0
+            for exp in profile.get('experience', []):
+                start = exp.get('start_date')
+                end = exp.get('end_date') or datetime.now().strftime('%Y-%m')
+                if start:
+                    try:
+                        start_year = int(start[:4])
+                        end_year = int(end[:4])
+                        total_years += (end_year - start_year)
+                    except:
+                        pass
+            normalized['years_experience'] = total_years
+
+        normalized_previews.append(normalized)
+
+    return normalized_previews
+
+
 async def stage2_preview_search(
     companies: List[Dict[str, Any]],
     jd_requirements: Dict[str, Any],
@@ -695,50 +1083,81 @@ async def stage2_preview_search(
         companies_to_search = [{'name': c} for c in next_batch]
         current_session_id = session_id
 
-    # Extract role keywords from JD
+    # Extract JD requirements for precise role matching
     role_title = jd_requirements.get('role_title', '')
     seniority = jd_requirements.get('seniority_level', '')
+    domain = jd_requirements.get('target_domain', '')
+    technical_skills = jd_requirements.get('technical_skills', [])
+    location = jd_requirements.get('location', None)
 
-    # Build role keywords (broader set - removed ceo/president/executive to avoid over-restriction)
-    role_keywords = [
-        "engineer", "developer", "architect",  # Technical roles
-        "product", "manager", "director",       # Mid-level roles
-        "founder", "lead"                        # Startup roles
-    ]
+    # Feature flag for experience-based search (can be disabled via env var for rollback)
+    use_experience_based_search = os.getenv('USE_EXPERIENCE_BASED_SEARCH', 'true').lower() == 'true'
 
-    # Add specific role from JD
-    if role_title:
-        role_keywords.extend(role_title.lower().split())
+    # Extract precise role keywords from JD
+    if use_experience_based_search:
+        precise_role_keywords = extract_precise_role_keywords(
+            role_title=role_title,
+            domain=domain,
+            technical_skills=technical_skills,
+            seniority=seniority
+        )
+        print(f"\n{'='*80}")
+        print(f"🎯 EXPERIENCE-BASED SEARCH ACTIVE")
+        print(f"   Companies: {len(companies_to_search)} (batch)")
+        print(f"   Precise Role Keywords: {precise_role_keywords[:5]}{'...' if len(precise_role_keywords) > 5 else ''}")
+        print(f"   Location: {location or 'Worldwide'} (optional)")
+        print(f"   Endpoint: {endpoint}")
+        print(f"{'='*80}")
+    else:
+        # Fallback to generic keywords (old method)
+        precise_role_keywords = [
+            "engineer", "developer", "architect",  # Technical roles
+            "product", "manager", "director",       # Mid-level roles
+            "founder", "lead"                        # Startup roles
+        ]
+        if role_title:
+            precise_role_keywords.extend(role_title.lower().split())
+        if seniority:
+            precise_role_keywords.append(seniority.lower())
+        precise_role_keywords = list(set(precise_role_keywords))
+        print(f"\n⚠️  Using CURRENT EMPLOYER search (old method)")
+        print(f"   Companies: {len(companies_to_search)} (batch)")
+        print(f"   Role Keywords: {precise_role_keywords}")
+        print(f"   Location: United States (required)")
 
-    # Add seniority
-    if seniority:
-        role_keywords.append(seniority.lower())
+    # Build query using selected method
+    if use_experience_based_search:
+        query = build_experience_based_query(
+            companies=companies_to_search,
+            role_keywords=precise_role_keywords,
+            location=location,  # From JD, optional
+            require_location=False,  # Make location optional (boost, not requirement)
+            require_target_role=False,  # Make role optional (boost, not requirement) - matches handover success
+            endpoint=endpoint
+        )
+        search_method = "experience_based"
+    else:
+        query = build_domain_company_query(
+            companies=companies_to_search,
+            role_keywords=precise_role_keywords,
+            location="United States",
+            require_current_role=False
+        )
+        search_method = "current_employer"
 
-    # Remove duplicates
-    role_keywords = list(set(role_keywords))
-
-    print(f"Companies: {len(companies_to_search)} (batch)")
-    print(f"Role Keywords: {role_keywords}")
-    print(f"Endpoint: {endpoint}")
-
-    # Build query (start with less restrictive version)
-    query = build_domain_company_query(
-        companies=companies_to_search,
-        role_keywords=role_keywords,
-        location="United States",
-        require_current_role=False  # Don't require current role match initially
-    )
-
-    # Log query
+    # Log query with comprehensive metadata
     query_log_data = {
         "stage": "preview_search_query",
         "session_id": current_session_id,
+        "search_method": search_method,
         "input": {
             "endpoint": endpoint,
             "num_companies": len(companies_to_search),
             "batch_companies": [c['name'] for c in companies_to_search],
-            "role_keywords": role_keywords,
-            "location": "United States"
+            "role_keywords": precise_role_keywords,
+            "location": location or "Worldwide",
+            "location_required": False if use_experience_based_search else True,
+            "target_role_required": True if use_experience_based_search else False
         },
         "query": query,
         "duration_seconds": round(time.time() - start_time, 2)
@@ -820,7 +1239,7 @@ async def stage2_preview_search(
 
     # Analyze relevance: Check how many have domain company experience
     domain_match_count = 0
-    company_names_lower = [c['name'].lower() for c in companies_to_search]
+    company_names_lower = [c['name'].lower() for c in companies_to_search if c.get('name')]
 
     for candidate in previews:
         # Check if candidate worked at any domain company
@@ -837,26 +1256,79 @@ async def stage2_preview_search(
     relevance_score = domain_match_count / len(previews) if previews else 0.0
     print(f"   📊 Relevance: {domain_match_count}/{len(previews)} ({relevance_score*100:.0f}%) with domain company experience")
 
-    # Prepare results log
+    # Analyze location distribution for transparency
+    location_distribution = {}
+    for candidate in previews:
+        if isinstance(candidate, dict):
+            loc = candidate.get('location', 'Unknown')
+            location_distribution[loc] = location_distribution.get(loc, 0) + 1
+
+    # Sort by count (descending)
+    location_distribution = dict(sorted(location_distribution.items(), key=lambda x: x[1], reverse=True))
+
+    # Calculate filter precision (how many match target role)
+    role_match_count = 0
+    if use_experience_based_search and precise_role_keywords:
+        for candidate in previews:
+            if isinstance(candidate, dict):
+                # Check current title (handle None explicitly)
+                current_title = (candidate.get('title') or '').lower()
+                # Check experience titles (handle None explicitly)
+                experiences = candidate.get('experience', [])
+                exp_titles = [(exp.get('title') or '').lower() for exp in experiences]
+                all_titles = [current_title] + exp_titles
+
+                # Check if any title matches our keywords
+                for title in all_titles:
+                    if any(keyword.lower() in title for keyword in precise_role_keywords[:5]):  # Check first 5 keywords
+                        role_match_count += 1
+                        break
+
+    filter_precision = role_match_count / len(previews) if previews else 0.0
+
+    # Print location distribution
+    print(f"\n   📍 Location Distribution:")
+    for loc, count in list(location_distribution.items())[:5]:  # Top 5 locations
+        print(f"      - {loc}: {count} ({count/len(previews)*100:.0f}%)")
+
+    print(f"\n   🎯 Filter Precision: {role_match_count}/{len(previews)} ({filter_precision*100:.0f}%) match target role")
+
+    # Prepare comprehensive results log
     results_log_data = {
         "stage": "preview_results",
+        "search_method": search_method,
         "candidates": previews,
         "total_candidates": len(previews),
+        "total_employee_ids_found": len(employee_ids),  # Raw search results
         "relevance_score": relevance_score,
-        "duration_seconds": round(duration, 2)
+        "filter_precision": filter_precision,
+        "duration_seconds": round(duration, 2),
+        "location_distribution": location_distribution,
+        "role_keywords_used": precise_role_keywords,
+        "cache_stats": cache_stats,
+        "search_config": {
+            "location_filter": location or "Worldwide",
+            "location_required": False if use_experience_based_search else True,
+            "target_role_required": True if use_experience_based_search else False,
+            "endpoint": endpoint
+        }
     }
     session_logger.log_json("02_preview_results.json", results_log_data)
 
     # Prepare analysis text
     analysis_text = f"""PREVIEW SEARCH QUALITY ANALYSIS
 {"="*50}
+Search Method: {search_method}
 Total Candidates: {len(previews)}
+Total Employee IDs Found: {len(employee_ids)}
 Endpoint Used: {endpoint}
 
 Query Configuration:
-  Companies Targeted: {len(companies)}
-  Role Keywords: {', '.join(role_keywords)}
-  Location: United States
+  Companies Targeted: {len(companies_to_search)}
+  Role Keywords: {', '.join(precise_role_keywords[:10])}
+  Location: {location or 'Worldwide'}
+  Location Required: {False if use_experience_based_search else True}
+  Target Role Required: {True if use_experience_based_search else False}
 
 RELEVANCE BREAKDOWN:
   (Analysis will be added after CoreSignal integration)
@@ -881,8 +1353,11 @@ RECOMMENDATION: (To be determined after integration)
             "total_batches": stats.get('total_batches', 0)
         }
 
+    # Normalize profile fields for frontend compatibility using shared function
+    normalized_previews = normalize_profile_fields(previews)
+
     return {
-        "previews": previews,
+        "previews": normalized_previews,
         "relevance_score": relevance_score,
         "total_found": len(previews),
         "session_id": current_session_id,
@@ -1406,6 +1881,140 @@ Provide your evaluation in the following JSON format:
 
 
 # ========================================
+# STREAMING GENERATOR FOR STAGE 1-2
+# ========================================
+
+def stage1_and_stage2_stream(
+    jd_requirements: Dict[str, Any],
+    endpoint: str,
+    max_previews: int,
+    top_level_companies: List[Dict[str, Any]],
+    cache_key: str
+) -> Generator[str, None, None]:
+    """
+    Streaming generator for Stage 1 (Company Discovery) and Stage 2 (Preview Search).
+    Yields SSE progress events throughout the pipeline.
+
+    Args:
+        jd_requirements: Parsed JD requirements
+        endpoint: CoreSignal endpoint to use
+        max_previews: Max number of previews to fetch
+        top_level_companies: Pre-selected companies (if any)
+        cache_key: Cache key for this search
+
+    Yields:
+        SSE formatted strings with progress updates and final results
+    """
+    try:
+        # Create session logger
+        session_logger = SessionLogger()
+
+        # Update metadata
+        session_logger.update_session_status("running", {
+            "jd_requirements": jd_requirements,
+            "endpoint": endpoint,
+            "max_previews": max_previews
+        })
+
+        # Send initial event
+        event_data = json.dumps({'event': 'search_start', 'session_id': session_logger.session_id})
+        yield f"data: {event_data}\n\n"
+
+        # Stage 1: Company Discovery
+        pre_selected_companies = top_level_companies if top_level_companies else []
+
+        if pre_selected_companies:
+            # Using pre-selected companies (skip Stage 1)
+            companies = pre_selected_companies
+            with_ids = sum(1 for c in companies if isinstance(c, dict) and c.get('coresignal_company_id'))
+
+            event_data = json.dumps({'event': 'stage1_skipped', 'reason': 'pre_selected', 'count': len(companies), 'with_ids': with_ids})
+            yield f"data: {event_data}\n\n"
+        else:
+            # Run Stage 1 discovery
+            event_data = json.dumps({'event': 'stage1_start', 'message': 'Discovering companies...'})
+            yield f"data: {event_data}\n\n"
+
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            companies = loop.run_until_complete(
+                stage1_discover_companies(jd_requirements, session_logger)
+            )
+            loop.close()
+
+            # Emit stage1_complete with screening results (companies are now sorted by relevance)
+            event_data = json.dumps({
+                'event': 'stage1_complete',
+                'companies_found': len(companies),
+                'companies': [c.get('name', 'Unknown') for c in companies[:10]],
+                'top_scores': [round(c.get('relevance_score', 0), 1) for c in companies[:10]]
+            })
+            yield f"data: {event_data}\n\n"
+
+        # Stage 2: Preview Search
+        event_data = json.dumps({'event': 'stage2_start', 'message': 'Searching for candidates...', 'companies': len(companies)})
+        yield f"data: {event_data}\n\n"
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        stage2_results = loop.run_until_complete(
+            stage2_preview_search(companies, jd_requirements, endpoint, max_previews, session_logger)
+        )
+        loop.close()
+
+        event_data = json.dumps({'event': 'stage2_progress', 'message': 'Normalizing profile fields...'})
+        yield f"data: {event_data}\n\n"
+
+        # Save to cache
+        save_search_results(
+            cache_key=cache_key,
+            stage1_companies=companies,
+            stage2_previews=stage2_results['previews'],
+            session_id=session_logger.session_id,
+            jd_requirements=jd_requirements,
+            endpoint=endpoint
+        )
+
+        # Update session status
+        session_logger.update_session_status("stage2_complete", {
+            "companies_discovered": len(companies),
+            "previews_found": stage2_results['total_found'],
+            "relevance_score": stage2_results['relevance_score']
+        })
+
+        # Send completion event with full results
+        event_data = json.dumps({'event': 'stage2_complete', 'candidates_found': stage2_results['total_found']})
+        yield f"data: {event_data}\n\n"
+
+        # Build final response
+        response_data = {
+            "event": "search_complete",
+            "success": True,
+            "session_id": session_logger.session_id,
+            "stage1_companies": companies,
+            "stage2_previews": stage2_results['previews'],
+            "relevance_score": stage2_results['relevance_score'],
+            "total_companies_discovered": len(companies),
+            "total_previews_found": stage2_results['total_found'],
+            "session_stats": stage2_results['session_stats'],
+            "log_directory": str(session_logger.session_dir)
+        }
+
+        # Send final result
+        event_data = json.dumps(response_data)
+        yield f"data: {event_data}\n\n"
+
+    except Exception as e:
+        error_event = {
+            "event": "error",
+            "error": str(e),
+            "traceback": __import__('traceback').format_exc()
+        }
+        event_data = json.dumps(error_event)
+        yield f"data: {event_data}\n\n"
+
+
+# ========================================
 # API ENDPOINT
 # ========================================
 
@@ -1413,6 +2022,8 @@ Provide your evaluation in the following JSON format:
 def domain_company_preview_search():
     """
     Combined endpoint for Stage 1 + Stage 2: Company discovery + Preview search.
+
+    Supports both JSON response (default) and SSE streaming (opt-in).
 
     Request Body:
     {
@@ -1424,18 +2035,34 @@ def domain_company_preview_search():
             "seniority_level": "senior"
         },
         "endpoint": "employee_clean",  // Optional, default: employee_clean
-        "max_previews": 20               // Optional, default: 20
+        "max_previews": 20,              // Optional, default: 20
+        "stream": false                  // Optional, default: false. Set true for SSE streaming
     }
 
-    Response:
+    Response (JSON mode):
     {
         "success": true,
         "session_id": "sess_20251104_223456_abc123",
-        "stage1_companies": [...],
+        "stage1_companies": [...],  // Sorted by relevance_score (highest first)
         "stage2_previews": [...],
         "relevance_score": 0.70,
         "log_directory": "backend/logs/domain_search_sessions/sess_..."
     }
+
+    Note: stage1_companies now includes relevance_score and relevance_reasoning fields from GPT-5-mini screening.
+
+    Response (SSE mode):
+    Server-Sent Events stream with progress updates:
+    - search_start: Search initiated
+    - stage1_start: Company discovery started
+    - stage1_complete: Companies discovered and sorted by relevance (includes top_scores array)
+    - stage2_start: Candidate search started
+    - stage2_progress: Search progress updates
+    - stage2_complete: Candidates found
+    - search_complete: Final results (full response data)
+
+    Note: Stage 1 now includes AI-powered relevance screening with GPT-5-mini.
+    Companies are automatically sorted by relevance score (1-10) before Stage 2.
     """
     try:
         data = request.get_json()
@@ -1443,7 +2070,9 @@ def domain_company_preview_search():
         # Extract inputs
         jd_requirements = data.get('jd_requirements', {})
         endpoint = data.get('endpoint', 'employee_clean')
-        max_previews = data.get('max_previews', 20)
+        max_previews = data.get('max_previews', 100)  # Increased from 20 to 100 for experience-based search
+        stream_mode = data.get('stream', False)  # Support SSE streaming
+        bypass_cache = data.get('bypass_cache', False)  # NEW: Support cache bypass for refresh
 
         # IMPORTANT: Merge top-level mentioned_companies (from company selection UI)
         # into jd_requirements.mentioned_companies (from JD analysis)
@@ -1467,9 +2096,39 @@ def domain_company_preview_search():
         if not jd_requirements:
             return jsonify({"success": False, "error": "jd_requirements is required"}), 400
 
-        # Check cache first to save API credits
+        # Check cache first to save API credits (unless bypass requested)
         cache_key = generate_search_cache_key(jd_requirements, endpoint)
-        cached_data = get_cached_search_results(cache_key, freshness_days=7)
+
+        if bypass_cache:
+            print(f"\n{'='*80}")
+            print(f"🔄 CACHE BYPASS REQUESTED - Running fresh search")
+            print(f"{'='*80}\n")
+            cached_data = None
+        else:
+            cached_data = get_cached_search_results(cache_key, freshness_days=7)
+
+        # If streaming mode requested and cache miss, use SSE streaming
+        if stream_mode and not cached_data:
+            print(f"\n{'='*80}")
+            print(f"🔄 STREAMING MODE - Will send SSE progress events")
+            print(f"{'='*80}\n")
+
+            return Response(
+                stream_with_context(
+                    stage1_and_stage2_stream(
+                        jd_requirements,
+                        endpoint,
+                        max_previews,
+                        top_level_companies,
+                        cache_key
+                    )
+                ),
+                mimetype='text/event-stream',
+                headers={
+                    'Cache-Control': 'no-cache',
+                    'X-Accel-Buffering': 'no'
+                }
+            )
 
         if cached_data:
             # Return cached results immediately - save API credits!
@@ -1478,14 +2137,17 @@ def domain_company_preview_search():
             print(f"💰 SAVED API credits by avoiding duplicate search!")
             print(f"{'='*80}\n")
 
+            # Normalize cached profile fields for frontend compatibility
+            normalized_cached_previews = normalize_profile_fields(cached_data['stage2_previews'])
+
             return jsonify({
                 "success": True,
                 "session_id": cached_data.get('session_id', 'cached'),
                 "stage1_companies": cached_data['stage1_companies'],
-                "stage2_previews": cached_data['stage2_previews'],
+                "stage2_previews": normalized_cached_previews,
                 "relevance_score": 0.0,  # Could be stored in cache if needed
                 "total_companies_discovered": len(cached_data['stage1_companies']),
-                "total_previews_found": len(cached_data['stage2_previews']),
+                "total_previews_found": len(normalized_cached_previews),
                 "from_cache": True,
                 "cache_age_days": cached_data['cache_age_days'],
                 "log_directory": None  # No new logs for cached results
