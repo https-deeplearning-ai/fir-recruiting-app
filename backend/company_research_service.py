@@ -15,6 +15,7 @@ from anthropic import Anthropic, RateLimitError
 from supabase import create_client, Client
 from gpt5_client import GPT5Client
 from config import EXCLUDED_COMPANIES, is_excluded_company
+from company_id_cache_service import CompanyIDCacheService
 
 
 class CompanyResearchConfig:
@@ -107,6 +108,9 @@ class CompanyResearchService:
         supabase_key = os.getenv("SUPABASE_KEY")
         self.supabase: Client = create_client(supabase_url, supabase_key)
 
+        # Initialize Company ID Cache Service
+        self.cache_service = CompanyIDCacheService(supabase_url, supabase_key)
+
         # Track discovered companies to avoid duplicates
         self.discovered_companies = set()
 
@@ -155,32 +159,55 @@ class CompanyResearchService:
                 "phase": "discovery",
                 "action": "Discovering companies via web search and seed expansion..."
             })
-            discovered = await self.discover_companies(
+            discovered, cache_metrics = await self.discover_companies(
                 jd_context.get("seed_companies", []),
                 jd_context,
                 config or {},
                 jd_id  # Pass jd_id for live updates
             )
 
-            # Phase 2: Claude Haiku Screening with Web Search (NEW)
-            print(f"\n{'='*80}")
-            print(f"[SCREENING] Starting Claude Haiku screening with web search on {len(discovered)} companies...")
-            print(f"{'='*80}\n")
+            # Phase 2: Claude Haiku Screening with Web Search (CONDITIONAL)
+            skip_ai_scoring = config.get('skip_ai_scoring', False)
 
-            # Screen companies one-by-one with Claude Haiku + web search
-            await self.screen_companies_with_haiku(
-                discovered,
-                jd_context,
-                jd_id
-            )
+            if skip_ai_scoring:
+                # SKIP AI SCORING - Assign default scores for faster results
+                print(f"\n{'='*80}")
+                print(f"[SCREENING] ⚡ AI scoring SKIPPED by user")
+                print(f"[SCREENING] Assigning default scores to {len(discovered)} companies")
+                print(f"{'='*80}\n")
 
-            # Extract scores for logging
-            scores = [c.get('relevance_score', 5.0) for c in discovered]
-            print(f"\n[SCREENING] Completed! Score range: {min(scores):.1f} - {max(scores):.1f}")
-            print(f"[SCREENING] Top 5 companies:")
-            sorted_for_display = sorted(discovered, key=lambda c: c.get('relevance_score', 0), reverse=True)
-            for i, c in enumerate(sorted_for_display[:5], 1):
-                print(f"  {i}. {c.get('name')}: {c.get('relevance_score', 0):.1f} - {c.get('screening_reasoning', 'N/A')[:60]}")
+                for company in discovered:
+                    company['relevance_score'] = 5.0
+                    company['screening_score'] = 5.0
+                    company['scored_by'] = 'default_no_ai'
+                    company['screening_reasoning'] = (
+                        'AI scoring was skipped for faster results. '
+                        'This company has not been evaluated by Claude Haiku.'
+                    )
+
+                print(f"\n[SCREENING] ✓ Default scores assigned")
+                print(f"[SCREENING] {len(discovered)} companies ready for display\n")
+
+            else:
+                # FULL AI SCORING - Claude Haiku with web search
+                print(f"\n{'='*80}")
+                print(f"[SCREENING] Starting Claude Haiku screening with web search on {len(discovered)} companies...")
+                print(f"{'='*80}\n")
+
+                # Screen companies one-by-one with Claude Haiku + web search
+                await self.screen_companies_with_haiku(
+                    discovered,
+                    jd_context,
+                    jd_id
+                )
+
+                # Extract scores for logging
+                scores = [c.get('relevance_score', 5.0) for c in discovered]
+                print(f"\n[SCREENING] Completed! Score range: {min(scores):.1f} - {max(scores):.1f}")
+                print(f"[SCREENING] Top 5 companies:")
+                sorted_for_display = sorted(discovered, key=lambda c: c.get('relevance_score', 0), reverse=True)
+                for i, c in enumerate(sorted_for_display[:5], 1):
+                    print(f"  {i}. {c.get('name')}: {c.get('relevance_score', 0):.1f} - {c.get('screening_reasoning', 'N/A')[:60]}")
 
             # Phase 3: Sample Employee Fetching (NEW - Proof of talent pool)
             await self._update_session_status(jd_id, "running", {
@@ -248,7 +275,8 @@ class CompanyResearchService:
                 "discovered_companies_list": discovered_objects,  # Full objects for UI with all enrichments
                 "total_discovered": len(discovered_sorted),
                 "evaluation_status": "scored",  # All companies have relevance scores
-                "jd_context": jd_context  # Save for future reference
+                "jd_context": jd_context,  # Save for future reference
+                "cache_metrics": cache_metrics  # NEW: Include cache performance metrics
             })
 
             # ============= DEBUG LOGGING =============
@@ -273,12 +301,24 @@ class CompanyResearchService:
                 "below_6": len([s for s in scores if s < 6])
             }
 
+            # Determine scoring method for metadata
+            scored_by = discovered_sorted[0].get('scored_by') if discovered_sorted else None
+
             return {
                 "success": True,
                 "session_id": jd_id,
                 "status": "enriched",
                 "discovered_companies": discovered_objects,  # ALL companies with scores, metadata, employees
                 "evaluation_status": "scored",
+                "metadata": {
+                    "ai_scoring_enabled": not skip_ai_scoring,
+                    "scored_by": scored_by,
+                    "pipeline_phases": {
+                        "discovery": True,
+                        "ai_scoring": not skip_ai_scoring,
+                        "employee_sampling": True
+                    }
+                },
                 "summary": {
                     "total_discovered": len(discovered_sorted),
                     "total_scored": len(discovered_sorted),
@@ -471,7 +511,7 @@ class CompanyResearchService:
                 "phase": "discovery",
                 "action": f"Enriching {len(unique_companies[:100])} companies with CoreSignal data..."
             })
-        enriched = await self._enrich_companies(unique_companies[:100])
+        enriched, cache_metrics = await self._enrich_companies(unique_companies[:100])
 
         # Final update with enriched company count
         if jd_id:
@@ -483,7 +523,7 @@ class CompanyResearchService:
                 "total_discovered": len(enriched)
             })
 
-        return enriched
+        return enriched, cache_metrics
 
     async def search_competitors_web(self, company_name: str) -> List[Dict[str, Any]]:
         """
@@ -1176,18 +1216,20 @@ If no clear companies are found, return an empty array: []"""
 
     async def _enrich_companies(self, companies: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Enrich companies with CoreSignal IDs using lookup_with_fallback().
+        Enrich companies with CoreSignal IDs using cache + lookup_with_fallback().
 
+        NEW: Cache-first approach (saves 80%+ API search credits)
         For each discovered company:
-        1. Look up CoreSignal company ID using 4-tier strategy:
+        1. Check cache for existing CoreSignal ID (instant, 0 credits)
+        2. If cache miss, execute 4-tier lookup:
            - Tier 1: Website exact match (90% success when available)
            - Tier 2: Name exact match with pagination (40-50%)
            - Tier 3: Fuzzy match (5-10%)
            - Tier 4: company_clean fallback (3-5%)
-        2. Store company_id for future research agent to collect full data
-        3. Mark as searchable/non-searchable
+        3. Save result to cache (successful or failed)
+        4. For failed searches, don't retry for 7 days
 
-        Expected: 80-90% match rate, 0 credits used (ID lookup only)
+        Expected: 80-90% match rate, 80%+ cache hit rate (after warm-up)
         """
         from coresignal_company_lookup import CoreSignalCompanyLookup
 
@@ -1201,6 +1243,11 @@ If no clear companies are found, return an empty array: []"""
         companies_without_ids = []
         tier_stats = {1: 0, 2: 0, 3: 0, 4: 0}
 
+        # Cache performance tracking
+        cache_hits = 0
+        cache_misses = 0
+        cache_errors = 0
+
         for company in companies:
             company_name = company.get('name', company.get('company_name', ''))
 
@@ -1211,34 +1258,92 @@ If no clear companies are found, return an empty array: []"""
             # Get website if available (from discovery)
             website = company.get('website')
 
-            # Use 4-tier lookup with fallback
+            # ========================================
+            # STEP 1: Check cache first
+            # ========================================
+            try:
+                cached = await self.cache_service.get_cached_id(company_name)
+            except Exception as e:
+                print(f"   [CACHE ERROR] Failed to check cache for {company_name}: {e}")
+                cached = None
+                cache_errors += 1
+
+            if cached and cached.get('coresignal_id'):
+                # ✅ Cache HIT with valid ID
+                cache_hits += 1
+                company['coresignal_id'] = cached['coresignal_id']
+                company['coresignal_confidence'] = cached.get('confidence', 1.0)
+                company['coresignal_searchable'] = True
+                company['lookup_tier'] = 'cache'  # Mark as from cache
+                company['lookup_method'] = 'cache'
+                company['cache_hit'] = True
+                company['employee_count'] = cached.get('employee_count')
+
+                # Track as cache hit in tier stats (don't count toward specific tiers)
+                # Cached entries already found their tier when first discovered
+
+                companies_with_ids.append(company)
+                print(f"   ✅ [CACHE HIT] {company_name}: ID={cached['coresignal_id']} (confidence: {cached.get('confidence', '1.0')})")
+                continue
+
+            elif cached and not cached.get('lookup_successful'):
+                # Cache HIT with failed search - check if retry is allowed
+                cached_at_str = cached.get('created_at')  # Use created_at from actual schema
+                if cached_at_str:
+                    try:
+                        cached_at = datetime.fromisoformat(cached_at_str.replace('Z', '+00:00'))
+                        days_old = (datetime.now(timezone.utc) - cached_at).days
+
+                        if days_old < 7:
+                            # Skip - failed recently, don't retry yet
+                            cache_hits += 1
+                            company['coresignal_searchable'] = False
+                            company['cache_hit'] = True
+                            company['lookup_method'] = 'cache_failed'
+                            companies_without_ids.append(company)
+                            print(f"   ⊘ [CACHE HIT - FAILED] {company_name} (searched {days_old} days ago, skipping)")
+                            continue
+                        else:
+                            print(f"   ↻ [CACHE STALE] {company_name} (searched {days_old} days ago, retrying)")
+                    except Exception as e:
+                        print(f"   [CACHE] Error parsing cached_at: {e}")
+
+            # ========================================
+            # STEP 2: Cache MISS - Execute 4-tier lookup
+            # ========================================
+            cache_misses += 1
+            print(f"   ⊗ [CACHE MISS] {company_name} - executing 4-tier lookup...")
+
             match = company_lookup.lookup_with_fallback(
                 company_name=company_name,
                 website=website,
-                confidence_threshold=0.75,  # Match domain_search.py
+                confidence_threshold=0.75,
                 use_company_clean_fallback=True
             )
 
+            # ========================================
+            # STEP 3: Save result to cache
+            # ========================================
             if match:
-                # Store CoreSignal ID and metadata
+                # Successful lookup
                 company['coresignal_id'] = match['company_id']
                 company['coresignal_confidence'] = match.get('confidence', 1.0)
                 company['coresignal_searchable'] = True
                 company['lookup_tier'] = match.get('tier', 0)
                 company['lookup_method'] = match.get('lookup_method', 'unknown')
+                company['cache_hit'] = False
 
                 # Track tier statistics
                 tier = match.get('tier', 0)
                 if tier in tier_stats:
                     tier_stats[tier] += 1
 
-                # Enrich with additional data from match (preview endpoint fields)
+                # Enrich with additional data from match
                 if 'website' in match and not company.get('website'):
                     company['website'] = match['website']
                 if 'employee_count' in match and match['employee_count']:
                     company['employee_count'] = match['employee_count']
                 if 'industry' in match and match['industry'] and not company.get('industry'):
-                    # Only set if not already have industry from Tavily
                     company['industry'] = match['industry']
                 if 'size_range' in match and match['size_range']:
                     company['size_range'] = match['size_range']
@@ -1248,16 +1353,54 @@ If no clear companies are found, return an empty array: []"""
                     company['location'] = match['location']
 
                 companies_with_ids.append(company)
-                print(f"   ✅ {company_name}: ID={match['company_id']} (tier {tier}, {match.get('lookup_method', 'unknown')})")
-            else:
-                # No match found - preserve company but mark as not searchable
-                company['coresignal_searchable'] = False
-                companies_without_ids.append(company)
-                print(f"   ❌ {company_name}: No CoreSignal ID found")
+                print(f"      ✅ Found: ID={match['company_id']} (tier {tier}, {match.get('lookup_method', 'unknown')})")
 
-        # Calculate and log coverage statistics
+                # Save to cache
+                try:
+                    tier_name = {1: 'website', 2: 'name_exact', 3: 'fuzzy', 4: 'company_clean'}.get(tier, 'unknown')
+                    await self.cache_service.save_to_cache(
+                        company_name=company_name,
+                        coresignal_id=match['company_id'],
+                        lookup_tier=tier_name,
+                        website=website,
+                        metadata={
+                            'confidence': match.get('confidence', 1.0),
+                            'industry': company.get('industry'),
+                            'employee_count': company.get('employee_count')
+                        }
+                    )
+                except Exception as e:
+                    print(f"      [CACHE] Error saving to cache: {e}")
+                    cache_errors += 1
+            else:
+                # Failed lookup - save NULL to cache
+                company['coresignal_searchable'] = False
+                company['cache_hit'] = False
+                companies_without_ids.append(company)
+                print(f"      ❌ Not found: No CoreSignal ID")
+
+                # Save failed search to cache (prevents retry for 7 days)
+                try:
+                    await self.cache_service.save_to_cache(
+                        company_name=company_name,
+                        coresignal_id=None,  # NULL indicates failed search
+                        lookup_tier=None,
+                        website=website,
+                        metadata={'search_failed': True, 'failed_at': datetime.now(timezone.utc).isoformat()}
+                    )
+                    print(f"      [CACHE] Saved failed search (won't retry for 7 days)")
+                except Exception as e:
+                    print(f"      [CACHE] Error saving failed search: {e}")
+                    cache_errors += 1
+
+        # Calculate and log coverage + cache statistics
         total_companies = len(companies)
         coverage_percent = (len(companies_with_ids) / total_companies * 100) if total_companies else 0
+
+        # Cache performance
+        total_cache_ops = cache_hits + cache_misses
+        cache_hit_rate = (cache_hits / total_cache_ops * 100) if total_cache_ops > 0 else 0
+        credits_saved = cache_hits  # Each cache hit = 1 search credit saved
 
         print(f"\n{'='*80}")
         print(f"📊 CoreSignal ID Lookup Results:")
@@ -1268,10 +1411,25 @@ If no clear companies are found, return an empty array: []"""
         print(f"      Tier 2 (Name Exact): {tier_stats[2]} companies")
         print(f"      Tier 3 (Fuzzy): {tier_stats[3]} companies")
         print(f"      Tier 4 (company_clean): {tier_stats[4]} companies")
+        print(f"\n💾 Cache Performance:")
+        print(f"   Cache Hits: {cache_hits} ({cache_hit_rate:.1f}% hit rate)")
+        print(f"   Cache Misses: {cache_misses}")
+        print(f"   Cache Errors: {cache_errors}")
+        print(f"   💰 Credits Saved: {credits_saved} (~${credits_saved * 0.10:.2f} at $0.10/credit)")
         print(f"{'='*80}\n")
 
-        # Return ALL companies (with and without IDs) - "No Company Left Behind"
-        return companies
+        # Store cache metrics for API response
+        cache_metrics = {
+            "cache_hits": cache_hits,
+            "cache_misses": cache_misses,
+            "cache_errors": cache_errors,
+            "cache_hit_rate": cache_hit_rate,
+            "credits_saved": credits_saved,
+            "estimated_cost_saved": credits_saved * 0.10
+        }
+
+        # Return ALL companies (with and without IDs) + cache metrics - "No Company Left Behind"
+        return companies, cache_metrics
 
     async def _screen_companies(
         self,
@@ -1679,8 +1837,32 @@ If no clear companies are found, return an empty array: []"""
                 company_data = response.json()
 
                 # Cache for next time
-                save_stored_company(company_id, company_data, time.time())
-                print(f"📦 Cached data for company_id {company_id}")
+                save_stored_company(
+                    company_id,
+                    company_data,
+                    collected_at=time.time(),
+                    collection_method="collect"
+                )
+                print(f"📦 Cached full company data for company_id {company_id}")
+
+                # REVERSE ENRICHMENT: Also cache name→ID mapping
+                company_name = company_data.get('name')
+                if company_name:
+                    try:
+                        await self.cache_service.save_to_cache(
+                            company_name=company_name,
+                            coresignal_id=company_id,
+                            lookup_tier='collect_reverse',
+                            website=company_data.get('website'),
+                            metadata={
+                                'confidence': 1.0,  # 100% confidence - from official API
+                                'employee_count': company_data.get('employees_count') or company_data.get('employee_count'),
+                                'industry': company_data.get('industry')
+                            }
+                        )
+                        print(f"   💾 BONUS: Cached name→ID mapping: '{company_name}' → {company_id}")
+                    except Exception as e:
+                        print(f"   [CACHE] Error saving reverse mapping: {e}")
 
                 return company_data
         except Exception as e:

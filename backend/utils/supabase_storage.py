@@ -89,7 +89,7 @@ def _handle_supabase_error(operation: str, error: Exception, silent: bool = Fals
 # PROFILE STORAGE FUNCTIONS
 # =============================================================================
 
-def get_stored_profile(linkedin_url: str) -> Optional[Dict[str, Any]]:
+def get_stored_profile(identifier: str) -> Optional[Dict[str, Any]]:
     """
     Check if profile is stored in database and determine if we should use it.
 
@@ -99,13 +99,18 @@ def get_stored_profile(linkedin_url: str) -> Optional[Dict[str, Any]]:
     - If > 90 days (3 months) old: FORCE fresh pull from CoreSignal
 
     Args:
-        linkedin_url: LinkedIn profile URL or employee_id (prefix with "id:" for employee_id)
+        identifier: LinkedIn profile URL OR "id:12345" format for employee_id
 
     Returns:
         dict with profile_data and metadata, or None if needs fresh pull
 
     Example:
+        # By LinkedIn URL (uses stored_profiles table)
         cached = get_stored_profile("https://linkedin.com/in/johndoe")
+
+        # By employee ID (uses stored_profiles_by_employee_id table)
+        cached = get_stored_profile("id:12345678")
+
         if cached:
             profile = cached['profile_data']
             age_days = cached['storage_age_days']
@@ -114,10 +119,16 @@ def get_stored_profile(linkedin_url: str) -> Optional[Dict[str, Any]]:
     try:
         headers = _get_supabase_headers()
 
-        # URL encode the linkedin_url for the query
-        encoded_url = urllib.parse.quote(linkedin_url, safe='')
+        # Determine identifier type and query appropriate table
+        if identifier.startswith('id:'):
+            # Query stored_profiles_by_employee_id table (SEPARATE TABLE APPROACH)
+            employee_id = identifier[3:]  # Remove "id:" prefix
+            url = f"{SUPABASE_URL}/rest/v1/stored_profiles_by_employee_id?employee_id=eq.{employee_id}"
+        else:
+            # Query stored_profiles table (by linkedin_url)
+            encoded_url = urllib.parse.quote(identifier, safe='')
+            url = f"{SUPABASE_URL}/rest/v1/stored_profiles?linkedin_url=eq.{encoded_url}"
 
-        url = f"{SUPABASE_URL}/rest/v1/stored_profiles?linkedin_url=eq.{encoded_url}"
         response = requests.get(url, headers=headers, timeout=10)
 
         if response.status_code == 200:
@@ -157,14 +168,16 @@ def get_stored_profile(linkedin_url: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def save_stored_profile(linkedin_url: str, profile_data: Dict[str, Any], checked_at: Optional[float] = None) -> bool:
+def save_stored_profile(identifier: str, profile_data: Dict[str, Any], checked_at: Optional[float] = None) -> bool:
     """
     Save profile to storage for future cache hits.
 
-    Uses Supabase's merge-duplicates preference to update existing records.
+    SMART DUAL-SAVE STRATEGY:
+    - Saves to BOTH tables when both identifiers are available
+    - Maximizes cache coverage and prevents duplicate API calls
 
     Args:
-        linkedin_url: LinkedIn profile URL or employee_id (prefix with "id:")
+        identifier: LinkedIn profile URL OR "id:12345" format for employee_id
         profile_data: Full profile data from CoreSignal API
         checked_at: Timestamp when profile was checked (optional)
 
@@ -172,31 +185,72 @@ def save_stored_profile(linkedin_url: str, profile_data: Dict[str, Any], checked
         bool: True if saved successfully, False otherwise
 
     Example:
-        saved = save_stored_profile(
-            "https://linkedin.com/in/johndoe",
-            profile_data,
-            checked_at=time.time()
-        )
+        # Domain search (saves to BOTH tables if profile has URL)
+        save_stored_profile("id:12345678", profile_data)
+        # → Saves to stored_profiles_by_employee_id
+        # → ALSO saves to stored_profiles (if profile_url exists)
+
+        # Single assessment (saves to stored_profiles only)
+        save_stored_profile("https://linkedin.com/in/johndoe", profile_data)
+        # → Saves to stored_profiles
     """
     try:
         headers = _get_supabase_headers()
         headers['Prefer'] = 'resolution=merge-duplicates'
 
-        data = {
-            'linkedin_url': linkedin_url,
-            'profile_data': profile_data,
-            'checked_at': checked_at
-        }
+        saved_count = 0
 
-        url = f"{SUPABASE_URL}/rest/v1/stored_profiles"
-        response = requests.post(url, json=data, headers=headers, timeout=10)
+        # Determine identifier type and save to appropriate table
+        if identifier.startswith('id:'):
+            # Primary save: stored_profiles_by_employee_id table
+            employee_id = int(identifier[3:])  # Remove "id:" prefix and convert to int
+            data = {
+                'employee_id': employee_id,
+                'profile_data': profile_data,
+                'checked_at': checked_at
+            }
+            url = f"{SUPABASE_URL}/rest/v1/stored_profiles_by_employee_id"
 
-        if response.status_code in [200, 201]:
-            print(f"💾 Saved profile to storage")
-            return True
+            response = requests.post(url, json=data, headers=headers, timeout=10)
+            if response.status_code in [200, 201]:
+                saved_count += 1
+                print(f"💾 Saved profile to stored_profiles_by_employee_id")
+            else:
+                print(f"⚠️  Failed to save to stored_profiles_by_employee_id: {response.status_code}")
+
+            # BONUS: Also save to stored_profiles if profile has LinkedIn URL
+            linkedin_url = profile_data.get('profile_url')
+            if linkedin_url:
+                data_url = {
+                    'linkedin_url': linkedin_url,
+                    'profile_data': profile_data,
+                    'checked_at': checked_at
+                }
+                url_table = f"{SUPABASE_URL}/rest/v1/stored_profiles"
+
+                response_url = requests.post(url_table, json=data_url, headers=headers, timeout=10)
+                if response_url.status_code in [200, 201]:
+                    saved_count += 1
+                    print(f"💾 BONUS: Also saved to stored_profiles (dual cache!) ✅")
+                # Silently ignore URL table errors (not critical)
+
         else:
-            print(f"⚠️  Failed to save profile to cache: {response.status_code}")
-            return False
+            # Save to stored_profiles table (by linkedin_url)
+            data = {
+                'linkedin_url': identifier,
+                'profile_data': profile_data,
+                'checked_at': checked_at
+            }
+            url = f"{SUPABASE_URL}/rest/v1/stored_profiles"
+
+            response = requests.post(url, json=data, headers=headers, timeout=10)
+            if response.status_code in [200, 201]:
+                saved_count += 1
+                print(f"💾 Saved profile to stored_profiles")
+            else:
+                print(f"⚠️  Failed to save profile to cache: {response.status_code}")
+
+        return saved_count > 0
 
     except Exception as e:
         _handle_supabase_error("profile save", e)
@@ -276,21 +330,37 @@ def get_stored_company(company_id: int, freshness_days: int = 30) -> Optional[Di
         return None
 
 
-def save_stored_company(company_id: int, company_data: Dict[str, Any]) -> bool:
+def save_stored_company(
+    company_id: int,
+    company_data: Dict[str, Any],
+    collected_at: Optional[float] = None,
+    collection_method: str = "collect"
+) -> bool:
     """
     Save company to storage for future cache hits.
 
     Uses Supabase's merge-duplicates preference to update existing records.
 
+    IMPORTANT: This is TIER 2 caching (full company data).
+    For TIER 1 (ID mappings only), use CompanyIDCacheService.
+
     Args:
         company_id: CoreSignal company ID
         company_data: Full company data from CoreSignal API
+        collected_at: Timestamp when data was collected (optional)
+        collection_method: How data was obtained:
+            - "collect": Full data from /company_base/collect/ endpoint
+            - "lookup_only": Only ID cached, no full data yet
 
     Returns:
         bool: True if saved successfully, False otherwise
 
     Example:
-        saved = save_stored_company(12345, company_data)
+        # Full data collection
+        saved = save_stored_company(12345, company_data, time.time(), "collect")
+
+        # ID-only cache (rare - usually use company_lookup_cache instead)
+        saved = save_stored_company(12345, {}, time.time(), "lookup_only")
     """
     try:
         headers = _get_supabase_headers()
@@ -298,14 +368,22 @@ def save_stored_company(company_id: int, company_data: Dict[str, Any]) -> bool:
 
         data = {
             'company_id': company_id,
-            'company_data': company_data
+            'company_data': company_data,
+            'collection_method': collection_method,
+            'data_source': 'coresignal_company_base'
         }
+
+        # Add collected_at timestamp if provided
+        if collected_at is not None:
+            from datetime import datetime
+            data['collected_at'] = datetime.fromtimestamp(collected_at).isoformat()
 
         url = f"{SUPABASE_URL}/rest/v1/stored_companies"
         response = requests.post(url, json=data, headers=headers, timeout=10)
 
         if response.status_code in [200, 201]:
-            print(f"💾 Saved company to storage")
+            method_label = "full data" if collection_method == "collect" else "ID only"
+            print(f"💾 Saved company to storage ({method_label})")
             return True
         else:
             print(f"⚠️  Failed to save company to cache: {response.status_code}")

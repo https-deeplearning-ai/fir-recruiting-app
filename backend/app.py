@@ -330,8 +330,7 @@ def get_stored_profile_by_employee_id(employee_id):
     """
     Check if profile with this employee_id is stored in database
 
-    This searches through stored profiles to find one matching the employee_id.
-    Since employee_id is stored inside profile_data JSONB, we need to query that.
+    SEPARATE TABLE APPROACH: Queries stored_profiles_by_employee_id table
 
     Returns: dict with profile_data and metadata, or None if not found
     """
@@ -342,9 +341,8 @@ def get_stored_profile_by_employee_id(employee_id):
             'Content-Type': 'application/json'
         }
 
-        # Query for profiles where profile_data->>'id' matches the employee_id
-        # Using JSONB operator ->> to extract 'id' field
-        url = f"{SUPABASE_URL}/rest/v1/stored_profiles?profile_data->>id=eq.{employee_id}"
+        # Query stored_profiles_by_employee_id table (SEPARATE TABLE APPROACH)
+        url = f"{SUPABASE_URL}/rest/v1/stored_profiles_by_employee_id?employee_id=eq.{employee_id}"
         response = requests.get(url, headers=headers)
 
         if response.status_code == 200:
@@ -3025,6 +3023,10 @@ def research_companies_endpoint():
         config = data.get('config', {})
         jd_text = data.get('jd_text', '')  # Original JD text for cache key
         force_refresh = data.get('force_refresh', False)  # Bypass cache if True
+        skip_ai_scoring = data.get('skip_ai_scoring', False)  # NEW: Skip AI scoring for faster results
+
+        # Add skip_ai_scoring to config
+        config['skip_ai_scoring'] = skip_ai_scoring
 
         if not jd_data:
             return jsonify({'error': 'jd_data is required'}), 400

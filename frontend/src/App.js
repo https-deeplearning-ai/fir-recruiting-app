@@ -94,6 +94,7 @@ function App() {
   const [companyResearchStatus, setCompanyResearchStatus] = useState(null); // Session status
   const [companyResearchResults, setCompanyResearchResults] = useState(null); // Research results
   const [companyResearchCacheInfo, setCompanyResearchCacheInfo] = useState(null); // Cache info {from_cache, cache_age_hours}
+  const [skipAiScoring, setSkipAiScoring] = useState(false); // NEW: Skip AI scoring for faster, cheaper results
   const [parsedJdRequirements, setParsedJdRequirements] = useState(null); // Parsed JD requirements from JD parser
   const [expandedCategories, setExpandedCategories] = useState({
     direct_competitor: true,    // Expanded by default (highest priority)
@@ -3564,6 +3565,42 @@ function App() {
                 rows="12"
                 disabled={companyResearching}
               />
+
+              {/* NEW: AI Scoring Options */}
+              <div className="research-options">
+                <label className="checkbox-option">
+                  <input
+                    type="checkbox"
+                    checked={skipAiScoring}
+                    onChange={(e) => setSkipAiScoring(e.target.checked)}
+                    disabled={companyResearching}
+                  />
+                  <span className="checkbox-label">
+                    <strong>⚡ Skip AI scoring</strong> for faster, cheaper results
+                  </span>
+                </label>
+
+                <div className="option-details">
+                  {skipAiScoring ? (
+                    <div className="option-info skip">
+                      <span className="time-badge">⏱️ ~1 min</span>
+                      <span className="cost-badge">💰 $35</span>
+                      <span className="warning-text">
+                        ⚠️ Companies will not be scored (manual review required)
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="option-info full">
+                      <span className="time-badge">⏱️ ~3 min</span>
+                      <span className="cost-badge">💰 $185</span>
+                      <span className="info-text">
+                        ✓ Claude Haiku will score each company's relevance (1-10)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <button
                 className="company-research-btn"
                 onClick={async () => {
@@ -3636,6 +3673,7 @@ function App() {
                       body: JSON.stringify({
                         jd_text: companyJdText,  // For cache key generation
                         jd_data: jdData,
+                        skip_ai_scoring: skipAiScoring,  // NEW: Skip AI scoring for faster results
                         config: {
                           max_companies: 50,
                           min_relevance_score: 5.0,
@@ -4745,6 +4783,7 @@ function App() {
                             body: JSON.stringify({
                               jd_text: companyJdText,
                               jd_data: parsedJdRequirements,
+                              skip_ai_scoring: skipAiScoring,  // NEW: Skip AI scoring for faster results
                               config: {},
                               force_refresh: true  // Bypass cache
                             })
@@ -4787,6 +4826,21 @@ function App() {
                   <p>Average Score: {companyResearchResults.summary.avg_relevance_score || 0}</p>
                   <p>Top Company: {companyResearchResults.summary.top_company || 'N/A'}</p>
                 </div>
+
+                {/* NEW: Warning banner if AI scoring was skipped */}
+                {companyResearchResults.metadata && companyResearchResults.metadata.ai_scoring_enabled === false && (
+                  <div className="info-banner warning">
+                    <span className="banner-icon">⚠️</span>
+                    <div className="banner-content">
+                      <strong>AI scoring was skipped</strong>
+                      <p>
+                        Companies are not scored for faster results.
+                        Manually review all companies or re-run with AI scoring enabled.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Export Deep Research Button (Fixed Position) */}
                 <button
                   onClick={() => exportDeepResearch()}
@@ -4915,19 +4969,37 @@ function App() {
                                     </span>
                                   )}
                                 </div>
-                                <span className="score-badge">{company.relevance_score}/10</span>
-                                {company.scored_by && (
+                                {/* Only show score if AI scoring was performed */}
+                                {company.scored_by !== 'default_no_ai' && (
+                                  <>
+                                    <span className="score-badge">{company.relevance_score}/10</span>
+                                    {company.scored_by && (
+                                      <span style={{
+                                        fontSize: '10px',
+                                        color: '#6b7280',
+                                        marginLeft: '8px',
+                                        padding: '2px 6px',
+                                        backgroundColor: '#f3f4f6',
+                                        borderRadius: '4px'
+                                      }}>
+                                        {company.scored_by === 'claude_haiku_with_websearch' ? '🔍 Web Search' :
+                                         company.scored_by === 'error_fallback' ? '⚠️ Fallback' :
+                                         company.scored_by}
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                                {/* Show "Not Scored" badge when AI scoring was skipped */}
+                                {company.scored_by === 'default_no_ai' && (
                                   <span style={{
-                                    fontSize: '10px',
-                                    color: '#6b7280',
-                                    marginLeft: '8px',
-                                    padding: '2px 6px',
-                                    backgroundColor: '#f3f4f6',
-                                    borderRadius: '4px'
+                                    fontSize: '11px',
+                                    color: '#f59e0b',
+                                    padding: '4px 10px',
+                                    backgroundColor: '#fef3c7',
+                                    borderRadius: '4px',
+                                    fontWeight: '500'
                                   }}>
-                                    {company.scored_by === 'claude_haiku_with_websearch' ? '🔍 Web Search' :
-                                     company.scored_by === 'error_fallback' ? '⚠️ Fallback' :
-                                     company.scored_by}
+                                    Not Scored
                                   </span>
                                 )}
                               </div>

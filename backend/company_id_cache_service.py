@@ -55,22 +55,25 @@ class CompanyIDCacheService:
     async def get_cached_id(self, company_name: str) -> Optional[Dict[str, Any]]:
         """
         Get cached CoreSignal ID for a company.
-        Returns: Dict with coresignal_id, lookup_tier, metadata if found, else None
-        """
-        normalized_name = self.normalize_company_name(company_name)
+        Returns: Dict with company_id (CoreSignal ID) if found, else None
 
-        if not normalized_name:
+        Uses EXISTING company_lookup_cache table schema:
+        - company_id (not coresignal_id)
+        - lookup_successful (boolean)
+        - No lookup_tier or normalized names
+        """
+        if not company_name:
             return None
 
         try:
             async with httpx.AsyncClient() as client:
-                # Query cache
+                # Query cache by company_name
                 response = await client.get(
-                    f"{self.supabase_url}/rest/v1/company_id_cache",
+                    f"{self.supabase_url}/rest/v1/company_lookup_cache",
                     headers=self.headers,
                     params={
-                        "company_name_normalized": f"eq.{normalized_name}",
-                        "select": "coresignal_id,lookup_tier,metadata,hit_count"
+                        "company_name": f"eq.{company_name}",
+                        "select": "id,company_id,lookup_successful,confidence,employee_count,created_at,last_used_at"
                     }
                 )
 
@@ -79,14 +82,18 @@ class CompanyIDCacheService:
                     if results:
                         cache_entry = results[0]
 
-                        # Update hit_count and last_accessed_at
-                        await self._increment_hit_count(cache_entry['coresignal_id'])
+                        # Update last_used_at
+                        await self._update_last_used(cache_entry.get("id") or company_name)
 
+                        # Return data for both successful AND failed lookups
                         return {
-                            "coresignal_id": cache_entry["coresignal_id"],
-                            "lookup_tier": cache_entry["lookup_tier"],
-                            "metadata": cache_entry.get("metadata", {}),
-                            "hit_count": cache_entry.get("hit_count", 0) + 1,
+                            "coresignal_id": cache_entry.get("company_id"),  # Can be None for failed searches
+                            "company_id": cache_entry.get("company_id"),
+                            "lookup_successful": cache_entry.get("lookup_successful"),
+                            "confidence": cache_entry.get("confidence"),
+                            "employee_count": cache_entry.get("employee_count"),
+                            "created_at": cache_entry.get("created_at"),
+                            "last_used_at": cache_entry.get("last_used_at"),
                             "from_cache": True
                         }
 
@@ -98,42 +105,54 @@ class CompanyIDCacheService:
     async def save_to_cache(
         self,
         company_name: str,
-        coresignal_id: int,
-        lookup_tier: str,
+        coresignal_id: Optional[int],
+        lookup_tier: Optional[str] = None,  # Not used in existing schema
         website: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
     ) -> bool:
         """
         Save a company name → CoreSignal ID mapping to cache.
-        Returns: True if saved successfully, False otherwise
-        """
-        normalized_name = self.normalize_company_name(company_name)
 
-        if not normalized_name or not coresignal_id:
+        Uses EXISTING company_lookup_cache table schema:
+        - company_id (maps from coresignal_id parameter)
+        - lookup_successful (True if ID found, False if None)
+        - website, confidence, employee_count
+
+        Args:
+            company_name: Company name
+            coresignal_id: CoreSignal ID (None for failed lookups)
+            lookup_tier: (ignored, for API compatibility)
+            website: Company website
+            metadata: Additional data (can include confidence, employee_count)
+
+        Returns: True if saved successfully
+        """
+        if not company_name:
             return False
 
         try:
             async with httpx.AsyncClient() as client:
                 data = {
                     "company_name": company_name,
-                    "company_name_normalized": normalized_name,
-                    "coresignal_id": coresignal_id,
-                    "lookup_tier": lookup_tier,
+                    "company_id": coresignal_id,  # Use correct field name
+                    "lookup_successful": coresignal_id is not None,
                     "website": website,
-                    "metadata": metadata or {},
-                    "hit_count": 0,
-                    "last_accessed_at": datetime.utcnow().isoformat()
+                    "confidence": metadata.get("confidence", "1.00") if metadata else "1.00",
+                    "employee_count": metadata.get("employee_count") if metadata else None,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "last_used_at": datetime.utcnow().isoformat()
                 }
 
                 # Upsert (insert or update if exists)
                 response = await client.post(
-                    f"{self.supabase_url}/rest/v1/company_id_cache",
+                    f"{self.supabase_url}/rest/v1/company_lookup_cache",
                     headers={**self.headers, "Prefer": "resolution=merge-duplicates"},
                     json=data
                 )
 
                 if response.status_code in [200, 201]:
-                    print(f"[CACHE] ✅ Saved {company_name} → {coresignal_id} (tier: {lookup_tier})")
+                    status = "✅" if coresignal_id else "❌"
+                    print(f"[CACHE] {status} Saved {company_name} → {coresignal_id}")
                     return True
                 else:
                     print(f"[CACHE] ❌ Failed to save {company_name}: {response.status_code} {response.text}")
@@ -143,66 +162,56 @@ class CompanyIDCacheService:
 
         return False
 
-    async def _increment_hit_count(self, coresignal_id: int):
-        """Increment hit_count and update last_accessed_at for a cache entry."""
+    async def _update_last_used(self, identifier):
+        """Update last_used_at for a cache entry.
+
+        Args:
+            identifier: Either entry ID or company_name
+        """
         try:
             async with httpx.AsyncClient() as client:
-                # Get current hit_count
-                response = await client.get(
-                    f"{self.supabase_url}/rest/v1/company_id_cache",
+                # Try to update by ID first, fallback to company_name
+                if isinstance(identifier, int):
+                    params = {"id": f"eq.{identifier}"}
+                else:
+                    params = {"company_name": f"eq.{identifier}"}
+
+                await client.patch(
+                    f"{self.supabase_url}/rest/v1/company_lookup_cache",
                     headers=self.headers,
-                    params={
-                        "coresignal_id": f"eq.{coresignal_id}",
-                        "select": "id,hit_count"
-                    }
+                    params=params,
+                    json={"last_used_at": datetime.utcnow().isoformat()}
                 )
 
-                if response.status_code == 200:
-                    results = response.json()
-                    if results:
-                        entry_id = results[0]["id"]
-                        current_hits = results[0].get("hit_count", 0)
-
-                        # Update
-                        await client.patch(
-                            f"{self.supabase_url}/rest/v1/company_id_cache",
-                            headers=self.headers,
-                            params={"id": f"eq.{entry_id}"},
-                            json={
-                                "hit_count": current_hits + 1,
-                                "last_accessed_at": datetime.utcnow().isoformat()
-                            }
-                        )
-
         except Exception as e:
-            print(f"[CACHE] Error updating hit count: {e}")
+            print(f"[CACHE] Error updating last_used: {e}")
 
     async def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    f"{self.supabase_url}/rest/v1/company_id_cache",
+                    f"{self.supabase_url}/rest/v1/company_lookup_cache",
                     headers=self.headers,
-                    params={"select": "id,hit_count,lookup_tier"}
+                    params={"select": "id,lookup_successful,confidence"}
                 )
 
                 if response.status_code == 200:
                     results = response.json()
                     total_entries = len(results)
-                    total_hits = sum(r.get("hit_count", 0) for r in results)
+                    successful = sum(1 for r in results if r.get("lookup_successful"))
+                    failed = total_entries - successful
 
-                    # Count by tier
-                    tier_counts = {}
-                    for r in results:
-                        tier = r.get("lookup_tier", "unknown")
-                        tier_counts[tier] = tier_counts.get(tier, 0) + 1
+                    # Average confidence
+                    confidences = [float(r.get("confidence", 0)) for r in results if r.get("lookup_successful") and r.get("confidence")]
+                    avg_confidence = sum(confidences) / len(confidences) if confidences else 0
 
                     return {
                         "total_entries": total_entries,
-                        "total_cache_hits": total_hits,
-                        "estimated_credits_saved": total_hits,  # 1 search credit per hit avoided
-                        "tier_distribution": tier_counts
+                        "successful_lookups": successful,
+                        "failed_lookups": failed,
+                        "average_confidence": f"{avg_confidence:.2f}",
+                        "estimated_credits_saved": successful  # 1 search credit per successful cached lookup
                     }
 
         except Exception as e:
